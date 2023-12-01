@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+  "crates/*"
+]
+
+[workspace.metadata.local-install]
+sea-orm-cli = "0.12.4"
+
