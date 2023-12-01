@@ -1,8 +1,27 @@
 [workspace]
 
+resolver = "2"
+
 members = [
   "crates/*"
 ]
+
+[workspace.dependencies]
+color_eyre = { version = "0.6" }
+thiserror = { version = "1" }
+sea-orm = { version = "0.12", features = [
+    "sqlx-sqlite",
+    "runtime-tokio-rustls",
+    "macros",
+] }
+serde_json = "1"
+serde = { version = "1.0", features = ["derive"] }
+entity = { path = "./entity" }
+migration = { path = "./migration" }
+toml = "0.8"
+tonic = "0.10"
+prost = "0.12"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 
 [workspace.metadata.local-install]
 sea-orm-cli = "0.12.4"
