@@ -75,7 +75,24 @@ review_event_log (past review events)
   - scheduled review date
   - review date, when the item was actually reviewed
   - grade
-  
+
+## Message model
+
+how should we interact with the server?
+
+we will use gRPC.
+
+what do we need to do?
+- queries
+  - number of due items
+  - list of due items
+  - items by type
+  - item by id
+- mutations
+  - reviewResult. send grade and item id only. Only update item if first review of the day
+  - new item
+  - update data of item
+
 ## Libraries
 
 - tonic

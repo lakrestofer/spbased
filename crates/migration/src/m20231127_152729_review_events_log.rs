@@ -23,8 +23,8 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(ReviewEventLog::ReviewItemId)
-                            .integer()
+                        ColumnDef::new(ReviewEventLog::ReviewItemName)
+                            .string()
                             .not_null(),
                     )
                     .col(
@@ -44,8 +44,8 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKey::create()
                             .name("FK__review-event_review-item")
-                            .from(ReviewEventLog::Table, ReviewEventLog::ReviewItemId)
-                            .to(ReviewItem::Table, ReviewItem::Id),
+                            .from(ReviewEventLog::Table, ReviewEventLog::ReviewItemName)
+                            .to(ReviewItem::Table, ReviewItem::Name),
                     )
                     .to_owned(),
             )
@@ -73,7 +73,7 @@ pub enum Grade {
 enum ReviewEventLog {
     Table,
     Id,
-    ReviewItemId,
+    ReviewItemName,
     ScheduledDate,
     ReviewDate,
     Grade,

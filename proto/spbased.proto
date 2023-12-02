@@ -1,0 +1,24 @@
+syntax = "proto3";
+package spbased;
+
+// ==== services ====
+
+service Scheduler {
+  ListReviewItems () returns (stream ReviewItem) {}
+}
+
+// ==== message definitions ====
+
+message ReviewItem {
+  string name = 1; // e.g flashcards/uuid - this is apparently good practice for any larger system
+  // float32 difficulty = 2; // these should be considered a hidden detail
+  // float32 stability = 3;
+  string last_review_date = 4;
+  string url = 5;
+  string data = 6;
+}
+
+message GetReviewItemMessage {
+  optional sint32 id = 1;
+}
+

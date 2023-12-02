@@ -23,8 +23,8 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(ScheduledReviewEvent::ReviewItemId)
-                            .integer()
+                        ColumnDef::new(ScheduledReviewEvent::ReviewItemName)
+                            .string()
                             .not_null(),
                     )
                     .col(
@@ -37,9 +37,9 @@ impl MigrationTrait for Migration {
                             .name("FK__review-event_review-item")
                             .from(
                                 ScheduledReviewEvent::Table,
-                                ScheduledReviewEvent::ReviewItemId,
+                                ScheduledReviewEvent::ReviewItemName,
                             )
-                            .to(ReviewItem::Table, ReviewItem::Id),
+                            .to(ReviewItem::Table, ReviewItem::Name),
                     )
                     .to_owned(),
             )
@@ -59,6 +59,6 @@ impl MigrationTrait for Migration {
 enum ScheduledReviewEvent {
     Table,
     Id,
-    ReviewItemId,
+    ReviewItemName,
     ScheduledDate,
 }

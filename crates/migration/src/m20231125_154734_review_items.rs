@@ -14,16 +14,15 @@ impl MigrationTrait for Migration {
                     .table(ReviewItem::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(ReviewItem::Id)
-                            .integer()
+                        ColumnDef::new(ReviewItem::Name)
+                            .string()
                             .not_null()
-                            .auto_increment()
                             .primary_key(),
                     )
                     .col(ColumnDef::new(ReviewItem::Difficulty).float().not_null())
                     .col(ColumnDef::new(ReviewItem::Stability).float().not_null())
                     .col(ColumnDef::new(ReviewItem::LastReviewDate).date().not_null())
-                    .col(ColumnDef::new(ReviewItem::URI).string().not_null())
+                    .col(ColumnDef::new(ReviewItem::URL).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Data).string().not_null())
                     .to_owned(),
             )
@@ -42,11 +41,11 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 pub enum ReviewItem {
     Table,
-    Id,
+    Name, // uuid
     Difficulty,
     Stability,
     LastReviewDate,
     // NextReviewDate,
-    URI,
+    URL,
     Data,
 }
