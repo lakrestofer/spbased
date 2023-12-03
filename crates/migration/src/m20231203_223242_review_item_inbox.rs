@@ -11,21 +11,18 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ReviewItem::Table)
+                    .table(NewReviewItem::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(ReviewItem::Name)
+                        ColumnDef::new(NewReviewItem::Name)
                             .uuid()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(ReviewItem::CreateTime).date().not_null())
-                    .col(ColumnDef::new(ReviewItem::UpdateTime).date().not_null())
-                    .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
-                    .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
-                    .col(ColumnDef::new(ReviewItem::LastReviewDate).date().not_null())
-                    .col(ColumnDef::new(ReviewItem::URL).string().not_null())
-                    .col(ColumnDef::new(ReviewItem::Data).string().not_null())
+                    .col(ColumnDef::new(NewReviewItem::CreateTime).date().not_null())
+                    .col(ColumnDef::new(NewReviewItem::UpdateTime).date().not_null())
+                    .col(ColumnDef::new(NewReviewItem::URL).string().not_null())
+                    .col(ColumnDef::new(NewReviewItem::Data).string().not_null())
                     .to_owned(),
             )
             .await
@@ -35,20 +32,17 @@ impl MigrationTrait for Migration {
         // Replace the sample below with your own migration scripts
 
         manager
-            .drop_table(Table::drop().table(ReviewItem::Table).to_owned())
+            .drop_table(Table::drop().table(NewReviewItem::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub enum ReviewItem {
+pub enum NewReviewItem {
     Table,
     Name, // uuid
     CreateTime,
     UpdateTime,
-    Difficulty,
-    Stability,
-    LastReviewDate,
     URL,
     Data,
 }
