@@ -6,4 +6,4 @@ if [[ -z "$1" ]]
     exit 1
 fi
 
-./bin/sea-orm-cli migrate generate $1
+./bin/sea-orm-cli migrate generate $1 -d ./crates/migration/src/
