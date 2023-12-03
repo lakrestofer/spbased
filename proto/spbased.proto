@@ -4,21 +4,36 @@ package spbased;
 // ==== services ====
 
 service Scheduler {
-  ListReviewItems () returns (stream ReviewItem) {}
+  // List
+  ListReviewItems ( ReviewItemFilterMessage ) returns (stream ReviewItem) {}
+  // Get
+  // Create
+  // Update
+  // Delete
 }
 
 // ==== message definitions ====
+// all the message definitions
+
+
+// *request messages* 
+// these define what information is passed with one of the above standard methods
+
+message ListReviewItemsMessage {
+  optional string page_token = 1;
+  optional int32 page_size = 2;
+}
 
 message ReviewItem {
   string name = 1; // e.g flashcards/uuid - this is apparently good practice for any larger system
   // float32 difficulty = 2; // these should be considered a hidden detail
-  // float32 stability = 3;
+  // float32 stability = 3; // it is only the api layer that knows about 
   string last_review_date = 4;
   string url = 5;
   string data = 6;
 }
 
 message GetReviewItemMessage {
-  optional sint32 id = 1;
+  optional string name = 1;
 }
 
