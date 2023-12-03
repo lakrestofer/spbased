@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(ScheduledReviewEvent::ReviewItemName)
-                            .string()
+                            .uuid()
                             .not_null(),
                     )
                     .col(

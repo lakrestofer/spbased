@@ -16,4 +16,5 @@ version = "0.12.0"
 features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
+    "with-uuid"
 ]

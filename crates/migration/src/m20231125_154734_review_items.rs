@@ -15,12 +15,12 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(
                         ColumnDef::new(ReviewItem::Name)
-                            .string()
+                            .uuid()
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(ReviewItem::Difficulty).float().not_null())
-                    .col(ColumnDef::new(ReviewItem::Stability).float().not_null())
+                    .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
+                    .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
                     .col(ColumnDef::new(ReviewItem::LastReviewDate).date().not_null())
                     .col(ColumnDef::new(ReviewItem::URL).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Data).string().not_null())
