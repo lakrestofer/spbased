@@ -1,30 +1,30 @@
-const PARAMS: [f32; 17] = [
+const PARAMS: [f64; 17] = [
     0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18, 0.05, 0.34, 1.26, 0.29,
     2.61,
 ];
 // initial stabilities
-const AGAIN_STABILITY: f32 = PARAMS[0];
-const HARD_STABILITY: f32 = PARAMS[1];
-const PASS_STABILITY: f32 = PARAMS[2];
-const EASY_STABILITY: f32 = PARAMS[3];
+const AGAIN_STABILITY: f64 = PARAMS[0];
+const HARD_STABILITY: f64 = PARAMS[1];
+const PASS_STABILITY: f64 = PARAMS[2];
+const EASY_STABILITY: f64 = PARAMS[3];
 // initial difficulty weights
-const INIT_DIFFICULTY_WEIGHT_1: f32 = PARAMS[4];
-const INIT_DIFFICULTY_WEIGHT_2: f32 = PARAMS[5];
+const INIT_DIFFICULTY_WEIGHT_1: f64 = PARAMS[4];
+const INIT_DIFFICULTY_WEIGHT_2: f64 = PARAMS[5];
 // update difficulty weights
-const UPDATE_DIFFICULTY_WEIGHT_1: f32 = PARAMS[6];
-const UPDATE_DIFFICULTY_WEIGHT_2: f32 = PARAMS[7];
+const UPDATE_DIFFICULTY_WEIGHT_1: f64 = PARAMS[6];
+const UPDATE_DIFFICULTY_WEIGHT_2: f64 = PARAMS[7];
 // update stability weights
-const UPDATE_STABILITY_WEIGHT_1: f32 = PARAMS[8];
-const UPDATE_STABILITY_WEIGHT_2: f32 = PARAMS[9];
-const UPDATE_STABILITY_WEIGHT_3: f32 = PARAMS[10];
+const UPDATE_STABILITY_WEIGHT_1: f64 = PARAMS[8];
+const UPDATE_STABILITY_WEIGHT_2: f64 = PARAMS[9];
+const UPDATE_STABILITY_WEIGHT_3: f64 = PARAMS[10];
 // update stability weight on fail
-const UPDATE_STABILITY_FAIL_1: f32 = PARAMS[11];
-const UPDATE_STABILITY_FAIL_2: f32 = PARAMS[12];
-const UPDATE_STABILITY_FAIL_3: f32 = PARAMS[13];
-const UPDATE_STABILITY_FAIL_4: f32 = PARAMS[14];
+const UPDATE_STABILITY_FAIL_1: f64 = PARAMS[11];
+const UPDATE_STABILITY_FAIL_2: f64 = PARAMS[12];
+const UPDATE_STABILITY_FAIL_3: f64 = PARAMS[13];
+const UPDATE_STABILITY_FAIL_4: f64 = PARAMS[14];
 // update stability weight on success
-const UPDATE_STABILITY_SUCCESS_1: f32 = PARAMS[15];
-const UPDATE_STABILITY_SUCCESS_2: f32 = PARAMS[16];
+const UPDATE_STABILITY_SUCCESS_1: f64 = PARAMS[15];
+const UPDATE_STABILITY_SUCCESS_2: f64 = PARAMS[16];
 
 /// Enum representing possible review results
 pub enum Grade {
@@ -37,7 +37,7 @@ pub enum Grade {
 /// given the first review event, what stability
 /// (number of days untill recall probability reaches 90%)
 /// do we estimate it to have?
-pub fn stability_init(g: Grade) -> f32 {
+pub fn stability_init(g: Grade) -> f64 {
     match g {
         Grade::Again => AGAIN_STABILITY,
         Grade::Hard => HARD_STABILITY,
@@ -47,30 +47,30 @@ pub fn stability_init(g: Grade) -> f32 {
 }
 
 /// given the first review event, what difficulty do we estimate it to have?
-pub fn difficulty_init(g: Grade) -> f32 {
-    INIT_DIFFICULTY_WEIGHT_1 - (g as u8 as f32) * INIT_DIFFICULTY_WEIGHT_2
+pub fn difficulty_init(g: Grade) -> f64 {
+    INIT_DIFFICULTY_WEIGHT_1 - (g as u8 as f64) * INIT_DIFFICULTY_WEIGHT_2
 }
 
 /// given a review event, how should we update a review items difficulty?
-pub fn update_difficulty(d: f32, g: Grade) -> f32 {
+pub fn update_difficulty(d: f64, g: Grade) -> f64 {
     UPDATE_DIFFICULTY_WEIGHT_2 * difficulty_init(Grade::Pass)
         + (1.0 - UPDATE_DIFFICULTY_WEIGHT_2)
-            * (d - UPDATE_DIFFICULTY_WEIGHT_1 * (g as u8 as f32 - 3.0))
+            * (d - UPDATE_DIFFICULTY_WEIGHT_1 * (g as u8 as f64 - 3.0))
 }
 
 /// the probability that review item will be recalled after n_days
-pub fn recall(n_days: f32, stability: f32) -> f32 {
+pub fn recall(n_days: f64, stability: f64) -> f64 {
     1.0 / (1.0 + (n_days / (9.0 * stability)))
 }
 
 /// the number of days until the probability of recalling the
 /// review_item reaches r
-pub fn interval(recall_probability: f32, stability: f32) -> f32 {
+pub fn interval(recall_probability: f64, stability: f64) -> f64 {
     9.0 * stability * (1.0 / recall_probability - 1.0)
 }
 
 /// given a reviev even were we did recall the item, how should we update its stability
-fn update_stability_on_recall(difficulty: f32, stability: f32, grade: Grade, n_days: f32) -> f32 {
+fn update_stability_on_recall(difficulty: f64, stability: f64, grade: Grade, n_days: f64) -> f64 {
     let recall = recall(n_days, stability);
     let grade_factor = match grade {
         Grade::Hard => UPDATE_STABILITY_SUCCESS_1,
@@ -85,7 +85,7 @@ fn update_stability_on_recall(difficulty: f32, stability: f32, grade: Grade, n_d
 }
 
 /// given a reviev even were we did not recall the item, how should we update its stability
-fn update_stability_on_forget(difficulty: f32, stability: f32, n_days: f32) -> f32 {
+fn update_stability_on_forget(difficulty: f64, stability: f64, n_days: f64) -> f64 {
     let r = recall(n_days, stability);
     UPDATE_STABILITY_FAIL_1
         * difficulty.powf(-UPDATE_STABILITY_FAIL_2)
@@ -94,7 +94,7 @@ fn update_stability_on_forget(difficulty: f32, stability: f32, n_days: f32) -> f
 }
 
 /// given a review event, how should we update a review items stability?
-pub fn update_stability(difficulty: f32, stability: f32, grade: Grade, n_days: f32) -> f32 {
+pub fn update_stability(difficulty: f64, stability: f64, grade: Grade, n_days: f64) -> f64 {
     match grade {
         Grade::Again => update_stability_on_forget(difficulty, stability, n_days),
         g => update_stability_on_recall(difficulty, stability, g, n_days),
