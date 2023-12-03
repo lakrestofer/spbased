@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub review_item_id: i32,
+    pub review_item_name: String,
     pub scheduled_date: String,
     pub review_date: String,
     pub grade: String,
@@ -18,8 +18,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::review_item::Entity",
-        from = "Column::ReviewItemId",
-        to = "super::review_item::Column::Id",
+        from = "Column::ReviewItemName",
+        to = "super::review_item::Column::Name",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]

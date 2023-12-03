@@ -6,14 +6,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "review_item")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: i32,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub name: String,
     #[sea_orm(column_type = "Double")]
     pub difficulty: f64,
     #[sea_orm(column_type = "Double")]
     pub stability: f64,
     pub last_review_date: String,
-    pub uri: String,
+    pub url: String,
     pub data: String,
 }
 
