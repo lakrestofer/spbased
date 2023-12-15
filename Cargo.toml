@@ -7,6 +7,12 @@ members = [
 ]
 
 [workspace.dependencies]
+# internal dependencies
+entity = { path = "./crates/entity" }
+migration = { path = "./crates/migration" }
+grpc = { path = "./crates/grpc" }
+api = { path = "./crates/api" }
+# external dependencies
 color_eyre = { version = "0.6" }
 thiserror = { version = "1" }
 sea-orm = { version = "0.12", features = [
@@ -17,13 +23,14 @@ sea-orm = { version = "0.12", features = [
 ] }
 serde_json = "1"
 serde = { version = "1.0", features = ["derive"] }
-entity = { path = "./entity" }
-migration = { path = "./migration" }
 toml = "0.8"
 tonic = "0.10"
+tonic-build = "0.10"
 prost = "0.12"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-stream = "0.1"
+async-stream = "0.2"
+
 
 [workspace.metadata.local-install]
 sea-orm-cli = "0.12.4"
-

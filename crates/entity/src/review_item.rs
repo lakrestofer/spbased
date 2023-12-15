@@ -10,11 +10,13 @@ pub struct Model {
     pub name: String,
     pub create_time: String,
     pub update_time: String,
+    pub status: String,
     #[sea_orm(column_type = "Double")]
     pub difficulty: f64,
     #[sea_orm(column_type = "Double")]
     pub stability: f64,
     pub last_review_date: String,
+    pub item_type: String,
     pub url: String,
     pub data: String,
 }

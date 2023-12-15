@@ -21,9 +21,11 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(ReviewItem::CreateTime).date().not_null())
                     .col(ColumnDef::new(ReviewItem::UpdateTime).date().not_null())
+                    .col(ColumnDef::new(ReviewItem::Status).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
                     .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
                     .col(ColumnDef::new(ReviewItem::LastReviewDate).date().not_null())
+                    .col(ColumnDef::new(ReviewItem::ItemType).string().not_null())
                     .col(ColumnDef::new(ReviewItem::URL).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Data).string().not_null())
                     .to_owned(),
@@ -46,9 +48,12 @@ pub enum ReviewItem {
     Name, // uuid
     CreateTime,
     UpdateTime,
+    Status, // inbox, review, burried
+    // Priority,
     Difficulty,
     Stability,
     LastReviewDate,
+    ItemType, // type of review item, most commonly the name of the "frontend" for this particular item
     URL,
     Data,
 }

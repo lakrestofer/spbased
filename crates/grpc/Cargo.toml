@@ -1,5 +1,5 @@
 [package]
-name = "api"
+name = "grpc"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,8 +11,6 @@ tokio = { workspace = true }
 tokio-stream = { workspace = true }
 async-stream = { workspace = true }
 prost = { workspace = true }
-sea-orm = { workspace = true }
-entity = { workspace = true }
-migration = { workspace = true }
-grpc = { workspace = true }
 
+[build-dependencies]
+tonic-build = { workspace = true }

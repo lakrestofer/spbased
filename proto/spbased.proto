@@ -3,13 +3,12 @@ package spbased;
 
 // ==== services ====
 
-service Scheduler {
-  ListReviewItems ( ListReviewItemMessage ) returns (stream ReviewItem) {} // List
-  GetReviewItem ( GetReviewItemMessage ) returns (ReviewItem) {} // Get
-  CreateReviewItem ( CreateReviewItemMessage ) returns (ReviewItem) {} // Get
-  // Update
-  // Delete
-  DeleteReviewItem ( DeleteReviewItemMessage ) returns (ReviewItem) {} // Get
+service Collection {
+  rpc ListReviewItems ( ListReviewItemsMessage ) returns (ListReviewItemsResponse) {} // List
+  rpc GetReviewItem ( GetReviewItemMessage ) returns (GetReviewItemResponse) {} // Get
+  rpc CreateReviewItem ( CreateReviewItemMessage ) returns (CreateReviewItemResponse) {} // Create
+  rpc UpdateReviewItem ( UpdateReviewItemMessage ) returns (UpdateReviewItemResponse) {} // Update
+  rpc DeleteReviewItem ( DeleteReviewItemMessage ) returns (DeleteReviewItemResponse) {} // Delete
 }
 
 // ==== message definitions ====
@@ -17,50 +16,95 @@ service Scheduler {
 
 // *objects*
 
-// new review item, has not been assigned a stability nor difficulty yet
-message NewReviewItem {
-  string name = 1; // e.g "flashcards/uuid" - this is apparently good practice for any larger system
-  string create_time = 2;
-  string update_time = 3;
-  string url = 4;
-  string data = 5;
-  // maybe something like prioritization?
-}
-
 // review item
 message ReviewItem {
-  string name = 1; // e.g flashcards/uuid - this is apparently good practice for any larger system
+  string name = 1; // e.g flashcard/uuid - this is apparently good practice for any larger system
   string create_time = 2; // when was this item created
   string update_time = 3; // when was this item updated last? (as in data field, not the difficulty or stability)
-  float64 difficulty = 4; 
-  float64 stability = 5;
-  string last_review_date = 6;
-  string url = 7;
-  string data = 8;
+  string status = 4;
+  double difficulty = 5; // is 0 when item is still new
+  double stability = 6; // is 0 when item is still new
+  string last_review_date = 7;
+  string item_type = 8;
+  string url = 9; // some url in the format of type://type/review/name
+  string data = 10; // json encoded data
 }
 
-// *request messages* 
+// version info, schema version etc.
+message VersionInfo {
+ string api_version = 1; 
+}
+
+message ResponseStatus {
+  int32 code = 1;
+  string message = 2;
+}
+
+// *request messages and their responses* 
 // these define what information is passed with one of the above standard methods
 
+// -- List --
 message ListReviewItemsMessage {
+  VersionInfo version = 1;
   // options for paginated result
-  string page_token = 1; // "" for first page, then use the returned page token
-  int32 page_size = 2; // 0 for the server to decide
+  string page_token = 2; // "" for first page, then use the returned page token
+  int32 page_size = 3; // 0 for the server to decide
   // sorting
-  string order_by = 3; // e.g sort first by update time, then by create time"update_time,create_time"
-  bool asc = 4;
+  string order_by = 4; // e.g sort first by update time, then by create time"update_time,create_time"
+  string order_dir= 5; // sort by "asc, desc"
   // filters
-  // to be continued...
+  string filter = 6; // string describing how to filter
 }
 
+message ListReviewItemsResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  string next_page_token = 3;
+  repeated ReviewItem items = 4;
+}
+
+// -- Get --
 message GetReviewItemMessage {
+  VersionInfo version = 1;
+  string name = 2; // the specific name of the item you are searching for
+}
+
+message GetReviewItemResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  ReviewItem item = 3;
+}
+
+// -- Create --
+message CreateReviewItemMessage {
+  VersionInfo version = 1;
+  ReviewItem item = 2;
+}
+
+message CreateReviewItemResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  ReviewItem name = 3; // returns the new item will all fields populated
+}
+
+// -- Update --
+
+message UpdateReviewItemMessage {
+  VersionInfo version = 1;
+  ReviewItem name = 2;
+}
+
+message UpdateReviewItemResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  ReviewItem name = 3;
+}
+
+// -- Delete --
+message DeleteReviewItemMessage {
   string name = 1;
 }
 
-message CreateReviewItemMessage {
-  NewReviewItem item = 1;
-}
-
-message DeleteReviewItemMessage {
+message DeleteReviewItemResponse {
   string name = 1;
 }
