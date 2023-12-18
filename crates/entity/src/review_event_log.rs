@@ -3,10 +3,17 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "review_event_log")]
+#[derive(Copy, Clone, Default, Debug, DeriveEntity)]
+pub struct Entity;
+
+impl EntityName for Entity {
+    fn table_name(&self) -> &str {
+        "review_event_log"
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    #[sea_orm(primary_key)]
     pub id: i32,
     pub review_item_name: String,
     pub scheduled_date: String,
@@ -14,16 +21,54 @@ pub struct Model {
     pub grade: String,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+pub enum Column {
+    Id,
+    ReviewItemName,
+    ScheduledDate,
+    ReviewDate,
+    Grade,
+}
+
+#[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
+pub enum PrimaryKey {
+    Id,
+}
+
+impl PrimaryKeyTrait for PrimaryKey {
+    type ValueType = i32;
+    fn auto_increment() -> bool {
+        true
+    }
+}
+
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::review_item::Entity",
-        from = "Column::ReviewItemName",
-        to = "super::review_item::Column::Name",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
     ReviewItem,
+}
+
+impl ColumnTrait for Column {
+    type EntityName = Entity;
+    fn def(&self) -> ColumnDef {
+        match self {
+            Self::Id => ColumnType::Integer.def(),
+            Self::ReviewItemName => ColumnType::String(None).def(),
+            Self::ScheduledDate => ColumnType::String(None).def(),
+            Self::ReviewDate => ColumnType::String(None).def(),
+            Self::Grade => ColumnType::String(None).def(),
+        }
+    }
+}
+
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::ReviewItem => Entity::belongs_to(super::review_item::Entity)
+                .from(Column::ReviewItemName)
+                .to(super::review_item::Column::Name)
+                .into(),
+        }
+    }
 }
 
 impl Related<super::review_item::Entity> for Entity {

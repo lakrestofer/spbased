@@ -30,6 +30,20 @@ message ReviewItem {
   string data = 10; // json encoded data
 }
 
+message NewReviewItem {
+  string item_type = 8;
+  string data = 10; // json encoded data
+}
+
+message UpdateReviewItem {
+  string name = 1; // e.g flashcard/uuid - this is apparently good practice for any larger system
+  optional string status = 2;
+  optional double difficulty = 3; // is 0 when item is still new
+  optional double stability = 4; // is 0 when item is still new
+  optional string last_review_date = 5;
+  optional string data = 6; // json encoded data
+}
+
 // version info, schema version etc.
 message VersionInfo {
  string api_version = 1; 
@@ -78,33 +92,35 @@ message GetReviewItemResponse {
 // -- Create --
 message CreateReviewItemMessage {
   VersionInfo version = 1;
-  ReviewItem item = 2;
+  NewReviewItem item = 2;
 }
 
 message CreateReviewItemResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
-  ReviewItem name = 3; // returns the new item will all fields populated
+  ReviewItem item = 3; // returns the new item will all fields populated
 }
 
 // -- Update --
 
 message UpdateReviewItemMessage {
   VersionInfo version = 1;
-  ReviewItem name = 2;
+  UpdateReviewItem item = 2; // review item with all fields optional
 }
 
 message UpdateReviewItemResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
-  ReviewItem name = 3;
+  ReviewItem item = 3;
 }
 
 // -- Delete --
 message DeleteReviewItemMessage {
-  string name = 1;
+  VersionInfo version = 1;
+  string name = 2;
 }
 
 message DeleteReviewItemResponse {
-  string name = 1;
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
 }

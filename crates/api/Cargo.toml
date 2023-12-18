@@ -15,4 +15,5 @@ sea-orm = { workspace = true }
 entity = { workspace = true }
 migration = { workspace = true }
 grpc = { workspace = true }
-
+uuid = { workspace = true }
+chrono = { workspace = true }

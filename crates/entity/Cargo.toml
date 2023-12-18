@@ -9,3 +9,4 @@ edition = "2021"
 sea-orm = { workspace = true }
 serde = { workspace = true }
 grpc = { workspace = true }
+chrono = { workspace = true }

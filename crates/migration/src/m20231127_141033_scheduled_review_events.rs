@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(ScheduledReviewEvent::ScheduledDate)
-                            .date()
+                            .timestamp()
                             .not_null(),
                     )
                     .foreign_key(
