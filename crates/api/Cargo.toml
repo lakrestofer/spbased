@@ -17,3 +17,5 @@ migration = { workspace = true }
 grpc = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+serde = { workspace = true }
+dirs = { workspace = true }
