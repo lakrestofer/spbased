@@ -129,9 +129,8 @@ impl ActiveModelBehavior for ActiveModel {
             let create_time = chrono::Utc::now().to_rfc3339();
             let url = format!("{item_type}://{name}"); // the url that is called with xdg open
             self.name = Set(name);
-            self.create_time = Set(create_time);
-            let update_time = chrono::Utc::now().to_rfc3339();
-            self.update_time = Set(update_time);
+            self.create_time = Set(create_time.clone());
+            self.update_time = Set(create_time);
             // update time set below
             // status, difficulty, stability set above in constructor
             self.last_review_date = Set("".into()); // empty date as last review date. It is not valid to query new items in terms of when they were review last
