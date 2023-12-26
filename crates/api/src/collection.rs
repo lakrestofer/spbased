@@ -2,7 +2,6 @@
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait, Set};
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 // stdlib imports
 use std::cell::OnceCell;
 // internal imports
@@ -18,6 +17,8 @@ pub use grpc::{
 };
 pub use grpc::{ResponseStatus, VersionInfo};
 
+use crate::version;
+
 #[derive(Debug)]
 pub struct CollectionService {
     db: DatabaseConnection,
@@ -30,15 +31,7 @@ impl CollectionService {
     }
 }
 
-const VERSION: OnceCell<VersionInfo> = OnceCell::new();
-fn version() -> VersionInfo {
-    VERSION
-        .get_or_init(|| VersionInfo {
-            api_version: "0.0.1".into(),
-        })
-        .clone()
-}
-
+// TODO more robust error handling
 fn db_err_to_status(err: DbErr) -> Status {
     // TODO do we need to handle the errors any any more robust way than this?
     // might be nice to differenciate between not having enough

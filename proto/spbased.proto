@@ -11,6 +11,12 @@ service Collection {
   rpc DeleteReviewItem ( DeleteReviewItemMessage ) returns (DeleteReviewItemResponse) {} // Delete
 }
 
+service Scheduler {
+  rpc ListDueReviewItems ( ListDueReviewItemsMessage ) returns (ListDueReviewItemsResponse) {} // returns due items, sorted by urgency, then by priority
+  rpc ListNewReviewItems ( ListNewReviewItemsMessage ) returns (ListNewReviewItemsResponse) {} // returns new items, sorted by priority
+  rpc GradeReviewItem ( GradeReviewItemMessage ) returns (GradeReviewItemResponse) {} // updates the given the result of some reviewevent, updates
+}
+
 // ==== message definitions ====
 // all the message definitions
 
@@ -121,6 +127,49 @@ message DeleteReviewItemMessage {
 }
 
 message DeleteReviewItemResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+}
+
+// -- List Due
+// returns the items 
+
+message ListDueReviewItemsMessage {
+  VersionInfo version = 1;
+  string item_type = 2; // the types of review items requested
+}
+
+message ListDueReviewItemsResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  string next_page_token = 3;
+  repeated ReviewItem items = 4;
+}
+
+// -- List New
+// returns the items 
+
+message ListNewReviewItemsMessage {
+  VersionInfo version = 1;
+  string item_type = 2; // the types of review items requested
+}
+
+message ListNewReviewItemsResponse {
+  VersionInfo version = 1;
+  ResponseStatus status = 2;
+  string next_page_token = 3;
+  repeated ReviewItem items = 4;
+}
+
+// - Grade Review Item -
+
+message GradeReviewItemMessage {
+  VersionInfo version = 1;
+  string name = 2;
+  int32 grade = 3;
+}
+
+message GradeReviewItemResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
 }
