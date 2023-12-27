@@ -1,3 +1,5 @@
+//! Collection service. Provides the basic review item manipulation api endpoints
+
 // external imports
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait, Set};
@@ -17,53 +19,19 @@ pub use grpc::{
 };
 pub use grpc::{ResponseStatus, VersionInfo};
 
-use crate::version;
+use crate::{version, OptionToActiveValue, ServiceProvider};
 
-#[derive(Debug)]
-pub struct CollectionService {
-    db: DatabaseConnection,
-    // TODO pagination on list response, this requires that some state is saved (to DB?)
-}
-
-impl CollectionService {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
-    }
-}
-
-// TODO more robust error handling
 fn db_err_to_status(err: DbErr) -> Status {
-    // TODO do we need to handle the errors any any more robust way than this?
-    // might be nice to differenciate between not having enough
     Status::new(Code::Unavailable, "could not access db")
 }
 
-trait OptionToActiveValue<T: Into<migration::Value>> {
-    fn into_active_value(self) -> ActiveValue<T>;
-}
-
-impl<T> OptionToActiveValue<T> for Option<T>
-where
-    T: Into<migration::Value>,
-{
-    fn into_active_value(self) -> ActiveValue<T> {
-        match self {
-            Some(value) => ActiveValue::Set(value),
-            None => ActiveValue::NotSet,
-        }
-    }
-}
-
 #[tonic::async_trait]
-impl Collection for CollectionService {
+impl Collection for ServiceProvider {
     async fn list_review_items(
         &self,
         request: Request<ListReviewItemsMessage>,
     ) -> Result<Response<ListReviewItemsResponse>, Status> {
         let _message: ListReviewItemsMessage = request.into_inner();
-        // TODO implement checking of version info
-        // this might be something that we want to use middleware for?
-        // TODO implement filtering based on the request message
         let items: Vec<_> = ReviewItemEntity::find()
             .all(&self.db)
             .await
@@ -120,7 +88,6 @@ impl Collection for CollectionService {
         &self,
         request: Request<CreateReviewItemMessage>,
     ) -> Result<Response<CreateReviewItemResponse>, Status> {
-        // TODO check version info
         let message: CreateReviewItemMessage = request.into_inner();
 
         let grpc::NewReviewItem { item_type, data } = message.item.ok_or(Status::new(
@@ -157,7 +124,6 @@ impl Collection for CollectionService {
         &self,
         request: Request<UpdateReviewItemMessage>,
     ) -> Result<Response<UpdateReviewItemResponse>, Status> {
-        // TODO check version info
         let message: UpdateReviewItemMessage = request.into_inner();
 
         if message.item.is_none() {

@@ -1,3 +1,5 @@
+//! Scheduler service. Provides more directed enpoints for review events.
+
 // external imports
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait, Set};
@@ -11,11 +13,11 @@ use entity::review_item::Entity as ReviewItemEntity;
 use entity::review_item::Model as ReviewItemModel;
 
 // scheduler
+use grpc::scheduler_server::{Scheduler, SchedulerServer};
 
 #[derive(Debug)]
 pub struct CollectionService {
     db: DatabaseConnection,
-    // TODO pagination on list response, this requires that some state is saved (to DB?)
 }
 
 pub use grpc::{ResponseStatus, VersionInfo};
