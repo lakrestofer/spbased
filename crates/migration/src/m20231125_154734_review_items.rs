@@ -19,12 +19,24 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(ReviewItem::CreateTime).timestamp().not_null())
-                    .col(ColumnDef::new(ReviewItem::UpdateTime).timestamp().not_null())
-                    .col(ColumnDef::new(ReviewItem::Status).string().not_null())
+                    .col(
+                        ColumnDef::new(ReviewItem::CreateTime)
+                            .timestamp()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(ReviewItem::UpdateTime)
+                            .timestamp()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(ReviewItem::Status).integer().not_null())
                     .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
                     .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
-                    .col(ColumnDef::new(ReviewItem::LastReviewDate).timestamp().not_null())
+                    .col(
+                        ColumnDef::new(ReviewItem::NextReviewDate)
+                            .timestamp()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(ReviewItem::ItemType).string().not_null())
                     .col(ColumnDef::new(ReviewItem::URL).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Data).string().not_null())
@@ -52,7 +64,7 @@ pub enum ReviewItem {
     // Priority,
     Difficulty,
     Stability,
-    LastReviewDate,
+    NextReviewDate,
     ItemType, // type of review item, most commonly the name of the "frontend" for this particular item
     URL,
     Data,

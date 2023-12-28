@@ -2,31 +2,36 @@
 
 // external imports
 use sea_orm::entity::prelude::*;
-use sea_orm::{ActiveValue, DatabaseConnection, DbErr, EntityTrait, Set};
+use sea_orm::{ActiveValue, EntityTrait, Set};
 use tonic::{Code, Request, Response, Status};
-// stdlib imports
-use std::cell::OnceCell;
 // internal imports
 // workspace imports
 use entity::review_item::ActiveModel as ReviewItemActiveModel;
 use entity::review_item::Entity as ReviewItemEntity;
 use entity::review_item::Model as ReviewItemModel;
 pub use grpc::collection_server::{Collection, CollectionServer};
+pub use grpc::ResponseStatus;
 pub use grpc::{
     CreateReviewItemMessage, CreateReviewItemResponse, DeleteReviewItemMessage,
     DeleteReviewItemResponse, GetReviewItemMessage, GetReviewItemResponse, ListReviewItemsMessage,
     ListReviewItemsResponse, UpdateReviewItemMessage, UpdateReviewItemResponse,
 };
-pub use grpc::{ResponseStatus, VersionInfo};
 
-use crate::{version, OptionToActiveValue, ServiceProvider};
+use crate::{db_err_to_status, version, OptionToActiveValue};
 
-fn db_err_to_status(err: DbErr) -> Status {
-    Status::new(Code::Unavailable, "could not access db")
+#[derive(Debug)]
+pub struct CollectionService {
+    db: DatabaseConnection,
+}
+
+impl CollectionService {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
 }
 
 #[tonic::async_trait]
-impl Collection for ServiceProvider {
+impl Collection for CollectionService {
     async fn list_review_items(
         &self,
         request: Request<ListReviewItemsMessage>,
@@ -44,7 +49,7 @@ impl Collection for ServiceProvider {
             version: Some(version()),
             status: Some(ResponseStatus {
                 code: 200,
-                message: "".into(),
+                message: None,
             }),
             next_page_token: "".into(), // empty for now
             items,
@@ -78,7 +83,7 @@ impl Collection for ServiceProvider {
             version: Some(version()),
             status: Some(ResponseStatus {
                 code: 200,
-                message: "".into(),
+                message: None,
             }),
             item,
         }));
@@ -112,7 +117,7 @@ impl Collection for ServiceProvider {
             version: Some(version()),
             status: Some(ResponseStatus {
                 code: 200,
-                message: "".into(),
+                message: None,
             }),
             item: Some(review_item),
         };
@@ -138,7 +143,7 @@ impl Collection for ServiceProvider {
             status,
             difficulty,
             stability,
-            last_review_date,
+            next_review_date,
             data,
         } = message.item.unwrap();
 
@@ -156,7 +161,7 @@ impl Collection for ServiceProvider {
         modifiable_review_item.status = status.into_active_value();
         modifiable_review_item.difficulty = difficulty.into_active_value();
         modifiable_review_item.stability = stability.into_active_value();
-        modifiable_review_item.last_review_date = last_review_date.into_active_value();
+        modifiable_review_item.next_review_date = next_review_date.into_active_value();
         modifiable_review_item.data = data.into_active_value();
 
         let review_item = modifiable_review_item
@@ -170,7 +175,7 @@ impl Collection for ServiceProvider {
             version: Some(version()),
             status: Some(ResponseStatus {
                 code: 200,
-                message: format!("item with name: {name} updated!"),
+                message: Some(format!("item with name: {name} updated!")),
             }),
             item: Some(review_item),
         };
@@ -194,7 +199,7 @@ impl Collection for ServiceProvider {
             version: Some(version()),
             status: Some(ResponseStatus {
                 code: 200,
-                message: format!("item with name: {name} deleted!"),
+                message: Some(format!("item with name: {name} deleted!")),
             }),
         };
 

@@ -1,5 +1,6 @@
 use std::cell::OnceCell;
 
+pub mod error;
 pub mod server;
 pub mod types;
 
@@ -7,7 +8,8 @@ mod collection;
 mod scheduler;
 
 use grpc::VersionInfo;
-use sea_orm::{ActiveValue, DatabaseConnection};
+use sea_orm::{ActiveValue, DatabaseConnection, DbErr};
+use tonic::{Code, Status};
 pub const VERSION: OnceCell<VersionInfo> = OnceCell::new();
 pub fn version() -> VersionInfo {
     VERSION
@@ -15,18 +17,6 @@ pub fn version() -> VersionInfo {
             api_version: "0.0.1".into(),
         })
         .clone()
-}
-
-/// The main Service struct on which all the grpc service traits are implemented.
-#[derive(Debug)]
-pub struct ServiceProvider {
-    db: DatabaseConnection,
-}
-
-impl ServiceProvider {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
-    }
 }
 
 trait OptionToActiveValue<T: Into<migration::Value>> {
@@ -43,4 +33,8 @@ where
             None => ActiveValue::NotSet,
         }
     }
+}
+
+fn db_err_to_status(err: DbErr) -> Status {
+    Status::new(Code::Unavailable, "could not access db")
 }

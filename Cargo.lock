@@ -148,6 +148,7 @@ dependencies = [
  "prost",
  "sea-orm",
  "serde",
+ "thiserror",
  "tokio",
  "tokio-stream",
  "tonic",

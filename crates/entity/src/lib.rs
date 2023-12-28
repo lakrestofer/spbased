@@ -4,6 +4,5 @@ pub mod prelude;
 
 pub mod review_event_log;
 pub mod review_item;
-pub mod scheduled_review_event;
 
 pub mod conversion;

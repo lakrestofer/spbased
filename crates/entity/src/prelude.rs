@@ -2,4 +2,3 @@
 
 pub use super::review_event_log::Entity as ReviewEventLog;
 pub use super::review_item::Entity as ReviewItem;
-pub use super::scheduled_review_event::Entity as ScheduledReviewEvent;

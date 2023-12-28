@@ -1,6 +1,10 @@
 use std::path::PathBuf;
 
-use crate::collection::{CollectionServer, CollectionService};
+use crate::{
+    collection::{CollectionServer, CollectionService},
+    scheduler::SchedulerService,
+};
+use grpc::scheduler_server::SchedulerServer;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::Database;
 use serde::{Deserialize, Serialize};
@@ -60,11 +64,15 @@ pub async fn run_server(config: ServerConfig) -> Result<(), Box<dyn std::error::
         .expect("Could not perform a fresh migration");
 
     // build services and launch server
-    let collection = CollectionService::new(db);
-    let collection_server = CollectionServer::new(collection);
+    let collection_service = CollectionService::new(db.clone());
+    let collection_server = CollectionServer::new(collection_service);
+
+    let scheduler_service = SchedulerService::new(db.clone());
+    let scheduler_server = SchedulerServer::new(scheduler_service);
 
     Server::builder()
         .add_service(collection_server)
+        .add_service(scheduler_server)
         .serve(addr)
         .await?;
 
