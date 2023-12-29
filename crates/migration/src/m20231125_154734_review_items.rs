@@ -33,6 +33,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
                     .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
                     .col(
+                        ColumnDef::new(ReviewItem::LastReviewDate)
+                            .timestamp()
+                            .not_null(),
+                    )
+                    .col(
                         ColumnDef::new(ReviewItem::NextReviewDate)
                             .timestamp()
                             .not_null(),
@@ -64,6 +69,7 @@ pub enum ReviewItem {
     // Priority,
     Difficulty,
     Stability,
+    LastReviewDate,
     NextReviewDate,
     ItemType, // type of review item, most commonly the name of the "frontend" for this particular item
     URL,

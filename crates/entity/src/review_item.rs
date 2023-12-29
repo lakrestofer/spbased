@@ -3,8 +3,6 @@
 use sea_orm::{entity::prelude::*, ActiveValue};
 use serde::{Deserialize, Serialize};
 
-use uuid;
-
 #[derive(Copy, Clone, Default, Debug, DeriveEntity)]
 pub struct Entity;
 
@@ -22,6 +20,7 @@ pub struct Model {
     pub status: i32,
     pub difficulty: f64,
     pub stability: f64,
+    pub last_review_date: String,
     pub next_review_date: String,
     pub item_type: String,
     pub url: String,
@@ -36,6 +35,7 @@ pub enum Column {
     Status,
     Difficulty,
     Stability,
+    LastReviewDate,
     NextReviewDate,
     ItemType,
     Url,
@@ -69,6 +69,7 @@ impl ColumnTrait for Column {
             Self::Status => ColumnType::Integer.def(),
             Self::Difficulty => ColumnType::Double.def(),
             Self::Stability => ColumnType::Double.def(),
+            Self::LastReviewDate => ColumnType::String(None).def(),
             Self::NextReviewDate => ColumnType::String(None).def(),
             Self::ItemType => ColumnType::String(None).def(),
             Self::Url => ColumnType::String(None).def(),
@@ -98,12 +99,13 @@ impl ActiveModelBehavior for ActiveModel {
             status: ActiveValue::Set(common::ReviewItemStatus::Inbox.as_i32()),
             difficulty: ActiveValue::Set(0.0),
             stability: ActiveValue::Set(0.0),
+            last_review_date: ActiveValue::Set("".into()), // an entierly new item has no review date at all
             next_review_date: ActiveValue::Set("".into()),
             ..ActiveModelTrait::default()
         }
     }
 
-    async fn before_save<C>(mut self, db: &C, insert: bool) -> Result<Self, DbErr>
+    async fn before_save<C>(mut self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
     {
@@ -117,16 +119,14 @@ impl ActiveModelBehavior for ActiveModel {
             self.create_time = ActiveValue::Set(now.clone().into());
             self.update_time = ActiveValue::Set(now.into());
             self.url = ActiveValue::Set(url);
+            self.item_type = ActiveValue::Set(item_type); // give the item type back plz
             Ok(self)
         } else {
             // we check that some of the fields have not been changed (invalid modification)
             // it is invalid to change the following fields:
             // 'name', 'create_time', 'item_type', 'url'
-            if matches!(&self.name, ActiveValue::Set(_))
-                || matches!(&self.create_time, ActiveValue::Set(_))
-                || matches!(&self.item_type, ActiveValue::Set(_))
-                || matches!(&self.url, ActiveValue::Set(_))
-            {
+            // it is not possible to change these fields using the update endpoint
+            if let ActiveValue::Set(_) = &self.name {
                 return Err(DbErr::Custom("Invalid modification. Cannot change fields 'name', 'create_time', 'item_type' and 'url' after creation".into()));
             }
             let update_time = chrono::Utc::now().to_rfc3339();

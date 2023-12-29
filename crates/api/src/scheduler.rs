@@ -1,31 +1,24 @@
 //! Scheduler service. Provides more directed enpoints for review events.
 
-use chrono::{Days, Duration, FixedOffset};
+use chrono::{Days, FixedOffset};
 use grpc::{
     GradeReviewItemMessage, GradeReviewItemResponse, ListDueReviewItemsMessage,
     ListDueReviewItemsResponse, ListNewReviewItemsMessage, ListNewReviewItemsResponse,
 };
 // external imports
 use sea_orm::entity::prelude::*;
-use sea_orm::{ActiveValue, Condition, DatabaseConnection, DbErr, EntityTrait, Set};
+use sea_orm::{Condition, DatabaseConnection, EntityTrait, Set};
 use tonic::{Code, Request, Response, Status};
 // stdlib imports
-use std::cell::OnceCell;
-use std::ops::Add;
 // internal imports
 // workspace imports
 use entity::review_item;
 
 // scheduler
-use grpc::scheduler_server::{Scheduler, SchedulerServer};
+use grpc::scheduler_server::Scheduler;
 
 // spaced repetition algorithm
 use algo;
-
-#[derive(Debug)]
-pub struct CollectionService {
-    db: DatabaseConnection,
-}
 
 pub use grpc::{ResponseStatus, VersionInfo};
 
@@ -192,32 +185,42 @@ impl Scheduler for SchedulerService {
             "No item with the provided name found",
         ))?;
 
-        let status = ReviewItemStatus::try_from(item.status).map_err(|err| {
+        let status = ReviewItemStatus::try_from(item.status).map_err(|_err| {
             Status::new(
                 Code::DataLoss,
                 "Review item status field could not be parsed into valid status enum",
             )
         })?;
 
-        let grade: algo::Grade = algo::Grade::try_from(grade).map_err(|err| {
+        let grade: algo::Grade = algo::Grade::try_from(grade).map_err(|_err| {
             Status::new(
                 Code::DataLoss,
                 "Review item grade fields could not be parsed into valid grade enum",
             )
         })?;
 
-        let mut item: review_item::ActiveModel = item.into();
+        let old_last_review_date = &item.last_review_date;
+        let old_d = item.difficulty;
+        let old_s = item.stability;
 
         let now = chrono::Utc::now();
 
-        let (new_difficulty, new_stability, new_review_date) = match status {
+        let (new_difficulty, new_stability,  new_next_review_date) = match status {
             ReviewItemStatus::Inbox => {
                 let d = algo::difficulty_init(grade);
                 let s = algo::stability_init(grade);
-                let review_date = now.checked_add_days(Days::new(s as u64)).ok_or(Status::new(Code::Internal, "tried to add duration of days to datetime instance. Chrono did not like..."))?;
-                (d, s, review_date)
+                let next_review_date = now.checked_add_days(Days::new(s as u64)).ok_or(Status::new(Code::Internal, "tried to add duration of days to datetime instance. Chrono did not like..."))?;
+                (d, s, next_review_date)
             },
-            ReviewItemStatus::Review => todo!(),
+            ReviewItemStatus::Review => {
+                let old_last_review_date = chrono::DateTime::parse_from_rfc3339(&old_last_review_date).map_err(|_| Status::new(Code::Internal, "could not parse date from 'last_review_date' field"))?;
+                let diff = old_last_review_date.signed_duration_since(now).num_days() as f64;
+
+                let d = algo::update_difficulty(old_d, grade);
+                let s = algo::update_stability(old_d, old_s, grade, diff);
+                let next_review_date = now.checked_add_days(Days::new(s as u64)).ok_or(Status::new(Code::Internal, "tried to add duration of days to datetime instance. Chrono did not like..."))?;
+                (d, s, next_review_date)
+            },
             ReviewItemStatus::Burried => {
                 return Err(Status::new(
                     Code::FailedPrecondition,
@@ -226,10 +229,13 @@ impl Scheduler for SchedulerService {
             } // this items should not be reviewed since it is burried. It needs to be unburried before it is valid to review it again
         };
 
+        let mut item: review_item::ActiveModel = item.into();
+
         item.status = Set(ReviewItemStatus::Review as i32);
         item.difficulty = Set(new_difficulty);
         item.stability = Set(new_stability);
-        item.next_review_date = Set(new_review_date.to_rfc3339());
+        item.last_review_date = Set(now.to_rfc3339());
+        item.next_review_date = Set(new_next_review_date.to_rfc3339());
         item.update_time = Set(now.to_rfc3339());
 
         let response = Response::new(GradeReviewItemResponse {

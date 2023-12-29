@@ -2,13 +2,15 @@ use std::cell::OnceCell;
 
 pub mod error;
 pub mod server;
+#[cfg(test)]
+pub mod test;
 pub mod types;
 
 mod collection;
 mod scheduler;
 
 use grpc::VersionInfo;
-use sea_orm::{ActiveValue, DatabaseConnection, DbErr};
+use sea_orm::{ActiveValue, DbErr};
 use tonic::{Code, Status};
 pub const VERSION: OnceCell<VersionInfo> = OnceCell::new();
 pub fn version() -> VersionInfo {
@@ -36,8 +38,6 @@ where
 }
 
 fn db_err_to_status(err: DbErr) -> Status {
-    Status::new(
-        Code::Unavailable,
-        "Something went wrong... idk, I'm to lazy to write more specific error handling",
-    )
+    let err: String = format!("something went wrong on the db layer: {}", err.to_string());
+    Status::new(Code::Unavailable, &err)
 }

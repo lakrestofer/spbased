@@ -2,7 +2,7 @@
 
 // external imports
 use sea_orm::entity::prelude::*;
-use sea_orm::{ActiveValue, EntityTrait, Set};
+use sea_orm::{EntityTrait, Set};
 use tonic::{Code, Request, Response, Status};
 // internal imports
 // workspace imports
@@ -138,14 +138,7 @@ impl Collection for CollectionService {
             ));
         }
 
-        let grpc::UpdateReviewItem {
-            name,
-            status,
-            difficulty,
-            stability,
-            next_review_date,
-            data,
-        } = message.item.unwrap();
+        let grpc::UpdateReviewItem { name, status, data } = message.item.unwrap();
 
         let review_item: Option<ReviewItemModel> = ReviewItemEntity::find_by_id(name.clone())
             .one(&self.db)
@@ -157,11 +150,7 @@ impl Collection for CollectionService {
         let mut modifiable_review_item: ReviewItemActiveModel = review_item.into();
 
         // update the fields
-        modifiable_review_item.update_time = ActiveValue::Set(chrono::Utc::now().to_rfc3339());
         modifiable_review_item.status = status.into_active_value();
-        modifiable_review_item.difficulty = difficulty.into_active_value();
-        modifiable_review_item.stability = stability.into_active_value();
-        modifiable_review_item.next_review_date = next_review_date.into_active_value();
         modifiable_review_item.data = data.into_active_value();
 
         let review_item = modifiable_review_item

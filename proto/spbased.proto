@@ -30,10 +30,11 @@ message ReviewItem {
   int32 status = 4; // a few status 
   double difficulty = 5; // is 0 when item is still new
   double stability = 6; // is 0 when item is still new
-  string next_review_date = 7;
-  string item_type = 8;
-  string url = 9; // some url in the format of type://type/review/name
-  string data = 10; // json encoded data
+  string last_review_date = 7;
+  string next_review_date = 8;
+  string item_type = 9;
+  string url = 10; // some url in the format of type://type/review/name
+  string data = 11; // json encoded data
 }
 
 message NewReviewItem {
@@ -41,13 +42,11 @@ message NewReviewItem {
   string data = 10; // json encoded data
 }
 
+// only for updating data
 message UpdateReviewItem {
-  string name = 1; // e.g flashcard/uuid - this is apparently good practice for any larger system
+  string name = 1;
   optional int32 status = 2;
-  optional double difficulty = 3; // is 0 when item is still new
-  optional double stability = 4; // is 0 when item is still new
-  optional string next_review_date = 5;
-  optional string data = 6; // json encoded data
+  optional string data = 3; // json encoded data
 }
 
 // version info, schema version etc.
