@@ -10,3 +10,5 @@ sea-orm = { workspace = true }
 serde = { workspace = true }
 grpc = { workspace = true }
 chrono = { workspace = true }
+uuid = { workspace = true }
+common = { workspace = true }

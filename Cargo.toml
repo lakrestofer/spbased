@@ -12,6 +12,8 @@ entity = { path = "./crates/entity" }
 migration = { path = "./crates/migration" }
 grpc = { path = "./crates/grpc" }
 api = { path = "./crates/api" }
+common = { path = "./crates/common" }
+algo = { path = "./crates/algo" }
 # external dependencies
 color_eyre = { version = "0.6" }
 thiserror = { version = "1" }

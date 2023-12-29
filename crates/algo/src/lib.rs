@@ -27,11 +27,28 @@ const UPDATE_STABILITY_SUCCESS_1: f64 = PARAMS[15];
 const UPDATE_STABILITY_SUCCESS_2: f64 = PARAMS[16];
 
 /// Enum representing possible review results
+#[derive(Clone, Copy)]
 pub enum Grade {
     Again = 1,
     Hard = 2,
     Pass = 3,
     Easy = 4,
+}
+
+pub struct ConversionError;
+
+impl TryFrom<i32> for Grade {
+    type Error = ConversionError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Grade::Again),
+            2 => Ok(Grade::Hard),
+            3 => Ok(Grade::Pass),
+            4 => Ok(Grade::Easy),
+            _ => Err(ConversionError),
+        }
+    }
 }
 
 /// given the first review event, what stability

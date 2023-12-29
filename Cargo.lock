@@ -139,8 +139,10 @@ checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 name = "api"
 version = "0.1.0"
 dependencies = [
+ "algo",
  "async-stream 0.2.1",
  "chrono",
+ "common",
  "dirs",
  "entity",
  "grpc",
@@ -684,6 +686,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -855,9 +864,11 @@ name = "entity"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "common",
  "grpc",
  "sea-orm",
  "serde",
+ "uuid",
 ]
 
 [[package]]

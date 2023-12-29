@@ -36,5 +36,8 @@ where
 }
 
 fn db_err_to_status(err: DbErr) -> Status {
-    Status::new(Code::Unavailable, "could not access db")
+    Status::new(
+        Code::Unavailable,
+        "Something went wrong... idk, I'm to lazy to write more specific error handling",
+    )
 }
