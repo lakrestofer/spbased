@@ -2,12 +2,10 @@ use std::cell::OnceCell;
 
 pub mod error;
 pub mod server;
-#[cfg(test)]
-pub mod test;
 pub mod types;
 
-mod collection;
-mod scheduler;
+pub mod collection;
+pub mod scheduler;
 
 use grpc::VersionInfo;
 use sea_orm::{ActiveValue, DbErr};
