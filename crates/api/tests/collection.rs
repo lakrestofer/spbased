@@ -20,7 +20,9 @@ use tower::service_fn;
 
 /// Returns an unique connection to a sqlite instance and performs migrations on it.
 pub async fn setup_db() -> DatabaseConnection {
-    let db = Database::connect("sqlite::memory:").await.expect("");
+    let db = Database::connect("sqlite::memory:")
+        .await
+        .expect("Could not open in memory instance of sqlite database");
 
     Migrator::up(&db, None)
         .await
@@ -29,6 +31,7 @@ pub async fn setup_db() -> DatabaseConnection {
     db
 }
 
+// adapted from this -  https://stackoverflow.com/questions/69845664/how-to-integration-test-tonic-application
 pub async fn collection_server_and_client() -> (impl Future<Output = ()>, CollectionClient<Channel>)
 {
     let socket = NamedTempFile::new().unwrap();
@@ -67,15 +70,19 @@ pub async fn collection_server_and_client() -> (impl Future<Output = ()>, Collec
     (serve_future, client)
 }
 
-async fn run_test<A, B, F>(request: Request<A>, method: F, expected: B)
-where
-    F: Fn(&'_ mut CollectionClient<Channel>, Request<A>) -> BoxFuture<'_, B>,
+async fn run_test<A, B, FMethod, FCompare>(
+    request: Request<A>,
+    method: FMethod,
+    compare_method: FCompare,
+) where
+    FMethod: Fn(&'_ mut CollectionClient<Channel>, Request<A>) -> BoxFuture<'_, B>,
+    FCompare: Fn(B),
     B: PartialEq + std::fmt::Debug,
 {
     let (serve_future, mut client) = collection_server_and_client().await;
     let request_future = async {
         let response = method(&mut client, request).await;
-        assert_eq!(response, expected);
+        compare_method(response);
     };
 
     // the future that completes first will return.
@@ -129,7 +136,9 @@ async fn test_list() {
             }
             .boxed()
         },
-        expected,
+        |response| {
+            assert_eq!(response, expected);
+        },
     )
     .await;
 }
