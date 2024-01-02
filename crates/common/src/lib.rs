@@ -1,29 +1,31 @@
+use std::fmt::Display;
+
 pub enum ReviewItemStatus {
-    Inbox = 0,
-    Review = 1,
-    Burried = 2,
+    Inbox,
+    Review,
+    Burried,
 }
 
 pub struct ConversionError;
 
-impl ReviewItemStatus {
-    pub fn as_i32(&self) -> i32 {
+impl Display for ReviewItemStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ReviewItemStatus::Inbox => ReviewItemStatus::Inbox as i32,
-            ReviewItemStatus::Review => ReviewItemStatus::Review as i32,
-            ReviewItemStatus::Burried => ReviewItemStatus::Burried as i32,
+            ReviewItemStatus::Inbox => write!(f, "inbox"),
+            ReviewItemStatus::Review => write!(f, "review"),
+            ReviewItemStatus::Burried => write!(f, "burried"),
         }
     }
 }
 
-impl TryFrom<i32> for ReviewItemStatus {
+impl TryFrom<&str> for ReviewItemStatus {
     type Error = ConversionError;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(ReviewItemStatus::Inbox),
-            1 => Ok(ReviewItemStatus::Review),
-            2 => Ok(ReviewItemStatus::Burried),
+            "inbox" => Ok(ReviewItemStatus::Inbox),
+            "review" => Ok(ReviewItemStatus::Review),
+            "burried" => Ok(ReviewItemStatus::Burried),
             _ => Err(ConversionError),
         }
     }
@@ -34,19 +36,12 @@ mod test {
     use super::*;
 
     #[test]
-    fn convert_to_i32() {
-        assert_eq!(ReviewItemStatus::Inbox.as_i32(), 0);
-        assert_eq!(ReviewItemStatus::Review.as_i32(), 1);
-        assert_eq!(ReviewItemStatus::Burried.as_i32(), 2);
-    }
-
-    #[test]
     fn parse_from_i32() {
-        let works_nums = [0, 1, 2];
+        let works_nums = ["inbox", "review", "burried"];
         for i in works_nums {
             assert!(ReviewItemStatus::try_from(i).is_ok());
         }
-        let not_works_nums = [3, 52, 13, 420];
+        let not_works_nums = ["42", "52", "not_status", "boofed"];
         for i in not_works_nums {
             assert!(ReviewItemStatus::try_from(i).is_err());
         }

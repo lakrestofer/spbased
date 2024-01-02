@@ -3,7 +3,7 @@
 use chrono::{Days, FixedOffset};
 use grpc::{
     GradeReviewItemMessage, GradeReviewItemResponse, ListDueReviewItemsMessage,
-    ListDueReviewItemsResponse, ListNewReviewItemsMessage, ListNewReviewItemsResponse,
+    ListDueReviewItemsResponse, ListNewReviewItemsMessage, ListNewReviewItemsResponse, ReviewItem,
 };
 // external imports
 use sea_orm::entity::prelude::*;
@@ -59,7 +59,7 @@ impl Scheduler for SchedulerService {
         let is_due_cond = review_item::Column::NextReviewDate.lte(now); // find due items
         let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type
         let status_cond =
-            review_item::Column::ItemType.eq(common::ReviewItemStatus::Review.as_i32()); // only choose items that "in review"
+            review_item::Column::Status.eq(common::ReviewItemStatus::Review.to_string()); // only choose items that "in review"
         let filter_cond = Condition::all()
             .add(is_due_cond)
             .add(type_cond)
@@ -137,7 +137,7 @@ impl Scheduler for SchedulerService {
 
         let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type.
         let is_new_cond =
-            review_item::Column::ItemType.eq(common::ReviewItemStatus::Review.as_i32()); // only choose items that "in review"
+            review_item::Column::Status.eq(common::ReviewItemStatus::Inbox.to_string()); // only choose items that are in the "inbox"
         let filter_cond = Condition::all().add(is_new_cond).add(type_cond);
 
         let select_query = review_item::Entity::find().filter(filter_cond);
@@ -147,7 +147,7 @@ impl Scheduler for SchedulerService {
         // TODO sort by priority after the priority fields has been introduced
         // items.sort_by_cached_key(|item| item.priority);
 
-        let items = items.into_iter().map(From::from).collect();
+        let items: Vec<ReviewItem> = items.into_iter().map(From::from).collect();
 
         let response = Response::new(ListNewReviewItemsResponse {
             version: Some(version()),
@@ -185,7 +185,7 @@ impl Scheduler for SchedulerService {
             "No item with the provided name found",
         ))?;
 
-        let status = ReviewItemStatus::try_from(item.status).map_err(|_err| {
+        let status = ReviewItemStatus::try_from(item.status.as_str()).map_err(|_err| {
             Status::new(
                 Code::DataLoss,
                 "Review item status field could not be parsed into valid status enum",
@@ -231,7 +231,7 @@ impl Scheduler for SchedulerService {
 
         let mut item: review_item::ActiveModel = item.into();
 
-        item.status = Set(ReviewItemStatus::Review as i32);
+        item.status = Set(ReviewItemStatus::Review.to_string());
         item.difficulty = Set(new_difficulty);
         item.stability = Set(new_stability);
         item.last_review_date = Set(now.to_rfc3339());

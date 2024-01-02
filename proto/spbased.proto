@@ -27,7 +27,7 @@ message ReviewItem {
   string name = 1; // e.g flashcard/uuid - this is apparently good practice for any larger system
   string create_time = 2; // when was this item created
   string update_time = 3; // when was this item updated last? (as in data field, not the difficulty or stability)
-  int32 status = 4; // a few status 
+  string status = 4; // a few status 
   double difficulty = 5; // is 0 when item is still new
   double stability = 6; // is 0 when item is still new
   string last_review_date = 7;
@@ -45,7 +45,7 @@ message NewReviewItem {
 // only for updating data
 message UpdateReviewItem {
   string name = 1;
-  optional int32 status = 2;
+  optional string status = 2;
   optional string data = 3; // json encoded data
 }
 

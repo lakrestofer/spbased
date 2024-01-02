@@ -29,7 +29,7 @@ impl MigrationTrait for Migration {
                             .timestamp()
                             .not_null(),
                     )
-                    .col(ColumnDef::new(ReviewItem::Status).integer().not_null())
+                    .col(ColumnDef::new(ReviewItem::Status).string().not_null())
                     .col(ColumnDef::new(ReviewItem::Difficulty).double().not_null())
                     .col(ColumnDef::new(ReviewItem::Stability).double().not_null())
                     .col(

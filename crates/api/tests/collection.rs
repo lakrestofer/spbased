@@ -345,6 +345,8 @@ async fn review_item_list() {
             let items = list_response.items;
             assert_eq!(version, api::version());
             assert_eq!(status.code, 200);
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
 
             // we expect 3 items in the result
             assert_eq!(items.len(), 3);

@@ -17,7 +17,7 @@ pub struct Model {
     pub name: String,
     pub create_time: String,
     pub update_time: String,
-    pub status: i32,
+    pub status: String,
     pub difficulty: f64,
     pub stability: f64,
     pub last_review_date: String,
@@ -66,7 +66,7 @@ impl ColumnTrait for Column {
             Self::Name => ColumnType::String(None).def(),
             Self::CreateTime => ColumnType::String(None).def(),
             Self::UpdateTime => ColumnType::String(None).def(),
-            Self::Status => ColumnType::Integer.def(),
+            Self::Status => ColumnType::String(None).def(),
             Self::Difficulty => ColumnType::Double.def(),
             Self::Stability => ColumnType::Double.def(),
             Self::LastReviewDate => ColumnType::String(None).def(),
@@ -96,7 +96,7 @@ impl Related<super::review_event_log::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
-            status: ActiveValue::Set(common::ReviewItemStatus::Inbox.as_i32()),
+            status: ActiveValue::Set(common::ReviewItemStatus::Inbox.to_string()),
             difficulty: ActiveValue::Set(0.0),
             stability: ActiveValue::Set(0.0),
             last_review_date: ActiveValue::Set("".into()), // an entierly new item has no review date at all
