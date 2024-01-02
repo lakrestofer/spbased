@@ -6,9 +6,7 @@ use sea_orm::{EntityTrait, Set};
 use tonic::{Code, Request, Response, Status};
 // internal imports
 // workspace imports
-use entity::review_item::ActiveModel as ReviewItemActiveModel;
-use entity::review_item::Entity as ReviewItemEntity;
-use entity::review_item::Model as ReviewItemModel;
+use entity::review_item;
 pub use grpc::collection_server::{Collection, CollectionServer};
 pub use grpc::ResponseStatus;
 pub use grpc::{
@@ -36,8 +34,14 @@ impl Collection for CollectionService {
         &self,
         request: Request<ListReviewItemsMessage>,
     ) -> Result<Response<ListReviewItemsResponse>, Status> {
+        // [X] return review items
+        // [ ] paginate response, support for using "next_page" token
+        // [ ] sorting based on fieldnames in order_by field
+        // - [ ] specify sort direction using order_dir field
+        // [ ] filtering based on some rules
+        // - [ ] parse 'filter' field into structure that in turn can be used by sea orm
         let _message: ListReviewItemsMessage = request.into_inner();
-        let items: Vec<_> = ReviewItemEntity::find()
+        let items: Vec<_> = review_item::Entity::find()
             .all(&self.db)
             .await
             .map_err(db_err_to_status)?;
@@ -62,9 +66,10 @@ impl Collection for CollectionService {
         &self,
         request: Request<GetReviewItemMessage>,
     ) -> Result<Response<GetReviewItemResponse>, Status> {
+        // [X] retrieve specific review item given the name of said item
         let message: GetReviewItemMessage = request.into_inner();
 
-        let item = ReviewItemEntity::find_by_id(&message.name)
+        let item = review_item::Entity::find_by_id(&message.name)
             .one(&self.db)
             .await
             .map_err(db_err_to_status)?;
@@ -93,6 +98,9 @@ impl Collection for CollectionService {
         &self,
         request: Request<CreateReviewItemMessage>,
     ) -> Result<Response<CreateReviewItemResponse>, Status> {
+        // [X] create a new review item given the data field and item type
+        // should I store a table of item types? probably
+        // [ ]
         let message: CreateReviewItemMessage = request.into_inner();
 
         let grpc::NewReviewItem { item_type, data } = message.item.ok_or(Status::new(
@@ -100,12 +108,16 @@ impl Collection for CollectionService {
             "new review item not included in payload",
         ))?;
 
-        let review_item = ReviewItemActiveModel {
+        let review_item = review_item::ActiveModel {
             item_type: Set(item_type),
             data: Set(data),
             ..Default::default()
         };
 
+        // the initialization of all other fields is done in the 'before_save' hook in the entity definition
+        // NOTE: Regeneration of the entities using the "generate_entities" script will result in the
+        // 'before_save' hook being overwritten, resulting in the correct fields not being set.
+        // There should be a test that detects this.
         let res = review_item
             .insert(&self.db)
             .await
@@ -140,14 +152,14 @@ impl Collection for CollectionService {
 
         let grpc::UpdateReviewItem { name, status, data } = message.item.unwrap();
 
-        let review_item: Option<ReviewItemModel> = ReviewItemEntity::find_by_id(name.clone())
+        let review_item: Option<review_item::Model> = review_item::Entity::find_by_id(name.clone())
             .one(&self.db)
             .await
             .map_err(db_err_to_status)?;
 
         let review_item = review_item.unwrap();
 
-        let mut modifiable_review_item: ReviewItemActiveModel = review_item.into();
+        let mut modifiable_review_item: review_item::ActiveModel = review_item.into();
 
         // update the fields
         modifiable_review_item.status = status.into_active_value();
@@ -179,7 +191,7 @@ impl Collection for CollectionService {
         let message = request.into_inner();
         let name = message.name;
 
-        ReviewItemEntity::delete_by_id(name.clone())
+        review_item::Entity::delete_by_id(name.clone())
             .exec(&self.db)
             .await
             .map_err(db_err_to_status)?;

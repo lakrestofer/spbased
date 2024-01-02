@@ -10,8 +10,9 @@ pub mod scheduler;
 use grpc::VersionInfo;
 use sea_orm::{ActiveValue, DbErr};
 use tonic::{Code, Status};
-pub const VERSION: OnceCell<VersionInfo> = OnceCell::new();
+
 pub fn version() -> VersionInfo {
+    const VERSION: OnceCell<VersionInfo> = OnceCell::new();
     VERSION
         .get_or_init(|| VersionInfo {
             api_version: "0.0.1".into(),

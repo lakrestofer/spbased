@@ -1,9 +1,16 @@
+use common::ReviewItemStatus;
 use futures::future::BoxFuture;
 use futures::FutureExt;
 // std lib imports
-use grpc::{ListReviewItemsMessage, ListReviewItemsResponse, ResponseStatus, VersionInfo};
+use grpc::{
+    CreateReviewItemMessage, CreateReviewItemResponse, GetReviewItemMessage,
+    ListReviewItemsMessage, ListReviewItemsResponse, NewReviewItem, ResponseStatus, ReviewItem,
+    VersionInfo,
+};
 use std::future::Future;
+use std::str::FromStr;
 use std::sync::Arc;
+use uuid::Uuid;
 //internal imports
 use grpc::collection_client::CollectionClient;
 use grpc::collection_server::CollectionServer;
@@ -15,7 +22,7 @@ use tempfile::NamedTempFile;
 use tokio::net::{UnixListener, UnixStream};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Channel, Endpoint, Server, Uri};
-use tonic::{Request, Response};
+use tonic::Request;
 use tower::service_fn;
 
 /// Returns an unique connection to a sqlite instance and performs migrations on it.
@@ -70,29 +77,25 @@ pub async fn collection_server_and_client() -> (impl Future<Output = ()>, Collec
     (serve_future, client)
 }
 
-async fn run_test<A, B, FMethod, FCompare>(
-    request: Request<A>,
-    method: FMethod,
-    compare_method: FCompare,
-) where
-    FMethod: Fn(&'_ mut CollectionClient<Channel>, Request<A>) -> BoxFuture<'_, B>,
-    FCompare: Fn(B),
-    B: PartialEq + std::fmt::Debug,
+async fn run_test<F>(method: F)
+where
+    F: Fn(&'_ mut CollectionClient<Channel>) -> BoxFuture<'_, ()>, // the method function defines which endpoint on the client should call and how we want to interpret the result
 {
     let (serve_future, mut client) = collection_server_and_client().await;
     let request_future = async {
-        let response = method(&mut client, request).await;
-        compare_method(response);
+        method(&mut client).await;
     };
 
     // the future that completes first will return.
     // only the request future should return.
-    // if the server returns that is because it crashed
+    // if the server returns first that is because it crashed
     tokio::select! {
         _ = serve_future => panic!("server returned first"),
         _ = request_future => (),
     }
 }
+
+// ============ let the tests begin!!! ==============
 
 #[tokio::test]
 /// tests that the above collection_server_and_client function works
@@ -101,44 +104,270 @@ async fn migration_and_collection_service_creation() {
 }
 
 #[tokio::test]
-/// does a db without any items return an empty list?
-async fn test_list() {
-    let request = Request::new(ListReviewItemsMessage {
-        version: Some(VersionInfo {
-            api_version: "0.0.1".into(),
-        }),
-        page_token: "".into(),
-        page_size: 0,
-        order_by: "".into(),
-        order_dir: "".into(),
-        filter: "".into(),
-    });
-    let expected = ListReviewItemsResponse {
-        version: Some(VersionInfo {
-            api_version: "0.0.1".into(),
-        }),
-        status: Some(ResponseStatus {
-            code: 200,
-            message: None,
-        }),
-        next_page_token: "".into(),
-        items: Vec::new(),
-    };
-    run_test(
-        request,
-        |client, request| {
-            async move {
-                client
-                    .list_review_items(request)
-                    .await
-                    .unwrap()
-                    .into_inner()
-            }
-            .boxed()
-        },
-        |response| {
+/// A just initialized spbased service should return an empty items list
+async fn new_service() {
+    run_test(|client| {
+        let request = Request::new(ListReviewItemsMessage {
+            version: Some(VersionInfo {
+                api_version: "0.0.1".into(),
+            }),
+            page_token: "".into(),
+            page_size: 0,
+            order_by: "".into(),
+            order_dir: "".into(),
+            filter: "".into(),
+        });
+
+        // the expected response
+        // TODO will have to change after implementation of pagination
+        let expected = ListReviewItemsResponse {
+            version: Some(VersionInfo {
+                api_version: "0.0.1".into(),
+            }),
+            status: Some(ResponseStatus {
+                code: 200,
+                message: None,
+            }),
+            next_page_token: "".into(),
+            items: Vec::new(),
+        };
+
+        // return a future that performs the actual request and validation logic
+        async move {
+            let response = client
+                .list_review_items(request)
+                .await
+                .unwrap()
+                .into_inner();
             assert_eq!(response, expected);
-        },
-    )
+        }
+        .boxed()
+    })
     .await;
+}
+
+#[tokio::test]
+/// TODO Create a few items and filter on various attributes
+async fn create_review_item() {
+    run_test(|client| {
+        let request = CreateReviewItemMessage {
+            version: Some(api::version()),
+            item: Some(NewReviewItem {
+                item_type: "flashcard".into(),
+                data: "'front':'question','back':'answer'".into(),
+            }),
+        };
+
+        async move {
+            let CreateReviewItemResponse {
+                version,
+                status,
+                item,
+            } = client
+                .create_review_item(request)
+                .await
+                .expect("could not perform create review call")
+                .into_inner();
+
+            // NOTE: If this test fails it might be because the entity crate recently was re-generated using the generate_entities script
+            // Make sure that the 'before_save' hook is still provided an implementation
+
+            let version = version.expect("no version field was provided!");
+            let status = status.expect("no status field was provided!");
+
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
+
+            let ReviewItem {
+                name,
+                create_time,
+                update_time,
+                status,
+                difficulty,
+                stability,
+                last_review_date,
+                next_review_date,
+                item_type,
+                url,
+                data: _data,
+            } = item.expect("no item field was provided!");
+
+            // name should be combination of item_type and uuid (collection id and resource id), as noted here https://cloud.google.com/apis/design/resource_names
+            let mut name_uuid = name.split('/');
+            let name_item_type = name_uuid.next().expect("name did not contain '/'");
+            assert!(name_item_type == "flashcard");
+            let uuid = name_uuid.next().expect("name did not contain '/'");
+            let uuid = Uuid::from_str(uuid).expect("could not parse uuid from string");
+            assert_eq!(uuid.get_version(), Some(uuid::Version::Random));
+
+            // create time and first update should be equal and also relative to the UTC timezone
+            let create_time = chrono::DateTime::parse_from_rfc3339(&create_time)
+                .expect("create_time fields could not be parsed into datetime!");
+            let update_time = chrono::DateTime::parse_from_rfc3339(&update_time)
+                .expect("update_time fields could not be parsed into datetime!");
+            assert_eq!(create_time, update_time);
+
+            // the status should be Inbox
+            assert_eq!(status, ReviewItemStatus::Inbox.as_i32());
+
+            // the difficulty and stability should be 0 until the first grading
+            assert!(difficulty == 0.0 && stability == 0.0);
+
+            // last review date and next review date should be empty strings
+            assert!(&last_review_date == "" && &next_review_date == "");
+
+            // the item type should be equal to the provided type
+            assert_eq!(&item_type, "flashcard");
+
+            // the url should contain the item_type as url scheme, followed by the name;
+            let mut url_scheme_and_name = url.split("://");
+            let scheme = url_scheme_and_name
+                .next()
+                .expect("url did not contain '://'");
+            let url_name = url_scheme_and_name
+                .next()
+                .expect("url did not contain '://'");
+            assert_eq!(scheme, item_type);
+            assert_eq!(url_name, name);
+
+            // the data may be anything
+        }
+        .boxed()
+    })
+    .await;
+}
+
+#[tokio::test]
+/// TODO retrieve specific review item, "after creation"
+async fn review_item_get() {
+    run_test(|client| {
+        let request = CreateReviewItemMessage {
+            version: Some(api::version()),
+            item: Some(NewReviewItem {
+                item_type: "flashcard".into(),
+                data: "'front':'question','back':'answer'".into(),
+            }),
+        };
+        async move {
+            let create_response = client
+                .create_review_item(request)
+                .await
+                .expect("did not retrieve response from create review item request")
+                .into_inner();
+            let version = create_response
+                .version
+                .expect("version field did not exist");
+            assert_eq!(version, api::version());
+            let status = create_response.status.expect("status field did not exist");
+            assert_eq!(status.code, 200);
+
+            let item = create_response.item.expect("item field did not exist");
+
+            // using the item we got back we try to get it again
+            let get_response = client
+                .get_review_item(GetReviewItemMessage {
+                    version: Some(api::version()),
+                    name: item.name.clone(),
+                })
+                .await
+                .expect("could not get item")
+                .into_inner();
+
+            let version = get_response.version.expect("version field did not exist");
+            let status = get_response.status.expect("status field did not exist");
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
+
+            let item_again = get_response
+                .item
+                .expect("could not retrieve item, was None");
+
+            assert_eq!(item, item_again);
+        }
+        .boxed()
+    })
+    .await;
+}
+
+#[tokio::test]
+/// TODO Create a few items and filter on various attributes
+async fn review_item_list() {
+    run_test(|client| {
+        let requests = [
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of sweden','back':'stockholm'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of sweden','back':'stockholm'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "cloze".into(),
+                    data: "'text':'the capital of sweden is stockholm', 'mask':'                         ---------'" .into(),
+                }),
+            },
+        ];
+        async move {
+            // we create a few items
+            for request in requests {
+                client
+                    .create_review_item(request)
+                    .await
+                    .expect("did not retrieve response from create review item request")
+                    .into_inner();
+            }
+
+            // then we return them again
+            let list_response = client
+                .list_review_items(ListReviewItemsMessage {
+                    version: Some(api::version()),
+                    page_token: "".into(),
+                    page_size: 0,
+                    order_by: "".into(),
+                    order_dir: "".into(),
+                    filter: "".into(),
+                })
+                .await
+                .expect("did not retrieve a list of items!")
+                .into_inner();
+
+            let status = list_response.status.expect("could not retrieve status from response");
+            let version = list_response.version.expect("could not retrieve version from response");
+            let items = list_response.items;
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
+
+            // we expect 3 items in the result
+            assert_eq!(items.len(), 3);
+        }
+        .boxed()
+    })
+    .await;
+}
+
+#[tokio::test]
+/// TODO Create a few items and filter on various attributes
+async fn review_item_list_pagination() {
+    todo!("Filtering on review item list endpoint");
+}
+
+#[tokio::test]
+/// TODO Create a few items and filter on various attributes
+async fn review_item_list_filtering() {
+    todo!("Filtering on review item list endpoint");
+}
+
+#[tokio::test]
+/// TODO Create a few items and sort on various attributes
+async fn review_item_list_sort() {
+    todo!("Sort on review item list endpoint");
 }
