@@ -45,25 +45,37 @@ impl Scheduler for SchedulerService {
     ) -> Result<Response<ListDueReviewItemsResponse>, Status> {
         // - required -
         // [X] Return the items that are due
-        // [X] Filter on item type (if we are reviewing flashcards, we only want to return flashcards)
+        // [X] (optionally) Filter on item type (if we are reviewing flashcards, we only want to return flashcards)
+        // [ ] allow for optional filtering, we migtht want to return all due items
         // [X] Filter on item status (only items marked as 'in review')
         // [X] Sort the items by urgency
         // - optional -
-        // [ ] secondarily sort the items by priority - NOTE: it does not mike
+        // [ ] secondarily sort the items by priority - NOTE: it does not make
         //     that much sense to secondarily sort on priority. One reason is that there will
-        //     not exist many items that have the same urgency
-        let ListDueReviewItemsMessage { item_type, .. } = request.into_inner();
+        //     not exist many items that have the same urgency. It would be better if the
+        //     priority and urgency.
+        let ListDueReviewItemsMessage {
+            item_type,
+            version: _,
+            pagination_params,
+        } = request.into_inner();
 
         let now = chrono::Utc::now();
 
+        // we will always apply these conditions
         let is_due_cond = review_item::Column::NextReviewDate.lte(now); // find due items
-        let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type
+                                                                        // TODO apply this filtering conditionally
         let status_cond =
             review_item::Column::Status.eq(common::ReviewItemStatus::Review.to_string()); // only choose items that "in review"
-        let filter_cond = Condition::all()
-            .add(is_due_cond)
-            .add(type_cond)
-            .add(status_cond);
+
+        let mut filter_cond = Condition::all().add(is_due_cond).add(status_cond);
+
+        // if we supply the type as well, we filter on it
+        if let Some(item_type) = item_type {
+            println!("applying type filter");
+            let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type
+            filter_cond = filter_cond.add(type_cond);
+        }
 
         // we have to retrieve the elements before we can sort them based based on urgency
         let select_query = review_item::Entity::find().filter(filter_cond);
@@ -84,7 +96,7 @@ impl Scheduler for SchedulerService {
         // sort based on urgency. The difference in due date and review date divided by the stability gives a measure of how
         // important it is to review the item now.
         // between two items that are both three days overdue, the item that has a stability of 100 is less urgent
-        // than the item that has a higher priority
+        // than the item that has a lower stability
         items_with_dates.sort_by(|(a_item, a_date), (b_item, b_date)| {
             // what is the difference in number of days between now and the scheduled review date
             let a_diff = now.signed_duration_since(a_date).num_days() as f32; // positive if current time is larger than due date (should be)
@@ -118,7 +130,7 @@ impl Scheduler for SchedulerService {
                 code: 200,
                 message: None,
             }),
-            next_page_token: "".into(),
+            pagination_response: None,
             items,
         });
 
@@ -130,15 +142,19 @@ impl Scheduler for SchedulerService {
     ) -> Result<Response<ListNewReviewItemsResponse>, Status> {
         // - required -
         // [X] Return items that are new
-        // [ ] Limit the amount of new items returned somehow
+        // [ ] Limit the amount of new items returned somehow (pagination)
         // here it makes sense to sort by priority!
         // [ ] sort by priority
         let ListNewReviewItemsMessage { item_type, .. } = request.into_inner();
 
-        let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type.
         let is_new_cond =
             review_item::Column::Status.eq(common::ReviewItemStatus::Inbox.to_string()); // only choose items that are in the "inbox"
-        let filter_cond = Condition::all().add(is_new_cond).add(type_cond);
+        let mut filter_cond = Condition::all().add(is_new_cond);
+
+        if let Some(item_type) = item_type {
+            let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type.
+            filter_cond = filter_cond.add(type_cond);
+        }
 
         let select_query = review_item::Entity::find().filter(filter_cond);
 
@@ -155,7 +171,7 @@ impl Scheduler for SchedulerService {
                 code: 200,
                 message: None,
             }),
-            next_page_token: "".into(),
+            pagination_response: None,
             items,
         });
 
@@ -214,7 +230,7 @@ impl Scheduler for SchedulerService {
             },
             ReviewItemStatus::Review => {
                 let old_last_review_date = chrono::DateTime::parse_from_rfc3339(&old_last_review_date).map_err(|_| Status::new(Code::Internal, "could not parse date from 'last_review_date' field"))?;
-                let diff = old_last_review_date.signed_duration_since(now).num_days() as f64;
+                let diff = old_last_review_date.signed_duration_since(now).num_hours() as f64 / 24.0; // this will give us a fractional result
 
                 let d = algo::update_difficulty(old_d, grade);
                 let s = algo::update_stability(old_d, old_s, grade, diff);
@@ -237,6 +253,8 @@ impl Scheduler for SchedulerService {
         item.last_review_date = Set(now.to_rfc3339());
         item.next_review_date = Set(new_next_review_date.to_rfc3339());
         item.update_time = Set(now.to_rfc3339());
+
+        item.update(&self.db).await.map_err(db_err_to_status)?;
 
         let response = Response::new(GradeReviewItemResponse {
             version: Some(version()),
