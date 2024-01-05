@@ -417,7 +417,7 @@ async fn review_item_list_pagination() {
                 assert_eq!(version, api::version());
                 assert_eq!(status.code, 200);
 
-                // we expect 3 items in the result
+                // we expect 1 items in the result
                 assert_eq!(items.len(), 1);
                 
             }
@@ -426,6 +426,115 @@ async fn review_item_list_pagination() {
     })
     .await;
 }
+
+
+#[tokio::test]
+// Check that pagination without filtering or sorting results works
+async fn review_item_list_pagination_2() {
+    run_test(|client| {
+        let requests = [
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of norway','back':'oslo'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of sweden','back':'stockholm'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "cloze".into(),
+                    data: "'text':'the capital of sweden is stockholm', 'mask':'                         ---------'" .into(),
+                }),
+            },
+        ];
+        async move {
+            // we create a few items
+            for request in requests {
+                client
+                    .create_review_item(request)
+                    .await
+                    .expect("did not retrieve response from create review item request")
+                    .into_inner();
+            }
+
+            // ======== first we get the list of all items =========
+            // then we return them again
+            let list_response = client
+                .list_review_items(ListReviewItemsMessage {
+                    version: Some(api::version()),
+                    page: 0,
+                    page_size: 50,
+                    order_by: None,
+                    order_dir: None,
+                    filter: None,
+                })
+                .await
+                .expect("did not retrieve a list of items!")
+                .into_inner();
+
+            let status = list_response.status.expect("could not retrieve status from response");
+            let version = list_response.version.expect("could not retrieve version from response");
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
+            assert_eq!(version, api::version());
+            assert_eq!(status.code, 200);
+
+            // we expect 3 items in the result
+            let items = list_response.items;
+            assert_eq!(items.len(), 3);
+
+            let mut paginated_items = Vec::new();
+            
+
+            // then we retrieve them again but paginated
+            for i in 0..=2 {
+                let list_response = client
+                    .list_review_items(ListReviewItemsMessage {
+                        version: Some(api::version()),
+                        page: i,
+                        page_size: 1,
+                        order_by: None,
+                        order_dir: None,
+                        filter: None,
+                    })
+                    .await
+                    .expect("did not retrieve a list of items!")
+                    .into_inner();
+
+                let status = list_response.status.expect("could not retrieve status from response");
+                let version = list_response.version.expect("could not retrieve version from response");
+                let items = list_response.items;
+                assert_eq!(version, api::version());
+                assert_eq!(status.code, 200);
+                assert_eq!(version, api::version());
+                assert_eq!(status.code, 200);
+
+                // we expect 3 items in the result
+                assert_eq!(items.len(), 1);
+
+                let item = items[0].clone();
+                paginated_items.push(item);
+            }
+
+            // we then check that the first list were we retrieved all items is equal 
+            // to the second list which we filled incrementally
+
+            assert_eq!(items, paginated_items);
+        }
+        .boxed()
+    })
+    .await;
+}
+
+
 
 #[tokio::test]
 /// TODO Create a few items and filter on various attributes
