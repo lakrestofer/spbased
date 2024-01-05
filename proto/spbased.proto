@@ -59,13 +59,6 @@ message ResponseStatus {
   optional string message = 2;
 }
 
-
-message PaginationResponse {
-  string next_page_token = 1;
-  int32 total_items = 2;
-  int32 page_size = 3;
-}
-
 // *request messages and their responses* 
 // these define what information is passed with one of the above standard methods
 
@@ -73,8 +66,8 @@ message PaginationResponse {
 message ListReviewItemsMessage {
   VersionInfo version = 1;
   // options for paginated result
-  optional string next_page_token = 2;
-  optional int32 page_size = 3; // requested size
+  int32 page = 2;
+  int32 page_size = 3; // requested size
   // sorting
   optional string order_by = 4; // e.g sort first by update time, then by create time order_by="update_time,create_time"
   optional string order_dir= 5; // sort by "asc, desc"
@@ -85,10 +78,9 @@ message ListReviewItemsMessage {
 message ListReviewItemsResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
-  string next_page_token = 3;
-  int32 total_items = 4;
-  int32 page_size = 5;
-  repeated ReviewItem items = 6;
+  int32 total_items = 3;
+  int32 page_size = 4;
+  repeated ReviewItem items = 5;
 }
 
 // -- Get --
@@ -143,19 +135,18 @@ message DeleteReviewItemResponse {
 
 message ListDueReviewItemsMessage {
   VersionInfo version = 1;
-  optional string next_page_token = 2;
-  optional int32 page_size = 3; // requested size
+  int32 page = 2;
+  int32 page_size = 3; // requested size
   optional string item_type = 4; // the types of review items requested
 }
 
 message ListDueReviewItemsResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
-  string next_page_token = 3;
-  int32 total_items = 4;
-  int32 page_size = 5;
-  int32 page = 6;
-  repeated ReviewItem items = 7;
+  int32 total_items = 3;
+  int32 page_size = 4;
+  int32 page = 5;
+  repeated ReviewItem items = 6;
 }
 
 // -- List New
@@ -163,19 +154,18 @@ message ListDueReviewItemsResponse {
 
 message ListNewReviewItemsMessage {
   VersionInfo version = 1;
-  optional string next_page_token = 2;
-  optional int32 page_size = 3; // requested size
+  int32 page = 2;
+  int32 page_size = 3; // requested size
   optional string item_type = 4; // the types of review items requested
 }
 
 message ListNewReviewItemsResponse {
   VersionInfo version = 1;
   ResponseStatus status = 2;
-  string next_page_token = 3;
-  int32 total_items = 4;
-  int32 page_size = 5;
-  int32 page = 6;
-  repeated ReviewItem items = 7;
+  int32 total_items = 3;
+  int32 page_size = 4;
+  int32 page = 5;
+  repeated ReviewItem items = 6;
 }
 
 // - Grade Review Item -

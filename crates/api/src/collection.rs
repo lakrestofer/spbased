@@ -1,9 +1,8 @@
 //! Collection service. Provides the basic review item manipulation api endpoints
 
-use grpc::{PaginationParams, PaginationResponse};
 // external imports
 use sea_orm::entity::prelude::*;
-use sea_orm::{EntityTrait, Order, Paginator, Set};
+use sea_orm::{EntityTrait, Paginator, SelectModel, Set};
 use tonic::{Code, Request, Response, Status};
 // internal imports
 // workspace imports
@@ -18,19 +17,16 @@ pub use grpc::{
 
 use crate::{db_err_to_status, version, OptionToActiveValue};
 
-const MAX_CONCURRENT_PAGINATORS = 8;
+const DEFAULT_PAGE_SIZE: i32 = 50;
 
 #[derive(Debug)]
-pub struct CollectionService<'a> {
-    db: DatabaseConnection
-    paginator: Paginator<'a, DatabaseConnection >
+pub struct CollectionService {
+    db: DatabaseConnection,
 }
 
 impl CollectionService {
     pub fn new(db: DatabaseConnection) -> Self {
-        Self {
-            db,
-        }
+        Self { db }
     }
 }
 
@@ -42,35 +38,39 @@ impl Collection for CollectionService {
     ) -> Result<Response<ListReviewItemsResponse>, Status> {
         // [X] return review items
         // [ ] check that api version is valid
-        // [ ] paginate response, support for using "next_page" token
+        // [ ] paginate response
         // [ ] sorting based on fieldnames in order_by field
         // - [ ] specify sort direction using order_dir field
         // [ ] filtering based on some rules
         // - [ ] parse 'filter' field into structure that in turn can be used by sea orm
         let ListReviewItemsMessage {
-            version: _,
-            pagination_params,
+            version: request_expected_version,
+            page,
+            page_size,
             order_by,
             order_dir,
             filter,
         } = request.into_inner();
 
-        if let Some(PaginationParams {
-            page_token,
-            page_size: _,
-        }) = pagination_params
-        {
-            // if the pagination_prams were supplied, the next token is valid, and there is a paginator, simply return the next result
-            if page_token == &self.next_token {}
-        }
-
         // there were no existing paginator, create a new one
 
-        let mut search_query = review_item::Entity::find();
+        let mut search_query: Select<review_item::Entity> = review_item::Entity::find();
 
-        let paginator = search_query.paginate(&self.db, )
+        // if there exists a next_page_token, we can use it to construct
+        // a search query such that we get the next query
 
-        let items: Vec<_> = search_query.all(&self.db).await.map_err(db_err_to_status)?;
+        if let Some(filter) = filter {}
+        if let Some(order_by) = order_by {}
+
+        let paginator: Paginator<DatabaseConnection, SelectModel<review_item::Model>> =
+            search_query.paginate(&self.db, page_size as u64);
+
+        let total_items = paginator.num_items().await.map_err(db_err_to_status)? as i32;
+
+        let items: Vec<_> = paginator
+            .fetch_page(page as u64)
+            .await
+            .map_err(db_err_to_status)?;
 
         // convert from dbreviewitems (models) into the rRPC version
         let items = items.into_iter().map(From::from).collect();
@@ -81,7 +81,8 @@ impl Collection for CollectionService {
                 code: 200,
                 message: None,
             }),
-            pagionation_response: None, // empty for now
+            total_items,
+            page_size,
             items,
         };
 

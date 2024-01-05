@@ -111,11 +111,11 @@ async fn new_service() {
             version: Some(VersionInfo {
                 api_version: "0.0.1".into(),
             }),
-            page_token: "".into(),
-            page_size: 0,
-            order_by: "".into(),
-            order_dir: "".into(),
-            filter: "".into(),
+            page: 0,
+            page_size: 50,
+            order_by: None,
+            order_dir: None,
+            filter: None,
         });
 
         // the expected response
@@ -128,7 +128,8 @@ async fn new_service() {
                 code: 200,
                 message: None,
             }),
-            next_page_token: "".into(),
+            total_items: 0,
+            page_size: 50,
             items: Vec::new(),
         };
 
@@ -208,7 +209,7 @@ async fn create_review_item() {
             assert_eq!(create_time, update_time);
 
             // the status should be Inbox
-            assert_eq!(status, ReviewItemStatus::Inbox.as_i32());
+            assert_eq!(status, ReviewItemStatus::Inbox.to_string());
 
             // the difficulty and stability should be 0 until the first grading
             assert!(difficulty == 0.0 && stability == 0.0);
@@ -330,11 +331,11 @@ async fn review_item_list() {
             let list_response = client
                 .list_review_items(ListReviewItemsMessage {
                     version: Some(api::version()),
-                    page_token: "".into(),
-                    page_size: 0,
-                    order_by: "".into(),
-                    order_dir: "".into(),
-                    filter: "".into(),
+                    page: 0,
+                    page_size: 50,
+                    order_by: None,
+                    order_dir: None,
+                    filter: None,
                 })
                 .await
                 .expect("did not retrieve a list of items!")
@@ -357,9 +358,73 @@ async fn review_item_list() {
 }
 
 #[tokio::test]
-/// TODO Create a few items and filter on various attributes
+// Check that pagination without filtering or sorting results works
 async fn review_item_list_pagination() {
-    todo!("Filtering on review item list endpoint");
+    run_test(|client| {
+        let requests = [
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of norway','back':'oslo'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "flashcard".into(),
+                    data: "'front':'capital of sweden','back':'stockholm'".into(),
+                }),
+            },
+            CreateReviewItemMessage {
+                version: Some(api::version()),
+                item: Some(NewReviewItem {
+                    item_type: "cloze".into(),
+                    data: "'text':'the capital of sweden is stockholm', 'mask':'                         ---------'" .into(),
+                }),
+            },
+        ];
+        async move {
+            // we create a few items
+            for request in requests {
+                client
+                    .create_review_item(request)
+                    .await
+                    .expect("did not retrieve response from create review item request")
+                    .into_inner();
+            }
+
+            for i in 0..=2 {
+            // then we return them again
+                let list_response = client
+                    .list_review_items(ListReviewItemsMessage {
+                        version: Some(api::version()),
+                        page: i,
+                        page_size: 1,
+                        order_by: None,
+                        order_dir: None,
+                        filter: None,
+                    })
+                    .await
+                    .expect("did not retrieve a list of items!")
+                    .into_inner();
+
+                let status = list_response.status.expect("could not retrieve status from response");
+                let version = list_response.version.expect("could not retrieve version from response");
+                let items = list_response.items;
+                assert_eq!(version, api::version());
+                assert_eq!(status.code, 200);
+                assert_eq!(version, api::version());
+                assert_eq!(status.code, 200);
+
+                // we expect 3 items in the result
+                assert_eq!(items.len(), 1);
+                
+            }
+        }
+        .boxed()
+    })
+    .await;
 }
 
 #[tokio::test]

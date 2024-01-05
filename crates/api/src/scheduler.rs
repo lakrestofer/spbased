@@ -57,7 +57,8 @@ impl Scheduler for SchedulerService {
         let ListDueReviewItemsMessage {
             item_type,
             version: _,
-            pagination_params,
+            page_size,
+            page,
         } = request.into_inner();
 
         let now = chrono::Utc::now();
@@ -72,7 +73,6 @@ impl Scheduler for SchedulerService {
 
         // if we supply the type as well, we filter on it
         if let Some(item_type) = item_type {
-            println!("applying type filter");
             let type_cond = review_item::Column::ItemType.eq(item_type); // only choose items of the requested type
             filter_cond = filter_cond.add(type_cond);
         }
@@ -80,7 +80,13 @@ impl Scheduler for SchedulerService {
         // we have to retrieve the elements before we can sort them based based on urgency
         let select_query = review_item::Entity::find().filter(filter_cond);
 
-        let items = select_query.all(&self.db).await.map_err(db_err_to_status)?;
+        let paginator = select_query.paginate(&self.db, page_size as u64);
+        let total_items = paginator.num_items().await.map_err(db_err_to_status)? as i32;
+
+        let items = paginator
+            .fetch_page(page as u64)
+            .await
+            .map_err(db_err_to_status)?;
 
         // extract out dates and filters out items with non rfc3339 new_review_date fields
         let mut items_with_dates: Vec<(review_item::Model, chrono::DateTime<FixedOffset>)> = items
@@ -130,8 +136,10 @@ impl Scheduler for SchedulerService {
                 code: 200,
                 message: None,
             }),
-            pagination_response: None,
             items,
+            total_items,
+            page_size,
+            page,
         });
 
         Ok(response)
@@ -145,7 +153,12 @@ impl Scheduler for SchedulerService {
         // [ ] Limit the amount of new items returned somehow (pagination)
         // here it makes sense to sort by priority!
         // [ ] sort by priority
-        let ListNewReviewItemsMessage { item_type, .. } = request.into_inner();
+        let ListNewReviewItemsMessage {
+            version: _version,
+            item_type,
+            page,
+            page_size,
+        } = request.into_inner();
 
         let is_new_cond =
             review_item::Column::Status.eq(common::ReviewItemStatus::Inbox.to_string()); // only choose items that are in the "inbox"
@@ -158,7 +171,14 @@ impl Scheduler for SchedulerService {
 
         let select_query = review_item::Entity::find().filter(filter_cond);
 
-        let items = select_query.all(&self.db).await.map_err(db_err_to_status)?;
+        let paginator = select_query.paginate(&self.db, page_size as u64);
+
+        let total_items = paginator.num_items().await.map_err(db_err_to_status)? as i32;
+
+        let items = paginator
+            .fetch_page(page as u64)
+            .await
+            .map_err(db_err_to_status)?;
 
         // TODO sort by priority after the priority fields has been introduced
         // items.sort_by_cached_key(|item| item.priority);
@@ -171,8 +191,10 @@ impl Scheduler for SchedulerService {
                 code: 200,
                 message: None,
             }),
-            pagination_response: None,
             items,
+            total_items,
+            page_size,
+            page,
         });
 
         Ok(response)
