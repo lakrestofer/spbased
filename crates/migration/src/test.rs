@@ -4,7 +4,7 @@ mod test {
     use sea_orm_migration::prelude::*;
     use sea_orm_migration::sea_orm::Database;
 
-    #[async_std::test]
+    #[tokio::test]
     async fn fresh_migration_test() {
         let temp_dir = std::env::temp_dir();
 
