@@ -1,5 +1,11 @@
 use std::fmt::Display;
 
+use directories::ProjectDirs;
+
+pub fn project_directory() -> Option<ProjectDirs> {
+    ProjectDirs::from("", "", "spbased")
+}
+
 pub enum ReviewItemStatus {
     Inbox,
     Review,

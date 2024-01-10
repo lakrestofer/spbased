@@ -34,7 +34,7 @@ impl Default for ServerConfig {
         Self {
             // TODO mature and figure a better default port
             server_address: "[::1]:42069".into(),
-            db_dir: Some(dirs::data_local_dir().unwrap().join("spbased")),
+            db_dir: Some(common::project_directory().unwrap().data_dir().into()),
             db_name: Some("db.sqlite".into()),
         }
     }

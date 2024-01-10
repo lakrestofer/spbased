@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
 use api::server;
+use common::{self, project_directory};
+
 use clap::Parser;
 
-use dirs::config_dir;
 use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
@@ -26,9 +27,9 @@ struct Config {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    let config_dir = config_dir().expect("could not retrieve user config directory. Is platform anything other than linux, macOS or windows?");
-    // override the config location
-    let config_dir = config_dir.join("spbased");
+    let project_dirs =
+        project_directory().expect("could not retrieve user relative config, data, cache paths.");
+    let config_dir = project_dirs.config_dir();
     let mut config_file = config_dir.join("config.toml");
 
     if let Some(path) = cli.config {

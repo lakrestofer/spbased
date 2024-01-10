@@ -143,7 +143,7 @@ dependencies = [
  "async-stream 0.2.1",
  "chrono",
  "common",
- "dirs",
+ "directories",
  "entity",
  "futures",
  "grpc",
@@ -776,6 +776,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "directories",
  "thiserror",
 ]
 
@@ -926,7 +927,8 @@ version = "0.1.0"
 dependencies = [
  "api",
  "clap",
- "dirs",
+ "common",
+ "directories",
  "migration",
  "serde",
  "tokio",
@@ -999,15 +1001,6 @@ name = "directories"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a49173b84e034382284f27f1af4dcbbd231ffa358c0fe316541a7337f376a35"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs"
-version = "5.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
 dependencies = [
  "dirs-sys",
 ]
@@ -1195,7 +1188,6 @@ dependencies = [
  "futures",
  "human-panic",
  "json5",
- "lazy_static",
  "libc",
  "log",
  "pretty_assertions",

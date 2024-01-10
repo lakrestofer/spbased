@@ -10,6 +10,7 @@ api = { workspace = true }
 tokio = { workspace = true }
 migration = { workspace = true }
 clap = { workspace = true }
-dirs = { workspace = true }
+directories = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
+common = { workspace = true }
