@@ -87,7 +87,7 @@ pub fn initialize_panic_handler() -> Result<()> {
             eprintln!("{}", panic_hook.panic_report(panic_info)); // prints color-eyre stack trace to stderr
         }
         let msg = format!("{}", panic_hook.panic_report(panic_info));
-        log::error!("Error: {}", strip_ansi_escapes::strip_str(msg));
+        log::error!("Error: {}", strip_ansi_escapes::strip_str(msg)); // the msg will include ansi escape codes such that the output is nicely formated with colors in the terminal. We can't include them in the plaintext logfile
 
         #[cfg(debug_assertions)]
         {
