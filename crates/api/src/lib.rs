@@ -16,6 +16,9 @@ use tonic::{Code, Status};
 pub const DEFAULT_PAGE_SIZE: i32 = 50;
 
 pub fn version() -> VersionInfo {
+    // right now the versioninfo is totaly known statically
+    // I would like to read in the api version from some
+    // configuration file later at build time
     static VERSION: OnceLock<VersionInfo> = OnceLock::new();
     VERSION
         .get_or_init(|| VersionInfo {
