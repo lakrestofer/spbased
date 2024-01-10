@@ -148,6 +148,7 @@ dependencies = [
  "futures",
  "grpc",
  "migration",
+ "pretty_assertions",
  "prost",
  "sea-orm",
  "serde",

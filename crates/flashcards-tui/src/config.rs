@@ -69,6 +69,8 @@ impl Config {
     }
 }
 
+// derivation of Deref allows us to automatically reach the hashmap methods
+// on the keybindings type
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
 pub struct KeyBindings(pub HashMap<Mode, HashMap<Vec<KeyEvent>, Action>>);
 

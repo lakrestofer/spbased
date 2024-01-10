@@ -25,6 +25,11 @@ use tonic::transport::{Channel, Endpoint, Server, Uri};
 use tonic::Request;
 use tower::service_fn;
 
+
+// assertions
+use pretty_assertions::assert_eq;
+
+
 /// Returns an unique connection to a sqlite instance and performs migrations on it.
 pub async fn setup_db() -> DatabaseConnection {
     let db = Database::connect("sqlite::memory:")

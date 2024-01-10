@@ -45,6 +45,10 @@ clap = { version = "4.4", features = ["derive", "cargo", "wrap_help", "unicode",
 ratatui = { version = "0.25", features = ["all-widgets", "serde", "macros"] }
 crossterm = { version = "0.27.0", features = ["event-stream", "serde"] }
 config = { version = "0.13" }
+# dev dependencies
+pretty_assertions = "1.4.0"
+
+
 
 [workspace.metadata.local-install]
 sea-orm-cli = "0.12.4"
