@@ -67,6 +67,9 @@ pub fn initialize_panic_handler() -> Result<()> {
             }
         }
 
+        // the following sections differentiate the behaviour of panics on debug vs release builds
+        // the debug builds provide as much information as possible while the release builds also
+        // include a call to action to the end user (to report the bug)
         #[cfg(not(debug_assertions))]
         {
             use human_panic::{handle_dump, print_msg, Metadata};
@@ -96,7 +99,7 @@ pub fn initialize_panic_handler() -> Result<()> {
                 .create_panic_handler()(panic_info);
         }
 
-        std::process::exit(libc::EXIT_FAILURE);
+        std::process::exit(1);
     }));
     Ok(())
 }
