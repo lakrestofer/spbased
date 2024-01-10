@@ -15,8 +15,9 @@ api = { path = "./crates/api" }
 common = { path = "./crates/common" }
 algo = { path = "./crates/algo" }
 # external dependencies
-color_eyre = { version = "0.6" }
+color-eyre = { version = "0.6" }
 thiserror = { version = "1" }
+anyhow = { version = "1.0" }
 sea-orm = { version = "0.12", features = [
     "with-chrono",
     "sqlx-sqlite",
@@ -32,14 +33,20 @@ toml = "0.8"
 tonic = "0.10"
 tonic-build = "0.10"
 prost = "0.12"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
 tokio-stream = {version = "0.1", features = ["net"] }
+tokio-util = { version = "0.7" }
 futures = { version = "0.3" }
 tower = { version = "0.4" }
 tempfile = { version = "3.9" }
 async-stream = "0.2"
 dirs = { version = "5" }
-clap = { version = "4.4", features = ["derive"] }
+clap = { version = "4.4", features = ["derive", "cargo", "wrap_help", "unicode", "string", "unstable-styles"] }
+ratatui = { version = "0.25", features = ["all-widgets", "serde", "macros"] }
+crossterm = { version = "0.27.0", features = ["event-stream", "serde"] }
+config = { version = "0.13" }
 
 [workspace.metadata.local-install]
 sea-orm-cli = "0.12.4"
+
+

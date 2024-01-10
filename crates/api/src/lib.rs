@@ -1,7 +1,9 @@
-use std::cell::OnceCell;
+use std::sync::OnceLock;
+
+pub mod client;
+pub mod server;
 
 pub mod error;
-pub mod server;
 pub mod types;
 
 pub mod collection;
@@ -11,8 +13,10 @@ use grpc::VersionInfo;
 use sea_orm::{ActiveValue, DbErr};
 use tonic::{Code, Status};
 
+pub const DEFAULT_PAGE_SIZE: i32 = 50;
+
 pub fn version() -> VersionInfo {
-    const VERSION: OnceCell<VersionInfo> = OnceCell::new();
+    static VERSION: OnceLock<VersionInfo> = OnceLock::new();
     VERSION
         .get_or_init(|| VersionInfo {
             api_version: "0.0.1".into(),

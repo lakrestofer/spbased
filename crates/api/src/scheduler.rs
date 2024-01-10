@@ -22,7 +22,7 @@ use algo;
 
 pub use grpc::{ResponseStatus, VersionInfo};
 
-use crate::{db_err_to_status, version};
+use crate::{db_err_to_status, version, DEFAULT_PAGE_SIZE};
 
 #[derive(Debug)]
 pub struct SchedulerService {
@@ -79,6 +79,13 @@ impl Scheduler for SchedulerService {
 
         // we have to retrieve the elements before we can sort them based based on urgency
         let select_query = review_item::Entity::find().filter(filter_cond);
+
+        // page size of 0 means the server decides how many items to return, meaning we simply return the first 50
+        let page_size = if page_size == 0 {
+            DEFAULT_PAGE_SIZE
+        } else {
+            page_size
+        };
 
         let paginator = select_query.paginate(&self.db, page_size as u64);
         let total_items = paginator.num_items().await.map_err(db_err_to_status)? as i32;

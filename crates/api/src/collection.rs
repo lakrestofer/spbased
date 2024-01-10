@@ -2,7 +2,7 @@
 
 // external imports
 use sea_orm::entity::prelude::*;
-use sea_orm::{EntityTrait, Paginator, SelectModel, Set};
+use sea_orm::{EntityTrait, Paginator, QueryOrder, SelectModel, Set};
 use tonic::{Code, Request, Response, Status};
 // internal imports
 // workspace imports
@@ -15,9 +15,7 @@ pub use grpc::{
     ListReviewItemsResponse, UpdateReviewItemMessage, UpdateReviewItemResponse,
 };
 
-use crate::{db_err_to_status, version, OptionToActiveValue};
-
-const DEFAULT_PAGE_SIZE: i32 = 50;
+use crate::{db_err_to_status, version, OptionToActiveValue, DEFAULT_PAGE_SIZE};
 
 #[derive(Debug)]
 pub struct CollectionService {
@@ -38,7 +36,7 @@ impl Collection for CollectionService {
     ) -> Result<Response<ListReviewItemsResponse>, Status> {
         // [X] return review items
         // [ ] check that api version is valid
-        // [ ] paginate response
+        // [X] paginate response
         // [ ] sorting based on fieldnames in order_by field
         // - [ ] specify sort direction using order_dir field
         // [ ] filtering based on some rules
@@ -60,7 +58,39 @@ impl Collection for CollectionService {
         // a search query such that we get the next query
 
         if let Some(filter) = filter {}
-        if let Some(order_by) = order_by {}
+
+        if let Some(order_by) = order_by {
+            // if we are provided a order_by fields, we try to construct an order by
+            let dir = match order_dir {
+                Some(order_dir) => match order_dir.as_str() {
+                    "asc" => sea_orm::Order::Asc,
+                    "desc" => sea_orm::Order::Desc,
+                    _ => sea_orm::Order::Desc,
+                },
+                None => sea_orm::Order::Desc,
+            };
+
+            let order_by_col = match order_by.as_str() {
+                "name" => review_item::Column::Name,
+                "create_time" => review_item::Column::CreateTime,
+                "update_time" => review_item::Column::UpdateTime,
+                "status" => review_item::Column::Status,
+                "difficulty" => review_item::Column::Difficulty,
+                "stability" => review_item::Column::Stability,
+                "last_review_date" => review_item::Column::LastReviewDate,
+                "next_review_date" => review_item::Column::NextReviewDate,
+                "item_type" => review_item::Column::ItemType,
+                _ => return Err(Status::invalid_argument("tried to order on faulty field")),
+            };
+
+            search_query = search_query.order_by(order_by_col, dir);
+        }
+
+        let page_size = if page_size == 0 {
+            DEFAULT_PAGE_SIZE
+        } else {
+            page_size
+        };
 
         let paginator: Paginator<DatabaseConnection, SelectModel<review_item::Model>> =
             search_query.paginate(&self.db, page_size as u64);
