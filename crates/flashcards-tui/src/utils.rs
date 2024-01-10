@@ -49,10 +49,6 @@ pub fn log_file() -> &'static String {
     LOG_FILE.get_or_init(|| format!("{}.log", env!("CARGO_PKG_NAME")))
 }
 
-fn project_directory() -> Option<ProjectDirs> {
-    ProjectDirs::from("com", "kdheepak", env!("CARGO_PKG_NAME"))
-}
-
 pub fn initialize_panic_handler() -> Result<()> {
     let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
         .panic_section(format!(
@@ -108,7 +104,7 @@ pub fn initialize_panic_handler() -> Result<()> {
 pub fn get_data_dir() -> PathBuf {
     let directory = if let Some(s) = data_folder() {
         s.clone()
-    } else if let Some(proj_dirs) = project_directory() {
+    } else if let Some(proj_dirs) = common::project_directory() {
         proj_dirs.data_local_dir().to_path_buf()
     } else {
         PathBuf::from(".").join(".data")
@@ -119,7 +115,7 @@ pub fn get_data_dir() -> PathBuf {
 pub fn get_config_dir() -> PathBuf {
     let directory = if let Some(s) = config_folder() {
         s.clone()
-    } else if let Some(proj_dirs) = project_directory() {
+    } else if let Some(proj_dirs) = common::project_directory() {
         proj_dirs.config_local_dir().to_path_buf()
     } else {
         PathBuf::from(".").join(".config")
