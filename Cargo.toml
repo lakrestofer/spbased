@@ -6,6 +6,10 @@ members = [
   "crates/*"
 ]
 
+# see https://docs.rs/color-eyre/latest/color_eyre/#improving-perf-on-debug-builds
+[profile.dev.package.backtrace]
+opt-level = 3
+
 [workspace.dependencies]
 # internal dependencies
 entity = { path = "./crates/entity" }
