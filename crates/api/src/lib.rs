@@ -9,7 +9,6 @@ pub mod types;
 pub mod collection;
 pub mod scheduler;
 
-use directories::ProjectDirs;
 use grpc::VersionInfo;
 use sea_orm::{ActiveValue, DbErr};
 use tonic::{Code, Status};

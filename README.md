@@ -9,7 +9,7 @@ benefit from being scheduled in this manner.
 
 ## Spaced repetition algorithm
 
-Here we utilize the FSRS algorithm initially developed by Jarrett Ye et. al. 
+We utilize the FSRS algorithm initially developed by Jarrett Ye et. al. [https://github.com/open-spaced-repetition](https://github.com/open-spaced-repetition)
 
 ## Daemon
 

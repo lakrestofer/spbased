@@ -1,11 +1,7 @@
-use std::net::SocketAddr;
-
 use grpc::collection_client::CollectionClient;
 use grpc::scheduler_client::SchedulerClient;
 use serde::{Deserialize, Serialize};
 use tonic::transport::{Channel, Endpoint};
-
-use crate::{collection::CollectionService, scheduler::SchedulerService};
 
 #[derive(Serialize, Deserialize)]
 pub struct ClientConfig {

@@ -1,7 +1,6 @@
 use std::{path::PathBuf, sync::OnceLock};
 
 use color_eyre::eyre::Result;
-use directories::ProjectDirs;
 use tracing::error;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
