@@ -1,9 +1,5 @@
-pub mod action;
-pub mod app;
 pub mod cli;
-pub mod components;
 pub mod config;
-pub mod mode;
 pub mod tui;
 pub mod utils;
 
@@ -11,18 +7,29 @@ use clap::Parser;
 use cli::Cli;
 use color_eyre::eyre::Result;
 
-use crate::{
-    app::App,
-    utils::{initialize_logging, initialize_panic_handler},
-};
+use crate::utils::{initialize_logging, initialize_panic_handler};
+
+struct App;
+
+impl App {
+    fn new() -> Result<Self> {
+        Ok(Self)
+    }
+
+    async fn run(&self) -> Result<()> {
+        Ok(())
+    }
+}
 
 async fn tokio_main() -> Result<()> {
+    // init
     initialize_logging()?;
-
     initialize_panic_handler()?;
 
-    let args = Cli::parse();
-    let mut app = App::new(args.tick_rate, args.frame_rate)?;
+    // Cli options
+    let _args = Cli::parse();
+    let app = App::new()?;
+
     app.run().await?;
 
     Ok(())
