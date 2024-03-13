@@ -41,7 +41,7 @@ tempfile = { version = "3.9" }
 async-stream = "0.2"
 directories = { version = "5" }
 clap = { version = "4.4", features = ["derive", "cargo", "wrap_help", "unicode", "string", "unstable-styles"] }
-ratatui = { version = "0.25", features = ["all-widgets", "serde", "macros"] }
+ratatui = { version = "0.26", features = ["all-widgets", "serde", "macros"] }
 crossterm = { version = "0.27.0", features = ["event-stream", "serde"] }
 config = { version = "0.13" }
 # dev dependencies
