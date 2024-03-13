@@ -1,19 +1,40 @@
+use flashcard_tui::app::App;
+use flashcard_tui::components::root::Root;
+use flashcard_tui::components::Component;
+use flashcard_tui::event::{Event, TerminalEventHandler};
 use flashcard_tui::preamble::*;
-use flashcard_tui::{app::App, args::Args, config::Config, util::error_handling_setup};
+use flashcard_tui::tui::Tui;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use std::io;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    // install error handling/reporting handlers
-    error_handling_setup()?;
+async fn main() -> AppResult<()> {
+    // abstract away terminal and application loop
+    let backend = CrosstermBackend::new(io::stdout());
+    let terminal = Terminal::new(backend)?;
+    let events = TerminalEventHandler::new(250);
+    let mut tui = Tui::new(terminal, events);
+    tui.init()?;
 
-    // first we parse cli arguments
-    let args = Args::parse();
-    // read in the config from the
-    let config = Config::read()?;
+    // all app state
+    let mut app = App::default();
+    let root: Box<dyn Component> = Root::boxed();
 
-    let app = App::build(args, config)?;
+    // Start the main loop.
+    while app.running() {
+        // Render the user interface using supplied renderer
+        tui.draw(&root, &app.state)?;
+        // Handle events. Waits for "tickrate"
+        match tui.events.next().await? {
+            Event::Tick => {}
+            Event::Key(key_event) => root.handle_key_events(&mut app, key_event)?,
+            Event::Mouse(_) => {}
+            Event::Resize(_, _) => {}
+        }
+    }
 
-    app.run()?;
-
+    // Exit the user interface.
+    tui.exit()?;
     Ok(())
 }

@@ -1,50 +1,33 @@
-// internal imports
-use crate::{args::Args, config::Config, preamble::*};
-// external imports
-use crossterm::{
-    terminal::{
-        self, disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-    },
-    ExecutableCommand,
+use crate::{
+    components::{root::Root, Component},
+    preamble::AppResult,
+    state::{ActiveView, State},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
-use std::io::{stdout, Stdout};
-
-// types
-pub type Term = Terminal<CrosstermBackend<Stdout>>;
-
-fn init_terminal() -> Result<()> {
-    enable_raw_mode()?;
-    stdout().execute(EnterAlternateScreen)?;
-    Ok(())
-}
-
-fn restore_terminal() -> Result<()> {
-    disable_raw_mode()?;
-    stdout().execute(LeaveAlternateScreen)?;
-    Ok(())
-}
-
-pub fn terminal() -> Result<Term> {
-    Ok(Terminal::new(CrosstermBackend::new(stdout()))?)
-}
 
 pub struct App {
-    term: Term,
+    pub state: State,
+    pub root: Box<dyn Component>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            state: State::default(),
+            root: Box::new(Root::default()),
+        }
+    }
 }
 
 impl App {
-    /// given the arguments and the config we build the app
-    pub fn build(args: Args, config: Config) -> Result<App> {
-        let term = terminal()?;
-        Ok(Self { term: term })
+    pub fn running(&self) -> bool {
+        self.state.running
     }
 
-    pub fn run(&self) -> Result<()> {
-        init_terminal()?;
+    pub fn quit(&mut self) {
+        self.state.running = false;
+    }
 
-        // we init the terminal handle
-        restore_terminal()?;
-        Ok(())
+    pub fn navigate_to(&mut self, view: ActiveView) {
+        self.state.active_view = view;
     }
 }
