@@ -1,19 +1,13 @@
-use crate::{
-    components::{root::Root, Component},
-    preamble::AppResult,
-    state::{ActiveView, State},
-};
+use crate::state::{ActiveView, State};
 
 pub struct App {
     pub state: State,
-    pub root: Box<dyn Component>,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             state: State::default(),
-            root: Box::new(Root::default()),
         }
     }
 }

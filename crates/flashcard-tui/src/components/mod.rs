@@ -7,16 +7,11 @@ use ratatui::{layout::Rect, Frame};
 // but only a description of how to render
 // itself given state, and how state should be changed
 pub trait Component {
-    fn render(&self, state: &State, frame: &mut Frame, rect: Rect);
+    fn render(&self, frame: &mut Frame, rect: Rect);
     fn handle_key_events(&mut self, app: &mut App, key_event: KeyEvent) -> AppResult<()>;
 }
 
 /// A boxed component
 pub type DynamicComponent = Box<dyn Component>;
 
-pub mod add_card;
-pub mod browser;
-pub mod edit_card;
-pub mod help_bar;
-pub mod review_card;
 pub mod root;

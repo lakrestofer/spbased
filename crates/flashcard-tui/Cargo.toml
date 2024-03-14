@@ -9,6 +9,7 @@ edition = "2021"
 color-eyre = { workspace = true }
 crossterm = { workspace = true }
 futures = { workspace = true }
+leptos_reactive = "0.6.9"
 ratatui = { workspace = true }
 tokio = { workspace = true }
 tui-textarea = "0.4.0"

@@ -17,14 +17,19 @@ async fn main() -> AppResult<()> {
     let mut tui = Tui::new(terminal, events);
     tui.init()?;
 
+    // we make sure to start our state runtime
+    let runtime = leptos_reactive::create_runtime();
+
     // all app state
     let mut app = App::default();
-    let mut root: Box<dyn Component> = Root::boxed();
+
+    let mut root: Box<dyn Component> = Box::new(Root::new());
 
     // Start the main loop.
     while app.running() {
         // Render the user interface using supplied renderer
-        tui.draw(&root, &app.state)?;
+        tui.draw(&root)?;
+
         // Handle events. Waits for "tickrate"
         match tui.events.next().await? {
             Event::Tick => {}
@@ -33,6 +38,8 @@ async fn main() -> AppResult<()> {
             Event::Resize(_, _) => {}
         }
     }
+
+    runtime.dispose();
 
     // Exit the user interface.
     tui.exit()?;
