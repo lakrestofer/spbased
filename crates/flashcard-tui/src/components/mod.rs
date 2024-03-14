@@ -8,7 +8,7 @@ use ratatui::{layout::Rect, Frame};
 // itself given state, and how state should be changed
 pub trait Component {
     fn render(&self, state: &State, frame: &mut Frame, rect: Rect);
-    fn handle_key_events(&self, app: &mut App, key_event: KeyEvent) -> AppResult<()>;
+    fn handle_key_events(&mut self, app: &mut App, key_event: KeyEvent) -> AppResult<()>;
 }
 
 /// A boxed component

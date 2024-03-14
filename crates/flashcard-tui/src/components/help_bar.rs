@@ -34,7 +34,7 @@ impl Component for HelpBar {
     }
 
     fn handle_key_events(
-        &self,
+        &mut self,
         app: &mut crate::app::App,
         key_event: crossterm::event::KeyEvent,
     ) -> crate::preamble::AppResult<()> {

@@ -19,7 +19,7 @@ async fn main() -> AppResult<()> {
 
     // all app state
     let mut app = App::default();
-    let root: Box<dyn Component> = Root::boxed();
+    let mut root: Box<dyn Component> = Root::boxed();
 
     // Start the main loop.
     while app.running() {
