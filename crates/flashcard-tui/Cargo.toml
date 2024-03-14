@@ -11,3 +11,4 @@ crossterm = { workspace = true }
 futures = { workspace = true }
 ratatui = { workspace = true }
 tokio = { workspace = true }
+tui-textarea = "0.4.0"
