@@ -59,6 +59,12 @@ async fn main() -> AppResult<()> {
                                 break;
                             }
                         }
+                        KeyCode::Up => {
+                            count.update(|c| *c += 1);
+                        }
+                        KeyCode::Down => {
+                            count.update(|c| *c -= 1);
+                        }
                         _ => {}
                     },
                     Event::Mouse(_) => {}
@@ -74,6 +80,8 @@ async fn main() -> AppResult<()> {
         .expect("Tried to wait for shutdown signal");
 
     exit_terminal(&mut terminal.write().unwrap()).expect("could not restore terminal");
+
+    println!("Goodbye!");
 
     Ok(())
 }
