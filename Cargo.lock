@@ -130,6 +130,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "any_spawner"
+version = "0.6.5"
+source = "git+https://github.com/leptos-rs/leptos.git?branch=leptos_0.7#35df94e8bcad967f4def9d5dccf22abf48654d21"
+dependencies = [
+ "futures",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -847,10 +857,12 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 name = "flashcard-tui"
 version = "0.1.0"
 dependencies = [
+ "any_spawner",
  "color-eyre",
  "crossterm",
  "futures",
  "ratatui",
+ "reactive_graph",
  "tokio",
  "tui-textarea",
 ]
@@ -1031,6 +1043,12 @@ dependencies = [
  "tonic",
  "tonic-build",
 ]
+
+[[package]]
+name = "guardian"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6817154789d2e9bb2af0486500e774af579d0e6539247044f06d803b141448b5"
 
 [[package]]
 name = "h2"
@@ -1579,6 +1597,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "or_poisoned"
+version = "0.6.5"
+source = "git+https://github.com/leptos-rs/leptos.git?branch=leptos_0.7#35df94e8bcad967f4def9d5dccf22abf48654d21"
+
+[[package]]
 name = "ordered-float"
 version = "3.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1946,6 +1969,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "reactive_graph"
+version = "0.6.5"
+source = "git+https://github.com/leptos-rs/leptos.git?branch=leptos_0.7#35df94e8bcad967f4def9d5dccf22abf48654d21"
+dependencies = [
+ "any_spawner",
+ "futures",
+ "guardian",
+ "or_poisoned",
+ "pin-project-lite",
+ "rustc-hash",
+ "slotmap",
+ "thiserror",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2101,6 +2139,12 @@ name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d626bb9dae77e28219937af045c257c28bfd3f69333c512553507f5f9798cb76"
+
+[[package]]
+name = "rustc-hash"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
@@ -2462,6 +2506,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f92a496fb766b417c996b9c5e57daf2f7ad3b0bebe1ccfca4856390e3d3bb67"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "slotmap"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
+dependencies = [
+ "version_check",
 ]
 
 [[package]]
@@ -2968,7 +3021,9 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
+ "parking_lot",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2 0.5.5",
  "tokio-macros",
  "windows-sys 0.48.0",
