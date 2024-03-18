@@ -51,37 +51,21 @@ pub fn Root() -> Component {
     });
     // ==== Event handler begin ====
 
-    // ==== define layout begin ====
-    // the `compute_rect` function tells us what portion of the screen
-    // our parent has
-    let center_rect: DynamicRect = Arc::new(move |view_port: Rect| {
-        let [upper, _] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Length(1)])
-            .areas(view_port);
-        upper
-    });
-    let help_rect: DynamicRect = Arc::new(move |view_port: Rect| {
-        let [_, lower] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Length(1)])
-            .areas(view_port);
-        lower
-    });
-    // ==== define layout end ====
-
     // ==== Renderer begin ====
-    let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        let center_rect = center_rect(rect);
-        let help_rect = help_rect(rect);
+    let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, view_port: Rect| {
+        let [center, help] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Length(1)])
+            .areas(view_port);
+
         match active_view.get() {
-            ActiveView::Home => home_renderer(frame, center_rect),
-            ActiveView::AddCard => add_card_renderer(frame, center_rect),
-            ActiveView::Browser => browser_renderer(frame, center_rect),
-            ActiveView::EditCard => edit_card_renderer(frame, center_rect),
-            ActiveView::Review => review_renderer(frame, center_rect),
+            ActiveView::Home => home_renderer(frame, center),
+            ActiveView::AddCard => add_card_renderer(frame, center),
+            ActiveView::Browser => browser_renderer(frame, center),
+            ActiveView::EditCard => edit_card_renderer(frame, center),
+            ActiveView::Review => review_renderer(frame, center),
         }
-        help_bar_renderer(frame, help_rect);
+        help_bar_renderer(frame, help);
     });
     // ==== Renderer end ====
 

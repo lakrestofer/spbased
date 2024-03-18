@@ -58,7 +58,13 @@ async fn main() -> AppResult<()> {
                     },
                     Event::Tick => None,
                     Event::Mouse(_) => None,
-                    Event::Resize(_, _) => None,
+                    Event::Resize(_, _) => {
+                        _ = terminal.write().unwrap().draw(|frame| {
+                            let view_port = frame.size();
+                            root_renderer(frame, view_port);
+                        });
+                        None
+                    }
                 };
 
                 match event {
