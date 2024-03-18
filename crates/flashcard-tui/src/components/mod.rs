@@ -21,4 +21,5 @@ pub type Component = (ComponentRenderer, ComponentEventHandler);
 pub type DynamicRect = Arc<dyn Fn(Rect) -> Rect + Send + Sync>;
 pub type ComponentDef = Arc<dyn Fn(Arc<RwLock<CrosstermTerminal>>, DynamicRect) -> Component>;
 
+pub mod help_bar;
 pub mod root;
