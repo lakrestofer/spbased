@@ -1,7 +1,5 @@
 use crossterm::event::{KeyCode, KeyModifiers};
-use flashcard_tui::app::App;
 use flashcard_tui::components::root::Root;
-use flashcard_tui::components::Component;
 use flashcard_tui::event::{Event, TerminalEventHandler};
 use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
@@ -36,17 +34,8 @@ async fn main() -> AppResult<()> {
 
     Executor::spawn(async move {
         let terminal = _terminal;
-        let count = RwSignal::new(0);
 
-        Effect::new_sync({
-            let terminal = terminal.clone();
-            move |_| {
-                _ = terminal.write().unwrap().draw(|frame| {
-                    let size = frame.size();
-                    frame.render_widget(Paragraph::new(format!("Counter: {}", count.get())), size);
-                });
-            }
-        });
+        let (_root_renderer, root_event_handler) = Root(terminal, Arc::new(|x| x));
 
         loop {
             if let Ok(event) = events.next().await {
@@ -59,13 +48,7 @@ async fn main() -> AppResult<()> {
                                 break;
                             }
                         }
-                        KeyCode::Up => {
-                            count.update(|c| *c += 1);
-                        }
-                        KeyCode::Down => {
-                            count.update(|c| *c -= 1);
-                        }
-                        _ => {}
+                        _ => root_event_handler(key_event),
                     },
                     Event::Mouse(_) => {}
                     Event::Resize(_, _) => {}
