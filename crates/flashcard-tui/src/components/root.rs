@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use crossterm::event::KeyCode;
 use ratatui::{
+    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Style, Stylize},
     text::{Line, Span},
@@ -85,10 +86,10 @@ pub fn Root(terminal: Arc<RwLock<CrosstermTerminal>>, compute_rect: DynamicRect)
     // ==== Renderer begin ====
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, view_port: Rect| {
         let center_rect = center_rect(view_port);
-        let help_rect = help_rect(view_port);
+        // let help_rect = help_rect(view_port);
 
         render_root(frame, center_rect, counter);
-        help_bar_renderer(frame, help_rect);
+        help_bar_renderer(frame, view_port);
     });
     // ==== Renderer end ====
 
@@ -97,10 +98,23 @@ pub fn Root(terminal: Arc<RwLock<CrosstermTerminal>>, compute_rect: DynamicRect)
         let terminal = terminal.clone();
         let renderer = renderer.clone();
         move |_| {
-            _ = terminal.write().unwrap().draw(|frame| {
-                let view_port = frame.size();
-                renderer(frame, view_port);
-            });
+            // NOTE: We cannot use the terminal.draw call since that will rotate
+            // and clear internal buffers. Meaning that two consecuteve draw calls
+            // (from two different Effects) will not render on top of each other.
+            // NOTE that each frame.size() call will retrive the entire view_port
+            // rect. Each component has to know how to reduce this into a rect
+            // that it can draw into
+            // TODO factor out this boilerplate.
+
+            let mut terminal = terminal.write().unwrap();
+            terminal.autoresize().unwrap();
+            let mut frame = terminal.get_frame();
+            let view_port = frame.size();
+
+            renderer(&mut frame, view_port);
+
+            terminal.flush().unwrap();
+            terminal.backend_mut().flush().unwrap();
         }
     });
 
