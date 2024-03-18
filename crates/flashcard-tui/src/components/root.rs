@@ -1,159 +1,89 @@
 #![allow(non_snake_case)]
 use std::sync::{Arc, RwLock};
 
-use crossterm::event::KeyCode;
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Style, Stylize},
-    text::{Line, Span},
-    widgets::Paragraph,
     Frame,
 };
 use reactive_graph::{
-    effect::Effect,
     signal::RwSignal,
-    traits::{Get, Update},
+    traits::{Get, GetUntracked, Update},
 };
 
-use crate::tui::CrosstermTerminal;
+use super::{
+    add_card::AddCard, browser::Browser, edit_card::EditCard, help_bar::HelpBar, home::Home,
+    review::Review, Component, ComponentEventHandler, ComponentRenderer, DynamicRect,
+};
 
-use super::{help_bar::HelpBar, Component, ComponentEventHandler, ComponentRenderer, DynamicRect};
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ActiveView {
+    Home,
+    AddCard,
+    EditCard,
+    Browser,
+    Review,
+}
 
-const TITLE: [&str; 10] = [
-    " ██████  ██▓███   ▄▄▄▄    ▄▄▄        ██████ ▓█████ ▓█████▄  ",
-    "▒██    ▒ ▓██░  ██▒▓█████▄ ▒████▄    ▒██    ▒ ▓█   ▀ ▒██▀ ██▌",
-    "░ ▓██▄   ▓██░ ██▓▒▒██▒ ▄██▒██  ▀█▄  ░ ▓██▄   ▒███   ░██   █▌",
-    "  ▒   ██▒▒██▄█▓▒ ▒▒██░█▀  ░██▄▄▄▄██   ▒   ██▒▒▓█  ▄ ░▓█▄   ▌",
-    "▒██████▒▒▒██▒ ░  ░░▓█  ▀█▓ ▓█   ▓██▒▒██████▒▒░▒████▒░▒████▓ ",
-    "▒ ▒▓▒ ▒ ░▒▓▒░ ░  ░░▒▓███▀▒ ▒▒   ▓▒█░▒ ▒▓▒ ▒ ░░░ ▒░ ░ ▒▒▓  ▒ ",
-    "░ ░▒  ░ ░░▒ ░     ▒░▒   ░   ▒   ▒▒ ░░ ░▒  ░ ░ ░ ░  ░ ░ ▒  ▒ ",
-    "░  ░  ░  ░░        ░    ░   ░   ▒   ░  ░  ░     ░    ░ ░  ░ ",
-    "      ░            ░            ░  ░      ░     ░  ░   ░    ",
-    "                        ░                            ░      ",
-];
-
-const DESCRIPTION: &str = "Flashcard frontend for the spbased framework.";
-
-pub fn Root(terminal: Arc<RwLock<CrosstermTerminal>>, compute_rect: DynamicRect) -> Component {
+pub fn Root() -> Component {
     // ==== define state begin ====
-    let counter = RwSignal::new(0);
+    let active_view = RwSignal::new(ActiveView::Home);
     // ==== define state end ====
+
+    // ==== init child components begin ====
+    let (home_renderer, home_event_handler) = Home(active_view);
+    let (add_card_renderer, add_card_event_handler) = AddCard(active_view);
+    let (edit_card_renderer, edit_card_event_handler) = EditCard(active_view);
+    let (browser_renderer, browser_event_handler) = Browser(active_view);
+    let (review_renderer, review_event_handler) = Review(active_view);
+    let (help_bar_renderer, _) = HelpBar();
+    // ==== init child components end ====
+
+    // ==== Event handler begin ====
+    let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        match active_view.get_untracked() {
+            ActiveView::Home => return home_event_handler(key_event),
+            ActiveView::AddCard => return add_card_event_handler(key_event),
+            ActiveView::EditCard => return edit_card_event_handler(key_event),
+            ActiveView::Browser => return browser_event_handler(key_event),
+            ActiveView::Review => return review_event_handler(key_event),
+        }
+        // None
+    });
+    // ==== Event handler begin ====
 
     // ==== define layout begin ====
     // the `compute_rect` function tells us what portion of the screen
     // our parent has
-    let center_rect: DynamicRect = Arc::new({
-        let compute_rect = compute_rect.clone();
-        move |view_port: Rect| {
-            let filtered_rect = compute_rect(view_port);
-            let [upper, _] = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Fill(1), Constraint::Length(1)])
-                .areas(filtered_rect);
-            upper
-        }
+    let center_rect: DynamicRect = Arc::new(move |view_port: Rect| {
+        let [upper, _] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Length(1)])
+            .areas(view_port);
+        upper
     });
-    let help_rect: DynamicRect = Arc::new({
-        let compute_rect = compute_rect.clone();
-        move |view_port: Rect| {
-            let filtered_rect = compute_rect(view_port);
-            let [_, lower] = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Fill(1), Constraint::Length(1)])
-                .areas(filtered_rect);
-            lower
-        }
+    let help_rect: DynamicRect = Arc::new(move |view_port: Rect| {
+        let [_, lower] = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Length(1)])
+            .areas(view_port);
+        lower
     });
-
     // ==== define layout end ====
 
-    // ==== init child components begin ====
-    let (help_bar_renderer, _help_bar_event_handler) = HelpBar(terminal.clone(), help_rect.clone());
-    // ==== init child components end ====
-
-    // ==== Event handler begin ====
-    let handler: ComponentEventHandler =
-        Arc::new(
-            move |key_event: crossterm::event::KeyEvent| match key_event.code {
-                KeyCode::Up => counter.update(|c| *c += 1),
-                KeyCode::Down => counter.update(|c| *c -= 1),
-                _ => {}
-            },
-        );
-    // ==== Event handler begin ====
-
     // ==== Renderer begin ====
-    let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, view_port: Rect| {
-        let center_rect = center_rect(view_port);
-        // let help_rect = help_rect(view_port);
-
-        render_root(frame, center_rect, counter);
-        help_bar_renderer(frame, view_port);
+    let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        let center_rect = center_rect(rect);
+        let help_rect = help_rect(rect);
+        match active_view.get() {
+            ActiveView::Home => home_renderer(frame, center_rect),
+            ActiveView::AddCard => add_card_renderer(frame, center_rect),
+            ActiveView::Browser => browser_renderer(frame, center_rect),
+            ActiveView::EditCard => edit_card_renderer(frame, center_rect),
+            ActiveView::Review => review_renderer(frame, center_rect),
+        }
+        help_bar_renderer(frame, help_rect);
     });
     // ==== Renderer end ====
 
-    // Registering rendering side effect
-    Effect::new_sync({
-        let terminal = terminal.clone();
-        let renderer = renderer.clone();
-        move |_| {
-            // NOTE: We cannot use the terminal.draw call since that will rotate
-            // and clear internal buffers. Meaning that two consecuteve draw calls
-            // (from two different Effects) will not render on top of each other.
-            // NOTE that each frame.size() call will retrive the entire view_port
-            // rect. Each component has to know how to reduce this into a rect
-            // that it can draw into
-            // TODO factor out this boilerplate.
-
-            let mut terminal = terminal.write().unwrap();
-            terminal.autoresize().unwrap();
-            let mut frame = terminal.get_frame();
-            let view_port = frame.size();
-
-            renderer(&mut frame, view_port);
-
-            terminal.flush().unwrap();
-            terminal.backend_mut().flush().unwrap();
-        }
-    });
-
     (renderer, handler)
-}
-
-fn render_root(frame: &mut Frame, rect: Rect, counter: RwSignal<i32>) {
-    let ver: [Rect; 5] = Layout::vertical([Constraint::Ratio(1, 5); 5]).areas(rect);
-
-    let title = Paragraph::new(
-        TITLE
-            .iter()
-            .map(|line| Line::from(*line))
-            .collect::<Vec<Line>>(),
-    )
-    .blue()
-    .centered();
-
-    let description_stats = vec![
-        DESCRIPTION.into(),
-        format!("To review: {} cards", counter.get()).into(),
-    ];
-
-    let nav_hint = vec![
-        Line::from(vec![
-            Span::styled("a", Style::new().blue()),
-            Span::raw(": Add card"),
-        ]),
-        Line::from(vec![
-            Span::styled("b", Style::new().blue()),
-            Span::raw(": Browser"),
-        ]),
-        Line::from(vec![
-            Span::styled("r", Style::new().blue()),
-            Span::raw(": Review"),
-        ]),
-    ];
-
-    frame.render_widget(title, ver[1]);
-    frame.render_widget(Paragraph::new(description_stats).centered(), ver[3]);
-    frame.render_widget(Paragraph::new(nav_hint).centered(), ver[4]);
 }

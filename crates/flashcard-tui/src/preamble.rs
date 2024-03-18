@@ -7,3 +7,7 @@ pub type AppResult<T> = Result<T>;
 pub use crate::util::Boxed;
 
 pub type CrosstermTerminal = Terminal<CrosstermBackend<Stdout>>;
+
+pub enum ApplicationEvent {
+    Shutdown,
+}
