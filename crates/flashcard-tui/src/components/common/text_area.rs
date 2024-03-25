@@ -42,7 +42,7 @@ pub fn TextArea(title: &str, is_focused: Arc<dyn Fn() -> bool + Send + Sync>) ->
     area.set_cursor_line_style(Style::default());
     area.set_block(
         Block::default()
-            .title_top(Line::from(title.to_string()).centered())
+            .title_top(Line::from(title.to_string()))
             .borders(Borders::ALL)
             .border_type(BorderType::Plain),
     );
