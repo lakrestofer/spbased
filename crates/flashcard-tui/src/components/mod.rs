@@ -31,3 +31,4 @@ pub mod home;
 pub mod review;
 pub mod root;
 pub mod tag_area;
+pub mod utils;

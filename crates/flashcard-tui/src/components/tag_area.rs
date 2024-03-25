@@ -9,13 +9,12 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
-    effect::Effect,
     signal::RwSignal,
     traits::{Get, GetUntracked, Set, Update},
 };
 use std::sync::Arc;
 
-use super::{common::text_area::TextArea, Component, ComponentEventHandler, ComponentRenderer};
+use super::{common::text_area::TextArea, Component, ComponentRenderer};
 
 pub fn TagArea(is_focused: Arc<dyn Fn() -> bool + Send + Sync>) -> Component {
     let tags: RwSignal<Vec<String>> =

@@ -17,6 +17,8 @@ use tui_textarea::TextArea;
 
 use crate::components::{Component, ComponentEventHandler, ComponentRenderer};
 
+use super::super::utils::set_focused_block;
+
 /// modify the styling of a textarea to reflect it being
 /// focused or not
 fn set_focused(textarea: &mut TextArea, focused: bool) {
@@ -26,15 +28,9 @@ fn set_focused(textarea: &mut TextArea, focused: bool) {
         style = style.add_modifier(Modifier::DIM);
     }
 
-    let block_color = if focused {
-        Color::LightBlue
-    } else {
-        Color::White
-    };
-
     let mut block = textarea.block().unwrap().clone();
-    let block_style = Styled::style(&block);
-    block = block.set_style(block_style.fg(block_color));
+
+    set_focused_block(&mut block, focused);
 
     textarea.set_cursor_style(style);
     textarea.set_block(block);
