@@ -1,6 +1,3 @@
-/// Application.
-pub mod state;
-
 /// Terminal events handler.
 pub mod event;
 
@@ -13,7 +10,5 @@ pub mod tui;
 pub mod preamble;
 
 pub mod components;
-
-pub mod app;
 
 pub mod util;

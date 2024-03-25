@@ -43,16 +43,16 @@ async fn main() -> AppResult<()> {
                 });
             }
         });
+        // start event loop
         loop {
             if let Ok(event) = events.next().await {
                 let event: Option<ApplicationEvent> = match event {
                     Event::Key(key_event) => match key_event.code {
-                        KeyCode::Char('c') | KeyCode::Char('C') => {
-                            if key_event.modifiers.contains(KeyModifiers::CONTROL) {
-                                Some(ApplicationEvent::Shutdown)
-                            } else {
-                                None
-                            }
+                        // on C-c, always exit the application
+                        KeyCode::Char('c') | KeyCode::Char('C')
+                            if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+                        {
+                            Some(ApplicationEvent::Shutdown)
                         }
                         _ => root_event_handler(key_event),
                     },

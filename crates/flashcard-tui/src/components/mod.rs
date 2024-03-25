@@ -24,8 +24,10 @@ pub type ComponentDef = Arc<dyn Fn(Arc<RwLock<CrosstermTerminal>>, DynamicRect) 
 
 pub mod add_card;
 pub mod browser;
+pub mod common;
 pub mod edit_card;
 pub mod help_bar;
 pub mod home;
 pub mod review;
 pub mod root;
+pub mod tag_area;

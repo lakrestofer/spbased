@@ -35,7 +35,7 @@ pub fn Root() -> Component {
     let (edit_card_renderer, edit_card_event_handler) = EditCard(active_view);
     let (browser_renderer, browser_event_handler) = Browser(active_view);
     let (review_renderer, review_event_handler) = Review(active_view);
-    let (help_bar_renderer, _) = HelpBar();
+    let (help_bar_renderer, _) = HelpBar(active_view);
     // ==== init child components end ====
 
     // ==== Event handler begin ====

@@ -1,7 +1,4 @@
-use crate::components::Component;
-use crate::event::TerminalEventHandler;
 use crate::preamble::*;
-use crate::state::State;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::{Backend, CrosstermBackend};
