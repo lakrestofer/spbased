@@ -6,6 +6,7 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
+    computed::Memo,
     signal::RwSignal,
     traits::{Get, GetUntracked, Set, Update},
 };
@@ -48,17 +49,40 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let focus_previous_field = move || focused_field.update(FocusedField::previous);
 
     // children
-    let (question_field_renderer, question_field_handler) = TextArea(
-        "Question",
-        Arc::new(move || focused_field.get() == FocusedField::Question),
+    let q_focused = Memo::new({
+        let focused_field = focused_field.clone();
+        move |_| focused_field.get() == FocusedField::Question
+    });
+    let q_clear = RwSignal::new(());
+    let q_submit = RwSignal::new(());
+    let q_text = RwSignal::new(String::new());
+    let (q_renderer, q_handler) = TextArea(
+        "Question".into(),
+        q_focused,
+        q_clear,
+        q_submit,
+        Arc::new(move |s| q_text.update(|_s| *_s = s)),
     );
 
-    let (answer_field_renderer, answer_field_handler) = TextArea(
-        "Answer",
-        Arc::new(move || focused_field.get() == FocusedField::Answer),
+    let a_focused = Memo::new({
+        let focused_field = focused_field.clone();
+        move |_| focused_field.get() == FocusedField::Answer
+    });
+    let a_clear = RwSignal::new(());
+    let a_submit = RwSignal::new(());
+    let a_text = RwSignal::new(String::new());
+    let (a_renderer, a_handler) = TextArea(
+        "Answer".into(),
+        a_focused,
+        a_clear,
+        a_submit,
+        Arc::new(move |s| a_text.update(|_s| *_s = s)),
     );
-    let (tag_renderer, tag_event_handler) =
-        TagArea(Arc::new(move || focused_field.get() == FocusedField::Tag));
+    let t_focused = Memo::new({
+        let focused_field = focused_field.clone();
+        move |_| focused_field.get() == FocusedField::Tag
+    });
+    let (t_renderer, t_handler) = TagArea(t_focused);
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         match key_event.code {
@@ -67,9 +91,9 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             KeyCode::BackTab => focus_previous_field(),
             KeyCode::Enter if key_event.modifiers.contains(KeyModifiers::CONTROL) => {}
             _ => match focused_field.get_untracked() {
-                FocusedField::Question => return question_field_handler(key_event),
-                FocusedField::Answer => return answer_field_handler(key_event),
-                FocusedField::Tag => return tag_event_handler(key_event),
+                FocusedField::Question => return q_handler(key_event),
+                FocusedField::Answer => return a_handler(key_event),
+                FocusedField::Tag => return t_handler(key_event),
             },
         }
         None
@@ -98,16 +122,16 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             .areas(right);
 
         // question field
-        question_field_renderer(frame, upper_left);
+        q_renderer(frame, upper_left);
 
         // answer field
-        answer_field_renderer(frame, lower_left);
+        a_renderer(frame, lower_left);
 
         // stats
         frame.render_widget(Paragraph::new("Stats here"), upper_right);
 
         // tag
-        tag_renderer(frame, lower_right);
+        t_renderer(frame, lower_right);
     });
 
     (renderer, handler)

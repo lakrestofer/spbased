@@ -1,37 +1,32 @@
 #![allow(non_snake_case)]
-use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
-    layout::{Constraint, Direction, Flex, Layout, Rect},
-    style::{Color, Modifier, Style, Styled, Stylize},
-    symbols,
-    text::Line,
-    widgets::{Block, BorderType, Borders, List, ListState, Padding, Paragraph},
+    layout::Rect,
+    style::{Color, Modifier, Style},
+    widgets::{Block, Borders, List, ListState},
     Frame,
 };
 use reactive_graph::{
+    computed::Memo,
     signal::RwSignal,
-    traits::{Get, GetUntracked, Set, Update},
+    traits::{Get, Update},
 };
 use std::sync::Arc;
 
+use crate::components::stub_component_event_handler;
+
 use super::super::{Component, ComponentEventHandler, ComponentRenderer};
 
-pub fn List(
-    title: String,
-    is_focused: Arc<dyn Fn() -> bool + Send + Sync>,
-    items: Arc<dyn Fn() -> Vec<String> + Send + Sync>,
-) -> Component {
+pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> Component {
     // all the existing tags
     let widget_state = RwSignal::new(ListState::default());
 
-    let handler: ComponentEventHandler =
-        Arc::new(move |key_event: crossterm::event::KeyEvent| None);
+    let handler: ComponentEventHandler = stub_component_event_handler();
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        let list_widget = List::new(items())
+        let list_widget = List::new(items.get())
             .block(
                 Block::default()
-                    .style(Style::default().fg(if is_focused() {
+                    .style(Style::default().fg(if is_focused.get() {
                         Color::LightBlue
                     } else {
                         Color::White

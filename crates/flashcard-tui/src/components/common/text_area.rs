@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+use color_eyre::owo_colors::styles;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style, Styled},
@@ -7,9 +8,10 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
+    computed::Memo,
     effect::Effect,
     signal::RwSignal,
-    traits::{Get, Update},
+    traits::{Get, GetUntracked, Update},
 };
 use std::sync::Arc;
 
@@ -36,21 +38,49 @@ fn set_focused(textarea: &mut TextArea, focused: bool) {
     textarea.set_block(block);
 }
 
-pub fn TextArea(title: &str, is_focused: Arc<dyn Fn() -> bool + Send + Sync>) -> Component {
-    // local state and derived setters
+fn styled_text_area<'a>(title: String) -> TextArea<'a> {
     let mut area = TextArea::default();
     area.set_cursor_line_style(Style::default());
     area.set_block(
         Block::default()
-            .title_top(Line::from(title.to_string()))
+            .title_top(Line::from(title))
             .borders(Borders::ALL)
             .border_type(BorderType::Plain),
     );
+    area
+}
+
+/// A full textarea component with emacs keybindings
+/// To retrieve the contents of the contents of the textarea,
+/// the submit signal needs to be fired.
+pub fn TextArea(
+    title: String,
+    is_focused: Memo<bool>,
+    clear: RwSignal<()>,
+    submit: RwSignal<()>,
+    on_submit: Arc<dyn Fn(String) -> () + Send + Sync>,
+) -> Component {
+    // local state and derived setters
+    let area = styled_text_area(title.to_string());
     let area = RwSignal::new(area);
 
-    // effects
+    // HACK We have no good way to make the TextArea component
+    // a controlled one. We will have to simulate it through the use of
+    // side effects
     Effect::new_sync(move |_| {
-        area.update(|area| set_focused(area, is_focused()));
+        area.update(|area| {
+            set_focused(area, is_focused.get());
+        });
+    });
+    Effect::new_sync(move |_| {
+        let title = title.to_string();
+        _ = clear.get(); // subscribe to clear signal
+        area.update(|area| *area = styled_text_area(title));
+    });
+    Effect::new_sync(move |_| {
+        _ = submit.get();
+        let new_content: String = area.get_untracked().lines().join("\n");
+        on_submit(new_content);
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {

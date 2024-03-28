@@ -5,8 +5,9 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
+    computed::Memo,
     signal::RwSignal,
-    traits::{Get, Update},
+    traits::{Get, GetUntracked, Update},
 };
 use std::sync::Arc;
 
@@ -42,37 +43,67 @@ impl ActiveField {
     }
 }
 
-pub fn TagArea(is_focused: Arc<dyn Fn() -> bool + Send + Sync>) -> Component {
-    // state and setters/getters
+pub fn TagArea(is_focused: Memo<bool>) -> Component {
+    // ==== state and setters/getters ====
+    // active field
     let active_field = RwSignal::new(ActiveField::Search);
-    let all_tags_is_focused = Arc::new({
-        let is_focused = is_focused.clone();
-        move || is_focused() && active_field.get() == ActiveField::CardTags
-    });
-    let card_tags_is_focused = Arc::new({
-        let is_focused = is_focused.clone();
-        move || is_focused() && active_field.get() == ActiveField::AllTags
-    });
-    let search_is_focused =
-        Arc::new(move || is_focused() && active_field.get() == ActiveField::Search);
+    let card_tags_is_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
+
     let up = move || active_field.update(|field| field.up());
     let down = move || active_field.update(|field| field.down());
 
+    // tags
+    let all_tags = RwSignal::new(Vec::new());
+    let card_tags = RwSignal::new(Vec::new());
+
     // children
-    let (all_tags_renderer, all_tags_handler) =
-        List("All Tags".into(), all_tags_is_focused, Arc::new(|| vec![]));
+    // all tags
+    let all_tags_is_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
+    let (all_tags_renderer, all_tags_handler) = List(
+        "All Tags".into(),
+        all_tags_is_focused,
+        Memo::new(move |_| all_tags.get()),
+    );
+    // card tags
     let (card_tags_renderer, card_tags_handler) = List(
         "Tags on this card".into(),
         card_tags_is_focused,
-        Arc::new(|| vec![]),
+        Memo::new(move |_| card_tags.get()),
     );
-    let (tag_renderer, tag_event_handler) = TextArea("Search/Add tag", search_is_focused);
+    // search
+    let s_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::Search);
+    let s_clear = RwSignal::new(());
+    let s_submit = RwSignal::new(());
+    let s_text = RwSignal::new(String::new());
+    let (s_renderer, s_handler) = TextArea(
+        "Search/Add tag".into(),
+        s_focused,
+        s_clear,
+        s_submit,
+        Arc::new(move |s| s_text.update(|_s| *_s = s)),
+    );
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         match key_event.code {
             KeyCode::Up if key_event.modifiers.contains(KeyModifiers::CONTROL) => up(),
             KeyCode::Down if key_event.modifiers.contains(KeyModifiers::CONTROL) => down(),
-            _ => return tag_event_handler(key_event),
+            KeyCode::Enter => match active_field.get_untracked() {
+                ActiveField::CardTags => {}
+                ActiveField::AllTags => {}
+                ActiveField::Search => {
+                    let tag = s_text.get_untracked();
+                    all_tags.update(|list| list.push(tag));
+                    s_text.update(|search| search.clear());
+                }
+            },
+            _ => match active_field.get_untracked() {
+                ActiveField::CardTags => return card_tags_handler(key_event),
+                ActiveField::AllTags => return all_tags_handler(key_event),
+                ActiveField::Search => return s_handler(key_event),
+            },
         }
         None
     });
@@ -90,7 +121,7 @@ pub fn TagArea(is_focused: Arc<dyn Fn() -> bool + Send + Sync>) -> Component {
 
         all_tags_renderer(frame, upper);
         card_tags_renderer(frame, center);
-        tag_renderer(frame, lower);
+        s_renderer(frame, lower);
     });
 
     (renderer, handler)
