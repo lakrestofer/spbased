@@ -12,7 +12,7 @@ use reactive_graph::{
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
-use std::sync::Arc;
+use std::{iter::Successors, sync::Arc};
 
 use tui_textarea::TextArea;
 
@@ -63,6 +63,8 @@ pub fn TextArea(
     let area = styled_text_area(title.to_string());
     let area = RwSignal::new(area);
 
+    // we have no way to create a "controlled" component
+    // directly.
     Effect::new_sync({
         move |_| {
             let title = title.clone();
@@ -74,9 +76,14 @@ pub fn TextArea(
         }
     });
     Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
+    let submit_guard = RwSignal::new(true);
     Effect::new_sync(move |_| {
         _ = submit.get();
         let new_content: String = area.get_untracked().lines().join("\n");
+        if submit_guard.get_untracked() {
+            submit_guard.update(|guard| *guard = !*guard);
+            return;
+        }
         on_submit(new_content);
     });
 

@@ -99,8 +99,8 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
                 ActiveField::Search => s_submit.set(()), // call the on_submit passed to the search field
             },
             _ => match active_field.get_untracked() {
-                ActiveField::CardTags => return card_tags_handler(key_event),
                 ActiveField::AllTags => return all_tags_handler(key_event),
+                ActiveField::CardTags => return card_tags_handler(key_event),
                 ActiveField::Search => return s_handler(key_event),
             },
         }
