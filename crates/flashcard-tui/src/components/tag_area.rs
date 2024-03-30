@@ -7,7 +7,7 @@ use ratatui::{
 use reactive_graph::{
     computed::Memo,
     signal::RwSignal,
-    traits::{Get, GetUntracked, Update},
+    traits::{Get, GetUntracked, Set, Update},
 };
 use std::sync::Arc;
 
@@ -77,13 +77,16 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::Search);
     let s_clear = RwSignal::new(());
     let s_submit = RwSignal::new(());
-    let s_text = RwSignal::new(String::new());
+    let s_on_submit = move |content| {
+        card_tags.update(|tags| tags.push(content));
+        s_clear.set(()); // clear
+    };
     let (s_renderer, s_handler) = TextArea(
         "Search/Add tag".into(),
         s_focused,
         s_clear,
         s_submit,
-        Arc::new(move |s| s_text.update(|_s| *_s = s)),
+        Arc::new(s_on_submit),
     );
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
@@ -93,11 +96,7 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
             KeyCode::Enter => match active_field.get_untracked() {
                 ActiveField::CardTags => {}
                 ActiveField::AllTags => {}
-                ActiveField::Search => {
-                    let tag = s_text.get_untracked();
-                    all_tags.update(|list| list.push(tag));
-                    s_text.update(|search| search.clear());
-                }
+                ActiveField::Search => s_submit.set(()), // call the on_submit passed to the search field
             },
             _ => match active_field.get_untracked() {
                 ActiveField::CardTags => return card_tags_handler(key_event),

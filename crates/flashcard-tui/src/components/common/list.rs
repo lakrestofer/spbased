@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+use super::super::{Component, ComponentEventHandler, ComponentRenderer};
+use crossterm::event::KeyCode;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -13,8 +15,6 @@ use reactive_graph::{
 use std::sync::Arc;
 
 use crate::components::stub_component_event_handler;
-
-use super::super::{Component, ComponentEventHandler, ComponentRenderer};
 
 pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> Component {
     // all the existing tags

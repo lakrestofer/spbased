@@ -1,5 +1,4 @@
 #![allow(non_snake_case)]
-use color_eyre::owo_colors::styles;
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style, Styled},
@@ -64,19 +63,17 @@ pub fn TextArea(
     let area = styled_text_area(title.to_string());
     let area = RwSignal::new(area);
 
-    // HACK We have no good way to make the TextArea component
-    // a controlled one. We will have to simulate it through the use of
-    // side effects
-    Effect::new_sync(move |_| {
-        area.update(|area| {
-            set_focused(area, is_focused.get());
-        });
+    Effect::new_sync({
+        move |_| {
+            let title = title.clone();
+            _ = clear.get();
+            area.update(|area| {
+                *area = styled_text_area(title);
+                set_focused(area, is_focused.get_untracked())
+            });
+        }
     });
-    Effect::new_sync(move |_| {
-        let title = title.to_string();
-        _ = clear.get(); // subscribe to clear signal
-        area.update(|area| *area = styled_text_area(title));
-    });
+    Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
     Effect::new_sync(move |_| {
         _ = submit.get();
         let new_content: String = area.get_untracked().lines().join("\n");
