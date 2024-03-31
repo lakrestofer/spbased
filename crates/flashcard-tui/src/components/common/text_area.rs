@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use ratatui::{
     layout::Rect,
-    style::{Color, Modifier, Style, Styled},
+    style::{Modifier, Style},
     text::Line,
     widgets::{Block, BorderType, Borders},
     Frame,
@@ -12,7 +12,7 @@ use reactive_graph::{
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
-use std::{iter::Successors, sync::Arc};
+use std::sync::Arc;
 
 use tui_textarea::TextArea;
 
@@ -56,8 +56,9 @@ pub fn TextArea(
     title: String,
     is_focused: Memo<bool>,
     clear: RwSignal<()>,
-    submit: RwSignal<()>,
-    on_submit: Arc<dyn Fn(String) -> () + Send + Sync>,
+    submit: Option<RwSignal<()>>,
+    on_submit: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
+    on_update: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
 ) -> Component {
     // local state and derived setters
     let area = styled_text_area(title.to_string());
@@ -76,15 +77,20 @@ pub fn TextArea(
         }
     });
     Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
+
     let submit_guard = RwSignal::new(true);
     Effect::new_sync(move |_| {
-        _ = submit.get();
-        let new_content: String = area.get_untracked().lines().join("\n");
-        if submit_guard.get_untracked() {
-            submit_guard.update(|guard| *guard = !*guard);
-            return;
+        if let Some(submit) = submit {
+            _ = submit.get();
+            let new_content: String = area.get_untracked().lines().join("\n");
+            if submit_guard.get_untracked() {
+                submit_guard.update(|guard| *guard = !*guard);
+                return;
+            }
+            if let Some(on_submit) = on_submit.clone() {
+                on_submit(new_content);
+            }
         }
-        on_submit(new_content);
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {

@@ -65,13 +65,7 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
 
     // select first element when items changes
     Effect::new_sync(move |_| {
-        state.update(|state| {
-            state.select(if items_len.get() == 0 {
-                None
-            } else {
-                Some(items_len.get() - 1)
-            })
-        });
+        state.update(|state| state.select(if items_len.get() == 0 { None } else { Some(0) }))
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event| {
@@ -86,12 +80,7 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         let mut new_state = state.get();
-        let title = format!(
-            "selected: {:?}, event: {:?}",
-            new_state.selected(),
-            event.get()
-        );
-        let widget = styled_list(items.get(), is_focused.get(), title);
+        let widget = styled_list(items.get(), is_focused.get(), title.clone());
         frame.render_stateful_widget(widget, rect, &mut new_state);
         state.update_untracked(|state| *state = new_state);
     });

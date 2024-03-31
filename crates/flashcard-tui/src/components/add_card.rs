@@ -1,4 +1,11 @@
 #![allow(non_snake_case)]
+use crate::util::DebouncedFunction;
+
+use super::common::text_area::TextArea;
+use super::{
+    root::ActiveView, tag_area::TagArea, Component, ComponentEventHandler, ComponentRenderer,
+};
+
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
@@ -11,12 +18,10 @@ use reactive_graph::{
     traits::{Get, GetUntracked, Set, Update},
 };
 use std::sync::Arc;
-
-use super::{
-    root::ActiveView, tag_area::TagArea, Component, ComponentEventHandler, ComponentRenderer,
-};
-
-use super::common::text_area::TextArea;
+use std::time::Duration;
+use tokio::select;
+use tokio::sync::RwLock;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum FocusedField {
@@ -48,6 +53,12 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let focus_next_field = move || focused_field.update(FocusedField::next);
     let focus_previous_field = move || focused_field.update(FocusedField::previous);
 
+    let counter = RwSignal::new(0);
+
+    let debounced_increment_counter = DebouncedFunction::new(Duration::from_secs(1), move || {
+        counter.update(|x| *x += 1);
+    });
+
     // children
     let q_focused = Memo::new({
         let focused_field = focused_field.clone();
@@ -60,8 +71,9 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         "Question".into(),
         q_focused,
         q_clear,
-        q_submit,
-        Arc::new(move |s| q_text.update(|_s| *_s = s)),
+        Some(q_submit),
+        Some(Arc::new(move |s| q_text.update(|_s| *_s = s))),
+        None,
     );
 
     let a_focused = Memo::new({
@@ -75,8 +87,9 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         "Answer".into(),
         a_focused,
         a_clear,
-        a_submit,
-        Arc::new(move |s| a_text.update(|_s| *_s = s)),
+        Some(a_submit),
+        Some(Arc::new(move |s| a_text.update(|_s| *_s = s))),
+        None,
     );
     let t_focused = Memo::new({
         let focused_field = focused_field.clone();
@@ -85,16 +98,20 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let (t_renderer, t_handler) = TagArea(t_focused);
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
-        match key_event.code {
-            KeyCode::Esc => active_view.set(ActiveView::Home),
-            KeyCode::Tab => focus_next_field(),
-            KeyCode::BackTab => focus_previous_field(),
-            KeyCode::Enter if key_event.modifiers.contains(KeyModifiers::CONTROL) => {}
-            _ => match focused_field.get_untracked() {
-                FocusedField::Question => return q_handler(key_event),
-                FocusedField::Answer => return a_handler(key_event),
-                FocusedField::Tag => return t_handler(key_event),
-            },
+        match (
+            key_event.code,
+            key_event.modifiers,
+            focused_field.get_untracked(),
+        ) {
+            (KeyCode::Esc, _, _) => active_view.set(ActiveView::Home),
+            (KeyCode::Tab, _, _) => focus_next_field(),
+            (KeyCode::BackTab, _, _) => focus_previous_field(),
+            (KeyCode::Enter, KeyModifiers::CONTROL, _) => {}
+            (KeyCode::Enter, _, _) => debounced_increment_counter.call(),
+            (_, _, FocusedField::Question) => return q_handler(key_event),
+            (_, _, FocusedField::Answer) => return a_handler(key_event),
+            (_, _, FocusedField::Tag) => return t_handler(key_event),
+            // (_, _, _) => {}
         }
         None
     });
@@ -128,7 +145,10 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         a_renderer(frame, lower_left);
 
         // stats
-        frame.render_widget(Paragraph::new("Stats here"), upper_right);
+        frame.render_widget(
+            Paragraph::new(format!("Counter: {}", counter.get())),
+            upper_right,
+        );
 
         // tag
         t_renderer(frame, lower_right);

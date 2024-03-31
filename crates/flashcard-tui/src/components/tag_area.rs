@@ -50,7 +50,12 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     let down = move || active_field.update(|field| field.down());
 
     // tags
-    let all_tags = RwSignal::new(Vec::new());
+    let all_tags = RwSignal::new(vec![
+        "chemistry".into(),
+        "physics".into(),
+        "datastructures".into(),
+        "algorithms".into(),
+    ]);
     let card_tags = RwSignal::new(Vec::new());
 
     // children
@@ -83,8 +88,9 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         "Search/Add tag".into(),
         s_focused,
         s_clear,
-        s_submit,
-        Arc::new(s_on_submit),
+        Some(s_submit),
+        Some(Arc::new(s_on_submit)),
+        None,
     );
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
