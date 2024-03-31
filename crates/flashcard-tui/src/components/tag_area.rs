@@ -19,35 +19,25 @@ use super::{
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ActiveField {
-    AllTags = 0,
-    CardTags = 1,
-    Search = 2,
-}
-
-impl TryFrom<u8> for ActiveField {
-    type Error = color_eyre::eyre::Error;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        let res = match value {
-            0 => ActiveField::AllTags,
-            1 => ActiveField::CardTags,
-            2 => ActiveField::Search,
-            _ => return Err(eyre!("Could not convert from {} to enum", value)),
-        };
-        Ok(res)
-    }
+    AllTags,
+    CardTags,
+    Search,
 }
 
 impl ActiveField {
     fn up(&mut self) {
-        *self = (*self as u8)
-            .checked_sub(1)
-            .unwrap_or(2)
-            .try_into()
-            .unwrap();
+        *self = match self {
+            ActiveField::AllTags => ActiveField::Search,
+            ActiveField::CardTags => ActiveField::AllTags,
+            ActiveField::Search => ActiveField::CardTags,
+        }
     }
     fn down(&mut self) {
-        *self = (((*self as u8) + 1) % 3).try_into().unwrap();
+        *self = match self {
+            ActiveField::AllTags => ActiveField::CardTags,
+            ActiveField::CardTags => ActiveField::Search,
+            ActiveField::Search => ActiveField::AllTags,
+        }
     }
 }
 

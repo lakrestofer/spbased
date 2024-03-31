@@ -42,20 +42,17 @@ impl SelectionExtension for ListState {
         if max == 0 {
             self.select(None);
         }
-        self.select(
-            self.selected()
-                .map(|selected| selected.saturating_sub(1) % max),
-        );
+        let new = self
+            .selected()
+            .map(|selected| selected.checked_sub(1).unwrap_or(max - 1));
+        self.select(new);
     }
 
     fn down(&mut self, max: usize) {
         if max == 0 {
             self.select(None);
         }
-        self.select(
-            self.selected()
-                .map(|selected| selected.saturating_add(1) % max),
-        );
+        self.select(self.selected().map(|selected| (selected + 1) % max));
     }
 }
 
@@ -79,6 +76,11 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
 
     let handler: ComponentEventHandler = Arc::new(move |key_event| {
         event.update(|event| *event = Some(key_event));
+        match key_event.code {
+            KeyCode::Up => up(),
+            KeyCode::Down => down(),
+            _ => {}
+        }
         None
     });
 
