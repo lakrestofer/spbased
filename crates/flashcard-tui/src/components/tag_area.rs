@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+use color_eyre::eyre::{eyre, Result};
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
@@ -18,28 +19,35 @@ use super::{
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ActiveField {
-    // list of tags that are one this card
-    CardTags,
-    // list of all tags in db
-    AllTags,
-    // the search field
-    Search,
+    AllTags = 0,
+    CardTags = 1,
+    Search = 2,
+}
+
+impl TryFrom<u8> for ActiveField {
+    type Error = color_eyre::eyre::Error;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        let res = match value {
+            0 => ActiveField::AllTags,
+            1 => ActiveField::CardTags,
+            2 => ActiveField::Search,
+            _ => return Err(eyre!("Could not convert from {} to enum", value)),
+        };
+        Ok(res)
+    }
 }
 
 impl ActiveField {
     fn up(&mut self) {
-        *self = match self {
-            ActiveField::CardTags => ActiveField::Search,
-            ActiveField::AllTags => ActiveField::CardTags,
-            ActiveField::Search => ActiveField::AllTags,
-        }
+        *self = (*self as u8)
+            .checked_sub(1)
+            .unwrap_or(2)
+            .try_into()
+            .unwrap();
     }
     fn down(&mut self) {
-        *self = match self {
-            ActiveField::CardTags => ActiveField::AllTags,
-            ActiveField::AllTags => ActiveField::Search,
-            ActiveField::Search => ActiveField::CardTags,
-        }
+        *self = (((*self as u8) + 1) % 3).try_into().unwrap();
     }
 }
 
@@ -47,8 +55,6 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     // ==== state and setters/getters ====
     // active field
     let active_field = RwSignal::new(ActiveField::Search);
-    let card_tags_is_focused =
-        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
 
     let up = move || active_field.update(|field| field.up());
     let down = move || active_field.update(|field| field.down());
@@ -60,13 +66,15 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     // children
     // all tags
     let all_tags_is_focused =
-        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
     let (all_tags_renderer, all_tags_handler) = List(
         "All Tags".into(),
         all_tags_is_focused,
         Memo::new(move |_| all_tags.get()),
     );
     // card tags
+    let card_tags_is_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
     let (card_tags_renderer, card_tags_handler) = List(
         "Tags on this card".into(),
         card_tags_is_focused,
@@ -90,19 +98,18 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     );
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
-        match key_event.code {
-            KeyCode::Up if key_event.modifiers.contains(KeyModifiers::CONTROL) => up(),
-            KeyCode::Down if key_event.modifiers.contains(KeyModifiers::CONTROL) => down(),
-            KeyCode::Enter => match active_field.get_untracked() {
-                ActiveField::CardTags => {}
-                ActiveField::AllTags => {}
-                ActiveField::Search => s_submit.set(()), // call the on_submit passed to the search field
-            },
-            _ => match active_field.get_untracked() {
-                ActiveField::AllTags => return all_tags_handler(key_event),
-                ActiveField::CardTags => return card_tags_handler(key_event),
-                ActiveField::Search => return s_handler(key_event),
-            },
+        match (
+            key_event.code,
+            key_event.modifiers,
+            active_field.get_untracked(),
+        ) {
+            (KeyCode::Up, KeyModifiers::CONTROL, _) => up(),
+            (KeyCode::Down, KeyModifiers::CONTROL, _) => down(),
+            (KeyCode::Enter, _, ActiveField::Search) => s_submit.set(()),
+            (_, _, ActiveField::AllTags) => return all_tags_handler(key_event),
+            (_, _, ActiveField::CardTags) => return card_tags_handler(key_event),
+            (_, _, ActiveField::Search) => return s_handler(key_event),
+            // _, _, _ => {}
         }
         None
     });
