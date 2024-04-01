@@ -45,7 +45,6 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     // ==== state and setters/getters ====
     // active field
     let active_field = RwSignal::new(ActiveField::Search);
-
     let up = move || active_field.update(|field| field.up());
     let down = move || active_field.update(|field| field.down());
 
@@ -56,25 +55,24 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         "datastructures".into(),
         "algorithms".into(),
     ]);
+    let filter = RwSignal::new(String::new());
+    let filtered_all_tags: Memo<Vec<String>> = Memo::new(move |_| {
+        let tags = all_tags.get();
+        let filter = filter.get();
+        tags.into_iter()
+            .filter(|s: &String| s.contains(&filter))
+            .collect()
+    });
     let card_tags = RwSignal::new(Vec::new());
+    let filtered_card_tags: Memo<Vec<String>> = Memo::new(move |_| {
+        let tags = card_tags.get();
+        let filter = filter.get();
+        tags.into_iter()
+            .filter(|s: &String| s.contains(&filter))
+            .collect()
+    });
 
     // children
-    // all tags
-    let all_tags_is_focused =
-        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
-    let (all_tags_renderer, all_tags_handler) = List(
-        "All Tags".into(),
-        all_tags_is_focused,
-        Memo::new(move |_| all_tags.get()),
-    );
-    // card tags
-    let card_tags_is_focused =
-        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
-    let (card_tags_renderer, card_tags_handler) = List(
-        "Tags on this card".into(),
-        card_tags_is_focused,
-        Memo::new(move |_| card_tags.get()),
-    );
     // search
     let s_focused =
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::Search);
@@ -84,13 +82,27 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         card_tags.update(|tags| tags.push(content));
         s_clear.set(()); // clear
     };
+    let s_on_update = move |content: String| filter.update(|f| *f = content);
     let (s_renderer, s_handler) = TextArea(
         "Search/Add tag".into(),
         s_focused,
         s_clear,
         Some(s_submit),
         Some(Arc::new(s_on_submit)),
-        None,
+        Some(Arc::new(s_on_update)),
+    );
+    // all tags
+    let all_tags_is_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
+    let (all_tags_renderer, all_tags_handler) =
+        List("All Tags".into(), all_tags_is_focused, filtered_all_tags);
+    // card tags
+    let card_tags_is_focused =
+        Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
+    let (card_tags_renderer, card_tags_handler) = List(
+        "Tags on this card".into(),
+        card_tags_is_focused,
+        filtered_card_tags,
     );
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {

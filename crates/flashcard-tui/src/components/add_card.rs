@@ -50,8 +50,6 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let focus_next_field = move || focused_field.update(FocusedField::next);
     let focus_previous_field = move || focused_field.update(FocusedField::previous);
 
-    let counter = RwSignal::new(0);
-
     // children
     let q_focused = Memo::new({
         let focused_field = focused_field.clone();
@@ -59,18 +57,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     });
     let q_clear = RwSignal::new(());
     let q_text = RwSignal::new(String::new());
-    let q_on_update = move |content| {
-        counter.update(|x| *x += 1);
-        q_text.update(|s| *s = content);
-    };
-    let (q_renderer, q_handler) = TextArea(
-        "Question".into(),
-        q_focused,
-        q_clear,
-        None,
-        None,
-        Some(Arc::new(q_on_update)),
-    );
+    let (q_renderer, q_handler) = TextArea("Question".into(), q_focused, q_clear, None, None, None);
 
     let a_focused = Memo::new({
         let focused_field = focused_field.clone();
@@ -129,7 +116,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             .flex(Flex::SpaceAround)
             .areas(left);
 
-        let [upper_right, lower_right] = Layout::vertical([Constraint::Percentage(40); 2])
+        let [_upper_right, lower_right] = Layout::vertical([Constraint::Percentage(40); 2])
             .flex(Flex::SpaceAround)
             .areas(right);
 
@@ -143,15 +130,15 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         t_renderer(frame, lower_right);
 
         // we take the upper right area and split it into multiple lines
-        let [upper, center, lower] = Layout::vertical([
-            Constraint::Fill(1),
-            Constraint::Fill(1),
-            Constraint::Fill(1),
-        ])
-        .areas(upper_right);
+        // let [upper, center, lower] = Layout::vertical([
+        //     Constraint::Fill(1),
+        //     Constraint::Fill(1),
+        //     Constraint::Fill(1),
+        // ])
+        // .areas(upper_right);
         // stats
-        frame.render_widget(Paragraph::new(format!("counter: {}", counter.get())), upper);
-        frame.render_widget(Paragraph::new(format!("q_text: {}", q_text.get())), center);
+        // frame.render_widget(Paragraph::new(format!("counter: {}", counter.get())), upper);
+        // frame.render_widget(Paragraph::new(format!("q_text: {}", q_text.get())), center);
     });
 
     (renderer, handler)

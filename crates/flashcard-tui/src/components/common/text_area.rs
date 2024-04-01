@@ -52,6 +52,8 @@ fn styled_text_area<'a>(title: String) -> TextArea<'a> {
     area
 }
 
+const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
+
 /// A full textarea component with emacs keybindings
 /// To retrieve the contents of the contents of the textarea,
 /// the submit signal needs to be fired.
@@ -95,9 +97,9 @@ pub fn TextArea(
     }
 
     if let Some(on_update) = on_update {
-        let on_update = DebouncedFunction::new(Duration::from_secs(1), on_update);
+        let on_update = DebouncedFunction::new(ON_UPDATE_DURATION, on_update);
         Effect::new_sync(move |_| {
-            let new_content: String = area.get().lines().join("\n");
+            let new_content: String = area.get().lines().join("\n").trim().into();
             on_update.call(new_content);
         });
     }
