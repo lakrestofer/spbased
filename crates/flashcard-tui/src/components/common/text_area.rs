@@ -17,7 +17,7 @@ use std::{sync::Arc, time::Duration};
 use tui_textarea::TextArea;
 
 use crate::{
-    components::{Component, ComponentEventHandler, ComponentRenderer},
+    components::{Component, ComponentEventHandler, ComponentRenderer, Trigger},
     util::DebouncedFunction,
 };
 
@@ -58,41 +58,32 @@ const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
 pub fn TextArea(
     title: String,
     is_focused: Memo<bool>,
-    clear: RwSignal<()>,
-    submit: Option<RwSignal<()>>,
     on_submit: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
     on_update: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
-) -> Component {
+) -> (Component, Trigger, Trigger) {
     // local state and derived setters
     let area = styled_text_area(title.to_string());
     let area = RwSignal::new(area);
 
-    // we have no way to create a "controlled" component
-    // directly.
-    Effect::new_sync({
-        move |_| {
-            let title = title.clone();
-            _ = clear.get();
-            area.update(|area| {
-                *area = styled_text_area(title);
-                set_focused(area, is_focused.get_untracked())
-            });
-        }
-    });
+    // update the styling of the area when is_focused changes
     Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
 
-    let submit_guard = RwSignal::new(true);
-    if let (Some(submit), Some(on_submit)) = (submit, on_submit) {
-        Effect::new_sync(move |_| {
-            _ = submit.get();
-            let new_content: String = area.get_untracked().lines().join("\n");
-            if submit_guard.get_untracked() {
-                submit_guard.update(|guard| *guard = !*guard);
-                return;
+    // we define functions that can modify local state and return them together with the renderer/handler
+    let submit: Trigger = Arc::new({
+        let area = area.clone();
+        move || {
+            let new_content: String = area.get_untracked().lines().join("\n").trim().into();
+            if let Some(on_submit) = on_submit.clone() {
+                on_submit(new_content);
             }
-            on_submit(new_content);
+        }
+    });
+    let clear: Trigger = Arc::new(move || {
+        area.update(|area| {
+            *area = styled_text_area(title.clone());
+            set_focused(area, is_focused.get_untracked())
         });
-    }
+    });
 
     if let Some(on_update) = on_update {
         let on_update = DebouncedFunction::new(ON_UPDATE_DURATION, on_update);
@@ -111,5 +102,5 @@ pub fn TextArea(
         frame.render_widget(area.get().widget(), rect);
     });
 
-    (renderer, handler)
+    ((renderer, handler), submit, clear)
 }

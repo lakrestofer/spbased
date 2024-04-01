@@ -22,6 +22,9 @@ pub type Component = (ComponentRenderer, ComponentEventHandler);
 pub type DynamicRect = Arc<dyn Fn(Rect) -> Rect + Send + Sync>;
 pub type ComponentDef = Arc<dyn Fn(Arc<RwLock<CrosstermTerminal>>, DynamicRect) -> Component>;
 
+// function that has some sideeffect
+pub type Trigger = Arc<dyn Fn() -> () + Send + Sync>;
+
 pub mod add_card;
 pub mod browser;
 pub mod common;
