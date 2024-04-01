@@ -8,13 +8,13 @@ use ratatui::{
 use reactive_graph::{
     computed::Memo,
     signal::RwSignal,
-    traits::{Get, GetUntracked, Set, Update},
+    traits::{Get, GetUntracked, Update},
 };
 use std::sync::Arc;
 
 use super::{
     common::{list::List, text_area::TextArea},
-    Component, ComponentEventHandler, ComponentRenderer,
+    Component, ComponentEventHandler, ComponentRenderer, Trigger,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -41,18 +41,25 @@ impl ActiveField {
     }
 }
 
-pub fn TagArea(is_focused: Memo<bool>) -> Component {
-    // ==== state and setters/getters ====
+pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
+    // ==== State and setters/getters ====
     // active field
     let active_field = RwSignal::new(ActiveField::Search);
     let up = move || active_field.update(|field| field.up());
     let down = move || active_field.update(|field| field.down());
-    let s_focused =
+    let search_bar_focused =
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::Search);
     let all_tags_is_focused =
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::AllTags);
     let card_tags_is_focused =
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::CardTags);
+    let search_bar_title: Memo<String> = Memo::new(move |_| {
+        if search_bar_focused.get() {
+            "Search: [Press enter to add new tag]".into()
+        } else {
+            "Search:".into()
+        }
+    });
     // tags and filter
     let filter = RwSignal::new(String::new());
     let all_tags = RwSignal::new(vec![
@@ -76,10 +83,14 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
             .filter(|s: &String| s.contains(&filter))
             .collect()
     });
-    let s_on_submit = move |content| card_tags.update(|tags| tags.push(content));
-    let s_on_update = move |content: String| filter.update(|f| *f = content);
+    let search_bar_on_submit = move |content: String| {
+        if !content.is_empty() {
+            card_tags.update(|tags| tags.push(content))
+        }
+    };
+    let search_bar_on_update = move |content: String| filter.update(|f| *f = content);
 
-    // children
+    // ======= Components =======
     let (all_tags_renderer, all_tags_handler) =
         List("All Tags".into(), all_tags_is_focused, filtered_all_tags);
     let (card_tags_renderer, card_tags_handler) = List(
@@ -88,15 +99,20 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         filtered_card_tags,
     );
     let ((s_renderer, s_handler), s_submit, s_clear) = TextArea(
-        "Search/Add tag".into(),
-        s_focused,
-        Some(Arc::new(s_on_submit)),
-        Some(Arc::new(s_on_update)),
+        search_bar_title,
+        search_bar_focused,
+        Some(Arc::new(search_bar_on_submit)),
+        Some(Arc::new(search_bar_on_update)),
     );
 
-    let add_tag = move || {
-        s_submit();
-        s_clear();
+    // ======= Event handler ========
+
+    let add_tag = {
+        let s_clear = s_clear.clone();
+        move || {
+            s_submit();
+            s_clear();
+        }
     };
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
@@ -116,6 +132,7 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         None
     });
 
+    // ======= Renderer ========
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         let [upper, center, lower, help] = Layout::new(
             Direction::Vertical,
@@ -137,5 +154,5 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         );
     });
 
-    (renderer, handler)
+    ((renderer, handler), s_clear)
 }

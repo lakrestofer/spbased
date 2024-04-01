@@ -1,6 +1,6 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use crate::preamble::{ApplicationEvent, CrosstermTerminal};
+use crate::preamble::ApplicationEvent;
 use crossterm::event::KeyEvent;
 use ratatui::{layout::Rect, Frame};
 
@@ -18,9 +18,6 @@ pub fn stub_component_event_handler() -> ComponentEventHandler {
 }
 
 pub type Component = (ComponentRenderer, ComponentEventHandler);
-
-pub type DynamicRect = Arc<dyn Fn(Rect) -> Rect + Send + Sync>;
-pub type ComponentDef = Arc<dyn Fn(Arc<RwLock<CrosstermTerminal>>, DynamicRect) -> Component>;
 
 // function that has some sideeffect
 pub type Trigger = Arc<dyn Fn() -> () + Send + Sync>;

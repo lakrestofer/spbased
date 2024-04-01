@@ -25,14 +25,17 @@ use super::super::utils::set_focused_block;
 
 /// modify the styling of a textarea to reflect it being
 /// focused or not
-fn set_focused(textarea: &mut TextArea, focused: bool) {
+fn set_focused(textarea: &mut TextArea, title: String, focused: bool) {
     let mut style = Style::default().add_modifier(Modifier::REVERSED);
 
     if !focused {
         style = style.add_modifier(Modifier::DIM);
     }
 
-    let mut block = textarea.block().unwrap().clone();
+    let mut block = Block::default()
+        .title_top(Line::from(title))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Plain);
 
     set_focused_block(&mut block, focused);
 
@@ -56,17 +59,17 @@ const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
 
 /// A full textarea component with emacs keybindings
 pub fn TextArea(
-    title: String,
+    title: Memo<String>,
     is_focused: Memo<bool>,
     on_submit: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
     on_update: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
 ) -> (Component, Trigger, Trigger) {
     // local state and derived setters
-    let area = styled_text_area(title.to_string());
+    let area = styled_text_area(title.get());
     let area = RwSignal::new(area);
 
     // update the styling of the area when is_focused changes
-    Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
+    Effect::new_sync(move |_| area.update(|area| set_focused(area, title.get(), is_focused.get())));
 
     // we define functions that can modify local state and return them together with the renderer/handler
     let submit: Trigger = Arc::new({
@@ -80,8 +83,9 @@ pub fn TextArea(
     });
     let clear: Trigger = Arc::new(move || {
         area.update(|area| {
+            let title = title.get();
             *area = styled_text_area(title.clone());
-            set_focused(area, is_focused.get_untracked())
+            set_focused(area, title, is_focused.get_untracked())
         });
     });
 
