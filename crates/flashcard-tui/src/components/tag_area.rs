@@ -2,6 +2,7 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Style},
     widgets::Paragraph,
     Frame,
 };
@@ -149,7 +150,9 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
         card_tags_renderer(frame, center);
         s_renderer(frame, lower);
         frame.render_widget(
-            Paragraph::new("C-up / C-down:\nToggle search/list").centered(),
+            Paragraph::new("C-up / C-down:\nToggle search/list")
+                .centered()
+                .style(Style::default().fg(Color::Yellow)),
             help,
         );
     });

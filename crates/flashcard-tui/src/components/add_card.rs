@@ -4,6 +4,8 @@ use super::{
     root::ActiveView, tag_area::TagArea, Component, ComponentEventHandler, ComponentRenderer,
 };
 use crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::layout::Margin;
+use ratatui::style::{Color, Style};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::{Block, BorderType, Borders},
@@ -104,15 +106,20 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         ])
         .areas(rect);
 
-        let divider = Block::default()
-            .borders(Borders::RIGHT)
-            .border_type(BorderType::Plain);
+        let divider = Block::default().style(Style::default().bg(Color::Indexed(236)));
 
         frame.render_widget(&divider, center);
 
-        let [upper_left, lower_left] = Layout::vertical([Constraint::Percentage(40); 2])
-            .flex(Flex::SpaceAround)
-            .areas(left);
+        let left = left.inner(&Margin::new(1, 1));
+        let right = right.inner(&Margin::new(1, 1));
+
+        let [upper_left, _, lower_left] = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Length(1),
+            Constraint::Fill(1),
+        ])
+        .flex(Flex::SpaceAround)
+        .areas(left);
 
         // let [_upper_right, lower_right] = Layout::vertical([Constraint::Percentage(40); 2])
         //     .flex(Flex::SpaceAround)

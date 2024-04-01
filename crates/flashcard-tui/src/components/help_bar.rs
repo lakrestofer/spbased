@@ -54,14 +54,20 @@ pub fn HelpBar(active_view: RwSignal<ActiveView>) -> Component {
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, help_rect: Rect| {
         let [bar, help] = Layout::vertical([Constraint::Ratio(1, 2); 2]).areas(help_rect);
         frame.render_widget(
-            Block::default().style(Style::default().bg(Color::Indexed(236))),
+            Paragraph::new(event_text.get())
+                .centered()
+                .style(Style::default().bg(Color::Indexed(233))),
             bar,
         );
-        frame.render_widget(Paragraph::new(event_text.get()).centered(), bar);
         let bar = bar.inner(&Margin::new(2, 0));
         throbber_renderer(frame, bar);
 
-        frame.render_widget(Paragraph::new(help_text.get()).centered(), help);
+        frame.render_widget(
+            Paragraph::new(help_text.get())
+                .style(Style::default().fg(Color::Yellow))
+                .centered(),
+            help,
+        );
     });
 
     (renderer, handler)

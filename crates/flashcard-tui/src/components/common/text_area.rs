@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 use ratatui::{
-    layout::Rect,
-    style::{Modifier, Style},
+    layout::{Constraint, Layout, Rect},
+    style::{Color, Modifier, Style},
     text::Line,
-    widgets::{Block, BorderType, Borders},
+    widgets::{Block, BorderType, Borders, Paragraph},
     Frame,
 };
 use reactive_graph::{
@@ -21,37 +21,10 @@ use crate::{
     util::DebouncedFunction,
 };
 
-use super::super::utils::set_focused_block;
-
-/// modify the styling of a textarea to reflect it being
-/// focused or not
-fn set_focused(textarea: &mut TextArea, title: String, focused: bool) {
-    let mut style = Style::default().add_modifier(Modifier::REVERSED);
-
-    if !focused {
-        style = style.add_modifier(Modifier::DIM);
-    }
-
-    let mut block = Block::default()
-        .title_top(Line::from(title))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Plain);
-
-    set_focused_block(&mut block, focused);
-
-    textarea.set_cursor_style(style);
-    textarea.set_block(block);
-}
-
-fn styled_text_area<'a>(title: String) -> TextArea<'a> {
+fn styled_text_area<'a>() -> TextArea<'a> {
     let mut area = TextArea::default();
+    area.set_style(Style::default().bg(Color::Indexed(234)));
     area.set_cursor_line_style(Style::default());
-    area.set_block(
-        Block::default()
-            .title_top(Line::from(title))
-            .borders(Borders::ALL)
-            .border_type(BorderType::Plain),
-    );
     area
 }
 
@@ -65,11 +38,7 @@ pub fn TextArea(
     on_update: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
 ) -> (Component, Trigger, Trigger) {
     // local state and derived setters
-    let area = styled_text_area(title.get());
-    let area = RwSignal::new(area);
-
-    // update the styling of the area when is_focused changes
-    Effect::new_sync(move |_| area.update(|area| set_focused(area, title.get(), is_focused.get())));
+    let area = RwSignal::new(styled_text_area());
 
     // we define functions that can modify local state and return them together with the renderer/handler
     let submit: Trigger = Arc::new({
@@ -83,9 +52,7 @@ pub fn TextArea(
     });
     let clear: Trigger = Arc::new(move || {
         area.update(|area| {
-            let title = title.get();
-            *area = styled_text_area(title.clone());
-            set_focused(area, title, is_focused.get_untracked())
+            *area = styled_text_area();
         });
     });
 
@@ -103,7 +70,18 @@ pub fn TextArea(
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        frame.render_widget(area.get().widget(), rect);
+        let [title_area, text_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(rect);
+
+        let style = {
+            if is_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }
+        };
+        frame.render_widget(Paragraph::new(title.get()).style(style), title_area);
+        frame.render_widget(area.get().widget(), text_area);
     });
 
     ((renderer, handler), submit, clear)

@@ -41,15 +41,18 @@ pub fn Root() -> Component {
 
     // ==== Event handler begin ====
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
-        _ = help_bar_handler(key_event);
-        match active_view.get_untracked() {
-            ActiveView::Home => return home_event_handler(key_event),
-            ActiveView::AddCard => return add_card_event_handler(key_event),
-            ActiveView::EditCard => return edit_card_event_handler(key_event),
-            ActiveView::Browser => return browser_event_handler(key_event),
-            ActiveView::Review => return review_event_handler(key_event),
+        let res = match active_view.get_untracked() {
+            ActiveView::Home => home_event_handler(key_event),
+            ActiveView::AddCard => add_card_event_handler(key_event),
+            ActiveView::EditCard => edit_card_event_handler(key_event),
+            ActiveView::Browser => browser_event_handler(key_event),
+            ActiveView::Review => review_event_handler(key_event),
+        };
+        if res.is_some() {
+            return res;
         }
-        // None
+        _ = help_bar_handler(key_event);
+        res
     });
     // ==== Event handler begin ====
 
