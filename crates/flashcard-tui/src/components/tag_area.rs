@@ -3,6 +3,7 @@ use color_eyre::eyre::{eyre, Result};
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
+    widgets::Paragraph,
     Frame,
 };
 use reactive_graph::{
@@ -123,12 +124,13 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        let [upper, center, lower] = Layout::new(
+        let [upper, center, lower, help] = Layout::new(
             Direction::Vertical,
             [
                 Constraint::Fill(1),
                 Constraint::Fill(1),
                 Constraint::Length(3),
+                Constraint::Length(2),
             ],
         )
         .areas(rect);
@@ -136,6 +138,10 @@ pub fn TagArea(is_focused: Memo<bool>) -> Component {
         all_tags_renderer(frame, upper);
         card_tags_renderer(frame, center);
         s_renderer(frame, lower);
+        frame.render_widget(
+            Paragraph::new("C-up / C-down:\nToggle search/list").centered(),
+            help,
+        );
     });
 
     (renderer, handler)

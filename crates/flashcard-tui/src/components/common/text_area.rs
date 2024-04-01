@@ -55,8 +55,6 @@ fn styled_text_area<'a>(title: String) -> TextArea<'a> {
 const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
 
 /// A full textarea component with emacs keybindings
-/// To retrieve the contents of the contents of the textarea,
-/// the submit signal needs to be fired.
 pub fn TextArea(
     title: String,
     is_focused: Memo<bool>,

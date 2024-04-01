@@ -1,28 +1,16 @@
 #![allow(non_snake_case)]
-use std::sync::{Arc, RwLock};
-
-use color_eyre::config::PanicHook;
+use super::{root::ActiveView, Component, ComponentEventHandler, ComponentRenderer};
+use crate::preamble::ApplicationEvent;
 use crossterm::event::KeyCode;
 use ratatui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Style, Stylize},
     text::{Line, Span},
     widgets::Paragraph,
     Frame,
 };
-use reactive_graph::{
-    effect::Effect,
-    signal::RwSignal,
-    traits::{Get, Set, Update},
-};
-
-use crate::{preamble::ApplicationEvent, tui::CrosstermTerminal};
-
-use super::{
-    help_bar::HelpBar, root::ActiveView, stub_component_event_handler, Component,
-    ComponentEventHandler, ComponentRenderer, DynamicRect,
-};
+use reactive_graph::{signal::RwSignal, traits::Set};
+use std::sync::Arc;
 
 const TITLE: [&str; 10] = [
     " ██████  ██▓███   ▄▄▄▄    ▄▄▄        ██████ ▓█████ ▓█████▄  ",
@@ -42,7 +30,7 @@ const DESCRIPTION: &str = "Flashcard frontend for the spbased framework.";
 pub fn Home(active_view: RwSignal<ActiveView>) -> Component {
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         match key_event.code {
-            KeyCode::Char('q') => return Some(ApplicationEvent::Shutdown),
+            KeyCode::Char('q') | KeyCode::Esc => return Some(ApplicationEvent::Shutdown),
             KeyCode::Char('a') => active_view.set(ActiveView::AddCard),
             KeyCode::Char('b') => active_view.set(ActiveView::Browser),
             KeyCode::Char('r') => active_view.set(ActiveView::Review),

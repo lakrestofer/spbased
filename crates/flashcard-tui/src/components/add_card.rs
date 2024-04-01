@@ -116,9 +116,9 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             .flex(Flex::SpaceAround)
             .areas(left);
 
-        let [_upper_right, lower_right] = Layout::vertical([Constraint::Percentage(40); 2])
-            .flex(Flex::SpaceAround)
-            .areas(right);
+        // let [_upper_right, lower_right] = Layout::vertical([Constraint::Percentage(40); 2])
+        //     .flex(Flex::SpaceAround)
+        //     .areas(right);
 
         // question field
         q_renderer(frame, upper_left);
@@ -127,7 +127,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         a_renderer(frame, lower_left);
 
         // tag
-        t_renderer(frame, lower_right);
+        t_renderer(frame, right);
 
         // we take the upper right area and split it into multiple lines
         // let [upper, center, lower] = Layout::vertical([
