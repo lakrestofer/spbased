@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Flex, Layout, Rect},
     style::{Color, Style},
     widgets::Paragraph,
     Frame,
@@ -135,15 +135,18 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
 
     // ======= Renderer ========
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        let [upper, center, lower, help] = Layout::new(
+        let [upper, _, center, _, lower, help] = Layout::new(
             Direction::Vertical,
             [
                 Constraint::Fill(1),
+                Constraint::Length(1),
                 Constraint::Fill(1),
-                Constraint::Length(3),
+                Constraint::Length(1),
+                Constraint::Length(2),
                 Constraint::Length(2),
             ],
         )
+        // .flex(Flex::SpaceBetween)
         .areas(rect);
 
         all_tags_renderer(frame, upper);

@@ -2,9 +2,9 @@
 use super::super::{Component, ComponentEventHandler, ComponentRenderer};
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, List, ListState},
+    widgets::{Block, Borders, List, ListState, Paragraph},
     Frame,
 };
 use reactive_graph::{
@@ -15,19 +15,9 @@ use reactive_graph::{
 };
 use std::sync::Arc;
 
-fn styled_list<'a>(items: Vec<String>, is_focused: bool, title: String) -> List<'a> {
+fn styled_list<'a>(items: Vec<String>) -> List<'a> {
     List::new::<Vec<String>>(items)
-        .block(
-            Block::default()
-                .style(Style::default().fg(if is_focused {
-                    Color::LightBlue
-                } else {
-                    Color::White
-                }))
-                .title(title)
-                .borders(Borders::ALL),
-        )
-        .style(Style::default().fg(Color::White))
+        .style(Style::default().bg(Color::Indexed(234)))
         .highlight_symbol(">")
         .highlight_style(Style::default().add_modifier(Modifier::BOLD))
 }
@@ -80,8 +70,18 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         let mut new_state = state.get();
-        let widget = styled_list(items.get(), is_focused.get(), title.clone());
-        frame.render_stateful_widget(widget, rect, &mut new_state);
+        let widget = styled_list(items.get());
+        let [title_area, list_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(rect);
+        let style = {
+            if is_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }
+        };
+        frame.render_widget(Paragraph::new(title.clone()).style(style), title_area);
+        frame.render_stateful_widget(widget, list_area, &mut new_state);
         state.update_untracked(|state| *state = new_state);
     });
 
