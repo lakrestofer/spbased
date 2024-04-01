@@ -12,11 +12,14 @@ use reactive_graph::{
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use tui_textarea::TextArea;
 
-use crate::components::{Component, ComponentEventHandler, ComponentRenderer};
+use crate::{
+    components::{Component, ComponentEventHandler, ComponentRenderer},
+    util::DebouncedFunction,
+};
 
 use super::super::utils::set_focused_block;
 
@@ -79,19 +82,25 @@ pub fn TextArea(
     Effect::new_sync(move |_| area.update(|area| set_focused(area, is_focused.get())));
 
     let submit_guard = RwSignal::new(true);
-    Effect::new_sync(move |_| {
-        if let Some(submit) = submit {
+    if let (Some(submit), Some(on_submit)) = (submit, on_submit) {
+        Effect::new_sync(move |_| {
             _ = submit.get();
             let new_content: String = area.get_untracked().lines().join("\n");
             if submit_guard.get_untracked() {
                 submit_guard.update(|guard| *guard = !*guard);
                 return;
             }
-            if let Some(on_submit) = on_submit.clone() {
-                on_submit(new_content);
-            }
-        }
-    });
+            on_submit(new_content);
+        });
+    }
+
+    if let Some(on_update) = on_update {
+        let on_update = DebouncedFunction::new(Duration::from_secs(1), on_update);
+        Effect::new_sync(move |_| {
+            let new_content: String = area.get().lines().join("\n");
+            on_update.call(new_content);
+        });
+    }
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         area.update(|area| _ = area.input(key_event));

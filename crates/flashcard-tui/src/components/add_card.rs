@@ -6,7 +6,7 @@ use super::{
     root::ActiveView, tag_area::TagArea, Component, ComponentEventHandler, ComponentRenderer,
 };
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     widgets::{Block, BorderType, Borders, Paragraph},
@@ -19,9 +19,6 @@ use reactive_graph::{
 };
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::select;
-use tokio::sync::RwLock;
-use tokio_util::sync::CancellationToken;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum FocusedField {
@@ -55,25 +52,24 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
 
     let counter = RwSignal::new(0);
 
-    let debounced_increment_counter = DebouncedFunction::new(Duration::from_secs(1), move || {
-        counter.update(|x| *x += 1);
-    });
-
     // children
     let q_focused = Memo::new({
         let focused_field = focused_field.clone();
         move |_| focused_field.get() == FocusedField::Question
     });
     let q_clear = RwSignal::new(());
-    let q_submit = RwSignal::new(());
     let q_text = RwSignal::new(String::new());
+    let q_on_update = move |content| {
+        counter.update(|x| *x += 1);
+        q_text.update(|s| *s = content);
+    };
     let (q_renderer, q_handler) = TextArea(
         "Question".into(),
         q_focused,
         q_clear,
-        Some(q_submit),
-        Some(Arc::new(move |s| q_text.update(|_s| *_s = s))),
         None,
+        None,
+        Some(Arc::new(q_on_update)),
     );
 
     let a_focused = Memo::new({
@@ -107,7 +103,6 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             (KeyCode::Tab, _, _) => focus_next_field(),
             (KeyCode::BackTab, _, _) => focus_previous_field(),
             (KeyCode::Enter, KeyModifiers::CONTROL, _) => {}
-            (KeyCode::Enter, _, _) => debounced_increment_counter.call(),
             (_, _, FocusedField::Question) => return q_handler(key_event),
             (_, _, FocusedField::Answer) => return a_handler(key_event),
             (_, _, FocusedField::Tag) => return t_handler(key_event),
@@ -144,14 +139,19 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         // answer field
         a_renderer(frame, lower_left);
 
-        // stats
-        frame.render_widget(
-            Paragraph::new(format!("Counter: {}", counter.get())),
-            upper_right,
-        );
-
         // tag
         t_renderer(frame, lower_right);
+
+        // we take the upper right area and split it into multiple lines
+        let [upper, center, lower] = Layout::vertical([
+            Constraint::Fill(1),
+            Constraint::Fill(1),
+            Constraint::Fill(1),
+        ])
+        .areas(upper_right);
+        // stats
+        frame.render_widget(Paragraph::new(format!("counter: {}", counter.get())), upper);
+        frame.render_widget(Paragraph::new(format!("q_text: {}", q_text.get())), center);
     });
 
     (renderer, handler)

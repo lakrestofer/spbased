@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use tokio::{select, sync::RwLock};
 use tokio_util::sync::CancellationToken;
@@ -9,19 +9,19 @@ pub trait Boxed: Default {
     }
 }
 
-pub struct DebouncedFunction<F: Fn() -> () + Sync + Send + 'static> {
+pub struct DebouncedFunction<A: Clone + Send + Sync + 'static> {
     duration: Duration,
     previous_token: Arc<RwLock<Option<CancellationToken>>>,
-    fun: Arc<F>,
+    fun: Arc<dyn Fn(A) -> () + Sync + Send + 'static>,
 }
 
-impl<F: Fn() -> () + Sync + Send + 'static> DebouncedFunction<F> {
-    pub fn new(duration: Duration, fun: F) -> Self {
+impl<A: Clone + Send + Sync + 'static> DebouncedFunction<A> {
+    pub fn new(duration: Duration, fun: Arc<dyn Fn(A) -> () + Sync + Send + 'static>) -> Self {
         let previous_token = Arc::new(RwLock::new(None));
         Self {
             duration,
             previous_token,
-            fun: Arc::new(fun),
+            fun,
         }
     }
 
@@ -29,10 +29,11 @@ impl<F: Fn() -> () + Sync + Send + 'static> DebouncedFunction<F> {
     /// consecutive calls to `call` will ancel the previously scheduled
     /// call task and schedule a new one.
     /// Returns whether a previous call task was canceled
-    pub fn call(&self) {
+    pub fn call(&self, arg: A) {
         let previous_token = self.previous_token.clone();
         let fun = self.fun.clone();
         let duration = self.duration;
+        let arg = arg.clone();
         tokio::spawn(async move {
             {
                 if let Some(previous_token) = previous_token.read().await.as_ref() {
@@ -44,7 +45,7 @@ impl<F: Fn() -> () + Sync + Send + 'static> DebouncedFunction<F> {
             select! {
                 _ = new_token.cancelled() => {},
                 _ = tokio::time::sleep(duration) => {
-                    fun()
+                    fun(arg)
                 }
             };
         });
