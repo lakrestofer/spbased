@@ -24,66 +24,57 @@ async fn main() -> AppResult<()> {
 
     _ = Executor::init_tokio();
 
-    let _terminal = terminal.clone();
-    let (shutdown_send, mut shutdown_recv) = mpsc::unbounded_channel::<ApplicationEvent>();
+    let (root_renderer, root_event_handler) = Root();
 
-    Executor::spawn(async move {
-        let terminal = _terminal;
-
-        let (root_renderer, root_event_handler) = Root();
-
-        // Registering rendering side effect
-        Effect::new_sync({
-            let terminal = terminal.clone();
-            let renderer = root_renderer.clone();
-            move |_| {
-                _ = terminal.write().unwrap().draw(|frame| {
-                    let view_port = frame.size();
-                    renderer(frame, view_port);
-                });
-            }
-        });
-        // start event loop
-        loop {
-            if let Ok(event) = events.next().await {
-                let event: Option<ApplicationEvent> = match event {
-                    Event::Key(key_event) => match key_event.code {
-                        // on C-c, always exit the application
-                        KeyCode::Char('c') | KeyCode::Char('C')
-                            if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
-                        {
-                            Some(ApplicationEvent::Shutdown)
-                        }
-                        _ => root_event_handler(key_event),
-                    },
-                    Event::Tick => None,
-                    Event::Mouse(_) => None,
-                    Event::Resize(_, _) => {
-                        _ = terminal.write().unwrap().draw(|frame| {
-                            let view_port = frame.size();
-                            root_renderer(frame, view_port);
-                        });
-                        None
-                    }
-                };
-
-                match event {
-                    Some(event) => match event {
-                        ApplicationEvent::Shutdown => {
-                            shutdown_send.send(ApplicationEvent::Shutdown).unwrap();
-                            break;
-                        }
-                    },
-                    None => {}
-                }
-            }
+    // Registering rendering side effect
+    Effect::new_sync({
+        // since the effect might be run on another thread
+        // we have to pass both the renderer and terminal
+        // in Arcs
+        let terminal = terminal.clone();
+        let renderer = root_renderer.clone();
+        move |_| {
+            _ = terminal.write().unwrap().draw(|frame| {
+                let view_port = frame.size();
+                renderer(frame, view_port);
+            });
         }
     });
 
-    shutdown_recv
-        .recv()
-        .await
-        .expect("Tried to wait for shutdown signal");
+    // start event loop
+    loop {
+        if let Ok(event) = events.next().await {
+            let event: Option<ApplicationEvent> = match event {
+                Event::Key(key_event) => match key_event.code {
+                    // on C-c, always exit the application
+                    KeyCode::Char('c') | KeyCode::Char('C')
+                        if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        Some(ApplicationEvent::Shutdown)
+                    }
+                    _ => root_event_handler(key_event),
+                },
+                Event::Tick => None,
+                Event::Mouse(_) => None,
+                Event::Resize(_, _) => {
+                    _ = terminal.write().unwrap().draw(|frame| {
+                        let view_port = frame.size();
+                        root_renderer(frame, view_port);
+                    });
+                    None
+                }
+            };
+
+            match event {
+                Some(event) => match event {
+                    ApplicationEvent::Shutdown => {
+                        break;
+                    }
+                },
+                None => {}
+            }
+        }
+    }
 
     exit_terminal(&mut terminal.write().unwrap()).expect("could not restore terminal");
 

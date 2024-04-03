@@ -45,7 +45,12 @@ pub fn HelpBar(active_view: RwSignal<ActiveView>) -> Component {
 
     // === Event handler ===
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
-        event_text.update(|event| *event = format!("{:?}", key_event));
+        event_text.update(|event| {
+            *event = format!(
+                "Event {{ key: {:?}, modifier: {:?} }}",
+                key_event.code, key_event.modifiers
+            )
+        });
         None
     });
 
