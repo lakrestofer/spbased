@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use flashcard_tui::components::root::Root;
+use flashcard_tui::contexts::stats::FrameTime;
 use flashcard_tui::event::{Event, TerminalEventHandler};
 use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
@@ -7,7 +8,9 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use reactive_graph::computed::ScopedFuture;
 use reactive_graph::effect::Effect;
-use reactive_graph::owner::Owner;
+use reactive_graph::owner::{provide_context, Owner};
+use reactive_graph::signal::RwSignal;
+use reactive_graph::traits::Update;
 use std::io;
 use std::sync::{Arc, RwLock};
 
@@ -49,6 +52,8 @@ async fn run(
 ) -> AppResult<()> {
     let (root_renderer, root_event_handler) = Root();
 
+    let stats = RwSignal::new(FrameTime::default());
+
     // Registering rendering side effect
     Effect::new_sync({
         // since the effect might be run on another thread
@@ -57,12 +62,16 @@ async fn run(
         let terminal = terminal.clone();
         let renderer = root_renderer.clone();
         move |_| {
+            let before = std::time::Instant::now();
             _ = terminal.write().unwrap().draw(|frame| {
                 let view_port = frame.size();
                 renderer(frame, view_port);
             });
+            let dur = std::time::Instant::now().duration_since(before);
+            stats.update(|FrameTime(old_dur)| *old_dur = dur);
         }
     });
+    provide_context(stats);
 
     // start event loop
     loop {

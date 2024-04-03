@@ -135,14 +135,13 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
 
     // ======= Renderer ========
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        let [upper, _, center, _, lower, help] = Layout::new(
+        let [upper, _, center, _, lower] = Layout::new(
             Direction::Vertical,
             [
                 Constraint::Fill(1),
                 Constraint::Length(1),
                 Constraint::Fill(1),
                 Constraint::Length(1),
-                Constraint::Length(2),
                 Constraint::Length(2),
             ],
         )
@@ -152,12 +151,6 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
         all_tags_renderer(frame, upper);
         card_tags_renderer(frame, center);
         s_renderer(frame, lower);
-        frame.render_widget(
-            Paragraph::new("C-up / C-down:\nToggle search/list")
-                .centered()
-                .style(Style::default().fg(Color::Yellow)),
-            help,
-        );
     });
 
     ((renderer, handler), s_clear)

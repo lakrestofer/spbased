@@ -20,8 +20,10 @@ use std::sync::Arc;
 
 pub fn HelpBar() -> Component {
     // === State ===
-    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
     let event_text = RwSignal::new(String::new());
+
+    // == Context ===
+    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 
     // Effect::new_sync(move |_| {
     //     let mut new_help_text = String::new();

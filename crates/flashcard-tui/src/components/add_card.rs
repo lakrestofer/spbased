@@ -46,6 +46,10 @@ impl FocusedField {
     }
 }
 
+const ADD_CARD_HELP_TEXT: &str =
+    "esc: go back, A-c: clear screen, A-enter: add card, tab/s-tab: navigate between sections";
+const TAG_AREA_HELP_TEXT: &str = "C-up / C-down: Toggle search/list";
+
 pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     // state
     let focused_field = RwSignal::new(FocusedField::Question);
@@ -58,23 +62,20 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let t_focused = Memo::new(move |_| focused_field.get() == FocusedField::Tag);
 
     // context
-
     let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 
     // effects
-
     Effect::new_sync(move |_| {
         if active_view.get() == ActiveView::AddCard {
-            help_text.update(|help_text| help_text.update_desc_at_level("esc: go back", 1));
-
             help_text.update(|help_text| {
+                help_text.clear_below_level(1);
+                help_text.update_desc_at_level(ADD_CARD_HELP_TEXT, 1);
                 if t_focused.get() {
-                    help_text.update_desc_at_level("C-up / C-down: Toggle search/list", 2)
+                    help_text.update_desc_at_level(TAG_AREA_HELP_TEXT, 2)
                 }
             });
         }
     });
-    Effect::new_sync(move |_| {});
 
     // ===== Components =======
     let ((q_renderer, q_handler), _, q_clear) = TextArea(
