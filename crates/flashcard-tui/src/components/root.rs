@@ -11,7 +11,7 @@ use reactive_graph::{
     traits::{Get, GetUntracked, Update},
 };
 
-use crate::contexts::help::HelpContext;
+use crate::contexts::{events::EventsContext, help::HelpContext};
 
 use super::{
     add_card::AddCard, browser::Browser, edit_card::EditCard, help_bar::HelpBar, home::Home,
@@ -29,15 +29,20 @@ pub enum ActiveView {
 
 pub fn Root() -> Component {
     // ==== define state begin ====
+    // view state
     let active_view = RwSignal::new(ActiveView::Home);
 
-    // we create global state in which we will store help text
-    // any component can add some text to it, which should describe
-    // how to navigate/interact with the current view
+    // state for contexts
     let help_context: RwSignal<HelpContext> = RwSignal::new(HelpContext::new());
-    help_context.update(|help_context| help_context.update_desc_at_level("C-c: exit program", 0));
-    provide_context::<RwSignal<HelpContext>>(help_context);
+    let event_context = RwSignal::new(EventsContext(None));
     // ==== define state end ====
+
+    // ==== define context begin ====
+    help_context.update(|help_context| help_context.update_desc_at_level("C-c: exit program", 0));
+    provide_context(help_context);
+    provide_context(event_context);
+
+    // ==== define context end ====
 
     // ==== init child components begin ====
     let (home_renderer, home_event_handler) = Home(active_view);
@@ -60,7 +65,8 @@ pub fn Root() -> Component {
         if res.is_some() {
             return res;
         }
-        _ = help_bar_handler(key_event);
+        // save away the event such that we can read it anywhere
+        event_context.update(|EventsContext(event)| *event = Some(key_event));
         res
     });
     // ==== Event handler begin ====
