@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 use super::{root::ActiveView, Component, ComponentEventHandler, ComponentRenderer};
-use crate::preamble::ApplicationEvent;
+use crate::{contexts::help::HelpContext, preamble::ApplicationEvent};
 use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
@@ -9,7 +9,12 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use reactive_graph::{signal::RwSignal, traits::Set};
+use reactive_graph::{
+    effect::Effect,
+    owner::use_context,
+    signal::RwSignal,
+    traits::{Get, Set, Update},
+};
 use std::sync::Arc;
 
 const TITLE: [&str; 10] = [
@@ -28,6 +33,17 @@ const TITLE: [&str; 10] = [
 const DESCRIPTION: &str = "Flashcard frontend for the spbased framework.";
 
 pub fn Home(active_view: RwSignal<ActiveView>) -> Component {
+    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
+
+    Effect::new_sync(move |_| {
+        if active_view.get() == ActiveView::Home {
+            help_text.update(|help_text| {
+                help_text.clear_below_level(1);
+                help_text.update_desc_at_level("q / esc: exit program", 1)
+            });
+        }
+    });
+
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Esc => return Some(ApplicationEvent::Shutdown),

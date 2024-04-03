@@ -1,8 +1,9 @@
 #![allow(non_snake_case)]
+use crate::contexts::help::HelpContext;
+
 use super::{
-    common::throbber::Throbber,
-    root::{ActiveView, HelpContext},
-    stub_component_event_handler, Component, ComponentEventHandler, ComponentRenderer,
+    common::throbber::Throbber, root::ActiveView, stub_component_event_handler, Component,
+    ComponentEventHandler, ComponentRenderer,
 };
 use ratatui::{
     layout::{Constraint, Layout, Margin, Rect},
@@ -26,7 +27,6 @@ pub fn HelpBar() -> Component {
     //     let mut new_help_text = String::new();
     //     new_help_text.push_str("C-c: exit program, ");
     //     match active_view.get() {
-    //         ActiveView::Home => new_help_text.push_str("q / esc: exit program, "),
     //         ActiveView::AddCard => {
     //             new_help_text.push_str("esc: go back, ");
     //             new_help_text.push_str("A-c: clear screen, ");

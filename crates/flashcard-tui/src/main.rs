@@ -10,7 +10,6 @@ use reactive_graph::effect::Effect;
 use reactive_graph::owner::Owner;
 use std::io;
 use std::sync::{Arc, RwLock};
-use tokio::sync::mpsc;
 
 use any_spawner::Executor;
 

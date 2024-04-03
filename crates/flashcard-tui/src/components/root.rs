@@ -3,14 +3,15 @@ use std::sync::Arc;
 
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::Paragraph,
     Frame,
 };
 use reactive_graph::{
-    owner::{provide_context, use_context, Owner},
+    owner::provide_context,
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
+
+use crate::contexts::help::HelpContext;
 
 use super::{
     add_card::AddCard, browser::Browser, edit_card::EditCard, help_bar::HelpBar, home::Home,
@@ -26,42 +27,13 @@ pub enum ActiveView {
     Review,
 }
 
-#[derive(Clone)]
-pub struct HelpContext {
-    help_descs: Vec<Option<String>>,
-}
-
-// the maximum depth on which a new component
-const MAX_COMPONENT_DEPTH: usize = 8;
-
-impl HelpContext {
-    pub fn new() -> Self {
-        Self {
-            help_descs: vec![None; MAX_COMPONENT_DEPTH],
-        }
-    }
-
-    pub fn into_help_string(&self) -> String {
-        let mut help_descs = Vec::new();
-        for help_desc in self.help_descs.iter() {
-            if let Some(help_desc) = help_desc {
-                help_descs.push(help_desc.clone());
-            }
-        }
-        help_descs.join(", ")
-    }
-
-    pub fn update_desc_at_level(&mut self, desc: &str, level: usize) {
-        if level > MAX_COMPONENT_DEPTH {
-            return;
-        }
-        self.help_descs[level] = Some(desc.into());
-    }
-}
-
 pub fn Root() -> Component {
     // ==== define state begin ====
     let active_view = RwSignal::new(ActiveView::Home);
+
+    // we create global state in which we will store help text
+    // any component can add some text to it, which should describe
+    // how to navigate/interact with the current view
     let help_context: RwSignal<HelpContext> = RwSignal::new(HelpContext::new());
     help_context.update(|help_context| help_context.update_desc_at_level("C-c: exit program", 0));
     provide_context::<RwSignal<HelpContext>>(help_context);

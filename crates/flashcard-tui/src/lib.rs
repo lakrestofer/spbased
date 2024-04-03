@@ -11,4 +11,6 @@ pub mod preamble;
 
 pub mod components;
 
+pub mod contexts;
+
 pub mod util;

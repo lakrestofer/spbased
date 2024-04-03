@@ -1,4 +1,6 @@
 #![allow(non_snake_case)]
+use crate::contexts::help::HelpContext;
+
 use super::common::text_area::TextArea;
 use super::{
     root::ActiveView, tag_area::TagArea, Component, ComponentEventHandler, ComponentRenderer,
@@ -11,6 +13,8 @@ use ratatui::{
     widgets::{Block, BorderType, Borders},
     Frame,
 };
+use reactive_graph::effect::Effect;
+use reactive_graph::owner::use_context;
 use reactive_graph::{
     computed::Memo,
     signal::RwSignal,
@@ -53,6 +57,25 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let q_text = RwSignal::new(String::new());
     let t_focused = Memo::new(move |_| focused_field.get() == FocusedField::Tag);
 
+    // context
+
+    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
+
+    // effects
+
+    Effect::new_sync(move |_| {
+        if active_view.get() == ActiveView::AddCard {
+            help_text.update(|help_text| help_text.update_desc_at_level("esc: go back", 1));
+
+            help_text.update(|help_text| {
+                if t_focused.get() {
+                    help_text.update_desc_at_level("C-up / C-down: Toggle search/list", 2)
+                }
+            });
+        }
+    });
+    Effect::new_sync(move |_| {});
+
     // ===== Components =======
     let ((q_renderer, q_handler), _, q_clear) = TextArea(
         Memo::new(|_| "Question".into()),
@@ -71,8 +94,8 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         })),
     );
     let ((t_renderer, t_handler), t_clear) = TagArea(t_focused);
-    // ====== Event handler ======
 
+    // ====== Event handler ======
     let clear = move || {
         q_clear();
         a_clear();
