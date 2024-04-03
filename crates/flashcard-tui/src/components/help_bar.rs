@@ -1,7 +1,8 @@
 #![allow(non_snake_case)]
 use super::{
-    common::throbber::Throbber, root::ActiveView, stub_component_event_handler, Component,
-    ComponentEventHandler, ComponentRenderer,
+    common::throbber::Throbber,
+    root::{ActiveView, HelpContext},
+    stub_component_event_handler, Component, ComponentEventHandler, ComponentRenderer,
 };
 use ratatui::{
     layout::{Constraint, Layout, Margin, Rect},
@@ -10,34 +11,34 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
-    effect::Effect,
+    owner::use_context,
     signal::RwSignal,
     traits::{Get, Update},
 };
 use std::sync::Arc;
 
-pub fn HelpBar(active_view: RwSignal<ActiveView>) -> Component {
+pub fn HelpBar() -> Component {
     // === State ===
-    let help_text = RwSignal::new(String::new());
+    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
     let event_text = RwSignal::new(String::new());
 
-    Effect::new_sync(move |_| {
-        let mut new_help_text = String::new();
-        new_help_text.push_str("C-c: exit program, ");
-        match active_view.get() {
-            ActiveView::Home => new_help_text.push_str("q / esc: exit program, "),
-            ActiveView::AddCard => {
-                new_help_text.push_str("esc: go back, ");
-                new_help_text.push_str("A-c: clear screen, ");
-                new_help_text.push_str("A-enter: add card, ");
-                new_help_text.push_str("tab/s-tab: navigate between sections");
-            }
-            ActiveView::EditCard => new_help_text.push_str("esc: go back"),
-            ActiveView::Browser => new_help_text.push_str("esc: go back"),
-            ActiveView::Review => new_help_text.push_str("esc: go back"),
-        };
-        help_text.update(|help_text| *help_text = new_help_text);
-    });
+    // Effect::new_sync(move |_| {
+    //     let mut new_help_text = String::new();
+    //     new_help_text.push_str("C-c: exit program, ");
+    //     match active_view.get() {
+    //         ActiveView::Home => new_help_text.push_str("q / esc: exit program, "),
+    //         ActiveView::AddCard => {
+    //             new_help_text.push_str("esc: go back, ");
+    //             new_help_text.push_str("A-c: clear screen, ");
+    //             new_help_text.push_str("A-enter: add card, ");
+    //             new_help_text.push_str("tab/s-tab: navigate between sections");
+    //         }
+    //         ActiveView::EditCard => new_help_text.push_str("esc: go back"),
+    //         ActiveView::Browser => new_help_text.push_str("esc: go back"),
+    //         ActiveView::Review => new_help_text.push_str("esc: go back"),
+    //     };
+    //     help_text.update(|help_text| *help_text = new_help_text);
+    // });
 
     // === Components ===
 
@@ -67,8 +68,9 @@ pub fn HelpBar(active_view: RwSignal<ActiveView>) -> Component {
         let bar = bar.inner(&Margin::new(2, 0));
         throbber_renderer(frame, bar);
 
+        let help_text = help_text.get().into_help_string();
         frame.render_widget(
-            Paragraph::new(help_text.get())
+            Paragraph::new(help_text)
                 .style(Style::default().fg(Color::Yellow))
                 .centered(),
             help,

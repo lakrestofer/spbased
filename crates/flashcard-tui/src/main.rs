@@ -5,7 +5,9 @@ use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+use reactive_graph::computed::ScopedFuture;
 use reactive_graph::effect::Effect;
+use reactive_graph::owner::Owner;
 use std::io;
 use std::sync::{Arc, RwLock};
 use tokio::sync::mpsc;
@@ -14,16 +16,38 @@ use any_spawner::Executor;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-    // abstract away terminal and application loop
+    // first we setup some terminal abstraction layers
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
-    let mut events = TerminalEventHandler::new(250);
+    let events = TerminalEventHandler::new(250);
+    // we send some initial byte sequences to stdout, signaling
+    // to the terminal that we want to enter a specific state.
+    // (enter alternate mode, disable cursor, set color options etc)
     init_terminal(&mut terminal)?;
 
     let terminal = Arc::new(RwLock::new(terminal));
 
+    // we then init the reactive runtime for the reactive_graph
     _ = Executor::init_tokio();
 
+    Owner::new()
+        .with({
+            let terminal = terminal.clone();
+            || ScopedFuture::new(run(terminal, events))
+        })
+        .await?;
+
+    exit_terminal(&mut terminal.write().unwrap()).expect("could not restore terminal");
+
+    println!("Goodbye!");
+
+    Ok(())
+}
+
+async fn run(
+    terminal: Arc<RwLock<CrosstermTerminal>>,
+    mut events: TerminalEventHandler,
+) -> AppResult<()> {
     let (root_renderer, root_event_handler) = Root();
 
     // Registering rendering side effect
@@ -75,10 +99,5 @@ async fn main() -> AppResult<()> {
             }
         }
     }
-
-    exit_terminal(&mut terminal.write().unwrap()).expect("could not restore terminal");
-
-    println!("Goodbye!");
-
     Ok(())
 }

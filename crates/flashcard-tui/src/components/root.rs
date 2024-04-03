@@ -7,6 +7,7 @@ use ratatui::{
     Frame,
 };
 use reactive_graph::{
+    owner::{provide_context, use_context, Owner},
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
@@ -25,9 +26,45 @@ pub enum ActiveView {
     Review,
 }
 
+#[derive(Clone)]
+pub struct HelpContext {
+    help_descs: Vec<Option<String>>,
+}
+
+// the maximum depth on which a new component
+const MAX_COMPONENT_DEPTH: usize = 8;
+
+impl HelpContext {
+    pub fn new() -> Self {
+        Self {
+            help_descs: vec![None; MAX_COMPONENT_DEPTH],
+        }
+    }
+
+    pub fn into_help_string(&self) -> String {
+        let mut help_descs = Vec::new();
+        for help_desc in self.help_descs.iter() {
+            if let Some(help_desc) = help_desc {
+                help_descs.push(help_desc.clone());
+            }
+        }
+        help_descs.join(", ")
+    }
+
+    pub fn update_desc_at_level(&mut self, desc: &str, level: usize) {
+        if level > MAX_COMPONENT_DEPTH {
+            return;
+        }
+        self.help_descs[level] = Some(desc.into());
+    }
+}
+
 pub fn Root() -> Component {
     // ==== define state begin ====
     let active_view = RwSignal::new(ActiveView::Home);
+    let help_context: RwSignal<HelpContext> = RwSignal::new(HelpContext::new());
+    help_context.update(|help_context| help_context.update_desc_at_level("C-c: exit program", 0));
+    provide_context::<RwSignal<HelpContext>>(help_context);
     // ==== define state end ====
 
     // ==== init child components begin ====
@@ -36,7 +73,7 @@ pub fn Root() -> Component {
     let (edit_card_renderer, edit_card_event_handler) = EditCard(active_view);
     let (browser_renderer, browser_event_handler) = Browser(active_view);
     let (review_renderer, review_event_handler) = Review(active_view);
-    let (help_bar_renderer, help_bar_handler) = HelpBar(active_view);
+    let (help_bar_renderer, help_bar_handler) = HelpBar();
     // ==== init child components end ====
 
     // ==== Event handler begin ====
