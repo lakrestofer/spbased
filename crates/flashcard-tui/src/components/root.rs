@@ -14,7 +14,7 @@ use reactive_graph::{
 use crate::contexts::{events::EventsContext, help::HelpContext};
 
 use super::{
-    add_card::AddCard, browser::Browser, edit_card::EditCard, help_bar::HelpBar, home::Home,
+    add_card::AddCard, bottom_bar::BottomBar, browser::Browser, edit_card::EditCard, home::Home,
     review::Review, Component, ComponentEventHandler, ComponentRenderer,
 };
 
@@ -50,7 +50,7 @@ pub fn Root() -> Component {
     let (edit_card_renderer, edit_card_event_handler) = EditCard(active_view);
     let (browser_renderer, browser_event_handler) = Browser(active_view);
     let (review_renderer, review_event_handler) = Review(active_view);
-    let (help_bar_renderer, help_bar_handler) = HelpBar();
+    let help_bar_renderer = BottomBar();
     // ==== init child components end ====
 
     // ==== Event handler begin ====

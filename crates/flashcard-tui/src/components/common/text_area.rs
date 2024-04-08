@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::Line,
-    widgets::{Block, BorderType, Borders, Paragraph},
+    style::{Color, Style},
+    widgets::Paragraph,
     Frame,
 };
 use reactive_graph::{

@@ -10,7 +10,7 @@ use ratatui::layout::Margin;
 use ratatui::style::{Color, Style};
 use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
-    widgets::{Block, BorderType, Borders},
+    widgets::Block,
     Frame,
 };
 use reactive_graph::effect::Effect;

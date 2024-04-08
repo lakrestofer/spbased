@@ -1,6 +1,6 @@
 pub mod events {
     use crossterm::event::KeyEvent;
-    #[derive(Clone)]
+    #[derive(Clone, Default)]
     pub struct EventsContext(pub Option<KeyEvent>);
 }
 pub mod help;

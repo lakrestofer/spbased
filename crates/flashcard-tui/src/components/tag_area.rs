@@ -1,9 +1,7 @@
 #![allow(non_snake_case)]
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{
-    layout::{Constraint, Direction, Flex, Layout, Rect},
-    style::{Color, Style},
-    widgets::Paragraph,
+    layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
 use reactive_graph::{

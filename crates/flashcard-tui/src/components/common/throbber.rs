@@ -8,11 +8,11 @@ use reactive_graph::{
 };
 use throbber_widgets_tui::widgets::{Throbber as ThrobberWidget, ThrobberState};
 
-use crate::components::{stub_component_event_handler, Component, ComponentRenderer};
+use crate::components::ComponentRenderer;
 
 use throbber_widgets_tui::BRAILLE_EIGHT;
 
-pub fn Throbber() -> Component {
+pub fn Throbber() -> ComponentRenderer {
     let state = RwSignal::new(ThrobberState::default());
     let widget = RwSignal::new(ThrobberWidget::default().throbber_set(BRAILLE_EIGHT));
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
@@ -22,6 +22,5 @@ pub fn Throbber() -> Component {
             state.calc_next();
         });
     });
-
-    (renderer, stub_component_event_handler())
+    renderer
 }

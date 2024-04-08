@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use flashcard_tui::components::root::Root;
-use flashcard_tui::contexts::stats::FrameTime;
+use flashcard_tui::contexts::stats::FrameTimeContext;
 use flashcard_tui::event::{Event, TerminalEventHandler};
 use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
@@ -10,7 +10,7 @@ use reactive_graph::computed::ScopedFuture;
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::Update;
+use reactive_graph::traits::{Update, UpdateUntracked};
 use std::io;
 use std::sync::{Arc, RwLock};
 
@@ -32,6 +32,7 @@ async fn main() -> AppResult<()> {
     // we then init the reactive runtime for the reactive_graph
     _ = Executor::init_tokio();
 
+    // we create an root owner
     Owner::new()
         .with({
             let terminal = terminal.clone();
@@ -50,9 +51,10 @@ async fn run(
     terminal: Arc<RwLock<CrosstermTerminal>>,
     mut events: TerminalEventHandler,
 ) -> AppResult<()> {
-    let (root_renderer, root_event_handler) = Root();
+    let stats = RwSignal::new(FrameTimeContext::default());
+    provide_context::<RwSignal<FrameTimeContext>>(stats);
 
-    let stats = RwSignal::new(FrameTime::default());
+    let (root_renderer, root_event_handler) = Root();
 
     // Registering rendering side effect
     Effect::new_sync({
@@ -62,50 +64,52 @@ async fn run(
         let terminal = terminal.clone();
         let renderer = root_renderer.clone();
         move |_| {
+            // we measure the time it takes to perform the draw call
             let before = std::time::Instant::now();
             _ = terminal.write().unwrap().draw(|frame| {
                 let view_port = frame.size();
                 renderer(frame, view_port);
             });
             let dur = std::time::Instant::now().duration_since(before);
-            stats.update(|FrameTime(old_dur)| *old_dur = dur);
+            stats.update_untracked(|FrameTimeContext(old_dur)| *old_dur = dur);
         }
     });
-    provide_context(stats);
 
-    // start event loop
-    loop {
-        if let Ok(event) = events.next().await {
-            let event: Option<ApplicationEvent> = match event {
-                Event::Key(key_event) => match key_event.code {
-                    // on C-c, always exit the application
-                    KeyCode::Char('c') | KeyCode::Char('C')
-                        if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        Some(ApplicationEvent::Shutdown)
+    let join_handle = Executor::spawn(async move {
+        // start event loop
+        loop {
+            if let Ok(event) = events.next().await {
+                let event: Option<ApplicationEvent> = match event {
+                    Event::Key(key_event) => match key_event.code {
+                        // on C-c, always exit the application
+                        KeyCode::Char('c') | KeyCode::Char('C')
+                            if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+                        {
+                            Some(ApplicationEvent::Shutdown)
+                        }
+                        _ => root_event_handler(key_event),
+                    },
+                    Event::Tick => None,
+                    Event::Mouse(_) => None,
+                    Event::Resize(_, _) => {
+                        _ = terminal.write().unwrap().draw(|frame| {
+                            let view_port = frame.size();
+                            root_renderer(frame, view_port);
+                        });
+                        None
                     }
-                    _ => root_event_handler(key_event),
-                },
-                Event::Tick => None,
-                Event::Mouse(_) => None,
-                Event::Resize(_, _) => {
-                    _ = terminal.write().unwrap().draw(|frame| {
-                        let view_port = frame.size();
-                        root_renderer(frame, view_port);
-                    });
-                    None
+                };
+
+                match event {
+                    Some(event) => match event {
+                        ApplicationEvent::Shutdown => {
+                            break;
+                        }
+                    },
+                    None => {}
                 }
-            };
-
-            match event {
-                Some(event) => match event {
-                    ApplicationEvent::Shutdown => {
-                        break;
-                    }
-                },
-                None => {}
             }
         }
-    }
+    });
     Ok(())
 }

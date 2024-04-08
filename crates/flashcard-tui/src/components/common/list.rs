@@ -4,7 +4,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, List, ListState, Paragraph},
+    widgets::{List, ListState, Paragraph},
     Frame,
 };
 use reactive_graph::{

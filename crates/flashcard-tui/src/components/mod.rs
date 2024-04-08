@@ -23,10 +23,10 @@ pub type Component = (ComponentRenderer, ComponentEventHandler);
 pub type Trigger = Arc<dyn Fn() -> () + Send + Sync>;
 
 pub mod add_card;
+pub mod bottom_bar;
 pub mod browser;
 pub mod common;
 pub mod edit_card;
-pub mod help_bar;
 pub mod home;
 pub mod review;
 pub mod root;
