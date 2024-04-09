@@ -32,6 +32,7 @@ pub fn Review(active_view: RwSignal<ActiveView>) -> Component {
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("running event handler for Review");
         if key_event.code == KeyCode::Esc {
             active_view.set(ActiveView::Home)
         }
@@ -39,6 +40,7 @@ pub fn Review(active_view: RwSignal<ActiveView>) -> Component {
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering Review");
         let title = Paragraph::new("AddCard View").blue().centered();
         frame.render_widget(title, rect);
     });

@@ -107,6 +107,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     };
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("running event handler for add_card");
         match (
             key_event.code,
             key_event.modifiers,
@@ -126,6 +127,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
 
     // ====== Renderer ======
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering add_card");
         let [left, center, right] = Layout::horizontal([
             Constraint::Percentage(75),
             Constraint::Length(1),

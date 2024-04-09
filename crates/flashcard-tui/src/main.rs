@@ -12,7 +12,7 @@ use reactive_graph::computed::ScopedFuture;
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::UpdateUntracked;
+use reactive_graph::traits::{Update, UpdateUntracked};
 use std::io;
 use std::sync::{Arc, RwLock};
 use tracing::Level;

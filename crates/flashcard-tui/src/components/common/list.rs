@@ -63,6 +63,7 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event| {
+        info!("running event handler for list");
         event.update(|event| *event = Some(key_event));
         match key_event.code {
             KeyCode::Up => up(),
@@ -73,6 +74,7 @@ pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> 
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering list");
         let mut new_state = state.get();
         let widget = styled_list(items.get());
         let [title_area, list_area] =

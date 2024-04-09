@@ -48,6 +48,7 @@ pub fn Home(active_view: RwSignal<ActiveView>) -> Component {
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("running eventhandler for Home");
         match key_event.code {
             KeyCode::Char('q') | KeyCode::Esc => return Some(ApplicationEvent::Shutdown),
             KeyCode::Char('a') => active_view.set(ActiveView::AddCard),
@@ -59,6 +60,7 @@ pub fn Home(active_view: RwSignal<ActiveView>) -> Component {
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, central_area: Rect| {
+        info!("rendering Home");
         let ver: [Rect; 5] = Layout::vertical([Constraint::Ratio(1, 5); 5]).areas(central_area);
 
         let title = Paragraph::new(

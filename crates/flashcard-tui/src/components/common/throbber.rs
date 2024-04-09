@@ -16,6 +16,7 @@ pub fn Throbber() -> ComponentRenderer {
     let state = RwSignal::new(ThrobberState::default());
     let widget = RwSignal::new(ThrobberWidget::default().throbber_set(BRAILLE_EIGHT));
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering throbber");
         // each time we render this component, we also update it's state
         state.update_untracked(|state| {
             frame.render_stateful_widget(widget.get(), rect, state);

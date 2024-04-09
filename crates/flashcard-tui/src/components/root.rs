@@ -58,6 +58,7 @@ pub fn Root() -> Component {
 
     // ==== Event handler begin ====
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("run event handler for Root");
         let res = match active_view.get_untracked() {
             ActiveView::Home => home_event_handler(key_event),
             ActiveView::AddCard => add_card_event_handler(key_event),
@@ -76,6 +77,7 @@ pub fn Root() -> Component {
 
     // ==== Renderer begin ====
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, view_port: Rect| {
+        info!("render Root");
         let [center, help_rect] = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Fill(1), Constraint::Length(2)])

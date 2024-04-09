@@ -26,6 +26,7 @@ pub fn BottomBar() -> ComponentRenderer {
     let throbber_renderer = Throbber();
     // === Renderer ===
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, help_rect: Rect| {
+        info!("rendering bottom bar");
         // first we retrieve data
         // key_event
         let EventsContext(key_event) = event_context.get();

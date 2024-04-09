@@ -33,6 +33,7 @@ pub fn EditCard(active_view: RwSignal<ActiveView>) -> Component {
     });
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("run event handler for edit_card");
         if key_event.code == KeyCode::Esc {
             active_view.set(ActiveView::Home)
         }

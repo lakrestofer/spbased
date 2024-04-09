@@ -118,6 +118,7 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
     };
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("run event handler for tag area");
         match (
             key_event.code,
             key_event.modifiers,
@@ -136,6 +137,7 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
 
     // ======= Renderer ========
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("render tag area");
         let [upper, _, center, _, lower] = Layout::new(
             Direction::Vertical,
             [

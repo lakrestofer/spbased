@@ -69,11 +69,13 @@ pub fn TextArea(
     }
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+        info!("running event handler for text area");
         area.update(|area| _ = area.input(key_event));
         None
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering text area");
         let [title_area, text_area] =
             Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(rect);
 
