@@ -1,6 +1,7 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use flashcard_tui::components::root::Root;
 use flashcard_tui::contexts::stats::FrameTimeContext;
+use flashcard_tui::contexts::tick::TickCounterContext;
 use flashcard_tui::event::{Event, TerminalEventHandler};
 use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
@@ -53,6 +54,8 @@ async fn run(
 ) -> AppResult<()> {
     let stats = RwSignal::new(FrameTimeContext::default());
     provide_context::<RwSignal<FrameTimeContext>>(stats);
+    let tick_counter = RwSignal::new(TickCounterContext(0));
+    provide_context(tick_counter);
 
     let (root_renderer, root_event_handler) = Root();
 
@@ -75,41 +78,43 @@ async fn run(
         }
     });
 
-    let join_handle = Executor::spawn(async move {
-        // start event loop
-        loop {
-            if let Ok(event) = events.next().await {
-                let event: Option<ApplicationEvent> = match event {
-                    Event::Key(key_event) => match key_event.code {
-                        // on C-c, always exit the application
-                        KeyCode::Char('c') | KeyCode::Char('C')
-                            if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
-                        {
-                            Some(ApplicationEvent::Shutdown)
-                        }
-                        _ => root_event_handler(key_event),
-                    },
-                    Event::Tick => None,
-                    Event::Mouse(_) => None,
-                    Event::Resize(_, _) => {
-                        _ = terminal.write().unwrap().draw(|frame| {
-                            let view_port = frame.size();
-                            root_renderer(frame, view_port);
-                        });
-                        None
+    // start event loop
+    loop {
+        if let Ok(event) = events.next().await {
+            let event: Option<ApplicationEvent> = match event {
+                Event::Key(key_event) => match key_event.code {
+                    // on C-c, always exit the application
+                    KeyCode::Char('c') | KeyCode::Char('C')
+                        if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        Some(ApplicationEvent::Shutdown)
                     }
-                };
-
-                match event {
-                    Some(event) => match event {
-                        ApplicationEvent::Shutdown => {
-                            break;
-                        }
-                    },
-                    None => {}
+                    _ => root_event_handler(key_event),
+                },
+                Event::Tick => {
+                    tick_counter.update(|TickCounterContext(count)| *count += 1);
+                    None
                 }
+                Event::Mouse(_) => None,
+                Event::Resize(_, _) => {
+                    _ = terminal.write().unwrap().draw(|frame| {
+                        let view_port = frame.size();
+                        root_renderer(frame, view_port);
+                    });
+                    None
+                }
+            };
+
+            match event {
+                Some(event) => match event {
+                    ApplicationEvent::Shutdown => {
+                        break;
+                    }
+                },
+                None => {}
             }
         }
-    });
+    }
+
     Ok(())
 }

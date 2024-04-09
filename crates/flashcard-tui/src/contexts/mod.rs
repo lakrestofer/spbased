@@ -5,3 +5,7 @@ pub mod events {
 }
 pub mod help;
 pub mod stats;
+pub mod tick {
+    #[derive(Default, Clone, Copy)]
+    pub struct TickCounterContext(pub u32);
+}

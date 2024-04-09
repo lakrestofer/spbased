@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
-use crate::contexts::{events::EventsContext, help::HelpContext, stats::FrameTimeContext};
+use crate::contexts::{
+    events::EventsContext, help::HelpContext, stats::FrameTimeContext, tick::TickCounterContext,
+};
 
 use super::{common::throbber::Throbber, ComponentRenderer};
 use ratatui::{
@@ -16,6 +18,7 @@ pub fn BottomBar() -> ComponentRenderer {
     let help_text_context = use_context::<RwSignal<HelpContext>>().unwrap();
     let event_context = use_context::<RwSignal<EventsContext>>().unwrap();
     let stats_context = use_context::<RwSignal<FrameTimeContext>>().unwrap();
+    let tick_context = use_context::<RwSignal<TickCounterContext>>().unwrap();
     // === Components ===
     let throbber_renderer = Throbber();
     // === Renderer ===
@@ -35,6 +38,8 @@ pub fn BottomBar() -> ComponentRenderer {
         // frame_time
         let FrameTimeContext(frame_time) = stats_context.get();
         let frame_time = format!("{} ms/render", frame_time.as_millis());
+        let TickCounterContext(tick_counter) = tick_context.get();
+        let tick_counter = format!("{} tick_counter", tick_counter);
 
         // when we split the area into multiple bars
         let [bar_outer, help] = Layout::vertical([Constraint::Ratio(1, 2); 2]).areas(help_rect);
@@ -60,6 +65,7 @@ pub fn BottomBar() -> ComponentRenderer {
 
         throbber_renderer(frame, left[0]);
         frame.render_widget(Paragraph::new(frame_time), left[1]);
+        frame.render_widget(Paragraph::new(tick_counter), left[3]);
     });
 
     renderer
