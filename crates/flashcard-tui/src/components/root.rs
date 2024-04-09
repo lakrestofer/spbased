@@ -10,6 +10,7 @@ use reactive_graph::{
     signal::RwSignal,
     traits::{Get, GetUntracked, Update},
 };
+use tracing::{info, instrument};
 
 use crate::contexts::{events::EventsContext, help::HelpContext};
 
@@ -27,7 +28,9 @@ pub enum ActiveView {
     Review,
 }
 
+#[instrument]
 pub fn Root() -> Component {
+    info!("Building Root component");
     // ==== define state begin ====
     // view state
     let active_view = RwSignal::new(ActiveView::Home);

@@ -10,6 +10,7 @@ use reactive_graph::{
     traits::{Get, GetUntracked, Update},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 use super::{
     common::{list::List, text_area::TextArea},
@@ -40,7 +41,9 @@ impl ActiveField {
     }
 }
 
+#[instrument]
 pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
+    info!("Building TagArea component");
     // ==== State and setters/getters ====
     // active field
     let active_field = RwSignal::new(ActiveField::Search);

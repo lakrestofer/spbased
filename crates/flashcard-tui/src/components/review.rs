@@ -11,10 +11,13 @@ use reactive_graph::{
     traits::{Get, Set, Update},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 const REVIEW_HELP_TEXT: &str = "esc: go back";
 
+#[instrument]
 pub fn Review(active_view: RwSignal<ActiveView>) -> Component {
+    info!("Building Review component");
     // context
     let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 

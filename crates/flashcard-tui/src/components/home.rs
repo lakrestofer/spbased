@@ -16,6 +16,7 @@ use reactive_graph::{
     traits::{Get, Set, Update},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 const TITLE: [&str; 10] = [
     " ██████  ██▓███   ▄▄▄▄    ▄▄▄        ██████ ▓█████ ▓█████▄  ",
@@ -32,7 +33,9 @@ const TITLE: [&str; 10] = [
 
 const DESCRIPTION: &str = "Flashcard frontend for the spbased framework.";
 
+#[instrument]
 pub fn Home(active_view: RwSignal<ActiveView>) -> Component {
+    info!("Building Home component");
     let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 
     Effect::new_sync(move |_| {
