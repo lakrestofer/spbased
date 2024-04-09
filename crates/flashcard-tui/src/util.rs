@@ -5,18 +5,18 @@ use tokio_util::sync::CancellationToken;
 
 pub trait Boxed: Default {
     fn boxed() -> Box<Self> {
-        Box::new(Self::default())
+        Box::<Self>::default()
     }
 }
 
 pub struct DebouncedFunction<A: Clone + Send + Sync + 'static> {
     duration: Duration,
     previous_token: Arc<RwLock<Option<CancellationToken>>>,
-    fun: Arc<dyn Fn(A) -> () + Sync + Send + 'static>,
+    fun: Arc<dyn Fn(A) + Sync + Send + 'static>,
 }
 
 impl<A: Clone + Send + Sync + 'static> DebouncedFunction<A> {
-    pub fn new(duration: Duration, fun: Arc<dyn Fn(A) -> () + Sync + Send + 'static>) -> Self {
+    pub fn new(duration: Duration, fun: Arc<dyn Fn(A) + Sync + Send + 'static>) -> Self {
         let previous_token = Arc::new(RwLock::new(None));
         Self {
             duration,

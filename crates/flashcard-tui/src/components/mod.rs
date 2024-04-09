@@ -4,7 +4,7 @@ use crate::preamble::ApplicationEvent;
 use crossterm::event::KeyEvent;
 use ratatui::{layout::Rect, Frame};
 
-pub type ComponentRenderer = Arc<dyn Fn(&mut Frame, Rect) -> () + Send + Sync + 'static>;
+pub type ComponentRenderer = Arc<dyn Fn(&mut Frame, Rect) + Send + Sync + 'static>;
 // a component renderer that renderes nothing
 pub fn stub_component_renderer() -> ComponentRenderer {
     Arc::new(|_, _| {})
@@ -20,7 +20,7 @@ pub fn stub_component_event_handler() -> ComponentEventHandler {
 pub type Component = (ComponentRenderer, ComponentEventHandler);
 
 // function that has some sideeffect
-pub type Trigger = Arc<dyn Fn() -> () + Send + Sync>;
+pub type Trigger = Arc<dyn Fn() + Send + Sync>;
 
 pub mod add_card;
 pub mod bottom_bar;

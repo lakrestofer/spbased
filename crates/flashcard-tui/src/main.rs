@@ -69,10 +69,14 @@ async fn run(
         move |_| {
             // we measure the time it takes to perform the draw call
             let before = std::time::Instant::now();
-            _ = terminal.write().unwrap().draw(|frame| {
-                let view_port = frame.size();
-                renderer(frame, view_port);
-            });
+            terminal
+                .write()
+                .unwrap()
+                .draw(|frame| {
+                    let view_port = frame.size();
+                    renderer(frame, view_port);
+                })
+                .expect("Could not render view!");
             let dur = std::time::Instant::now().duration_since(before);
             stats.update_untracked(|FrameTimeContext(old_dur)| *old_dur = dur);
         }
@@ -105,13 +109,12 @@ async fn run(
                 }
             };
 
-            match event {
-                Some(event) => match event {
+            if let Some(event) = event {
+                match event {
                     ApplicationEvent::Shutdown => {
                         break;
                     }
-                },
-                None => {}
+                }
             }
         }
     }

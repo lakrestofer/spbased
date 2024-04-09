@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct HelpContext {
     help_descs: Vec<Option<String>>,
 }
@@ -15,10 +15,8 @@ impl HelpContext {
 
     pub fn into_help_string(&self) -> String {
         let mut help_descs = Vec::new();
-        for help_desc in self.help_descs.iter() {
-            if let Some(help_desc) = help_desc {
-                help_descs.push(help_desc.clone());
-            }
+        for help_desc in self.help_descs.iter().flatten() {
+            help_descs.push(help_desc.clone());
         }
         help_descs.join(", ")
     }

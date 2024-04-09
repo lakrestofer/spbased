@@ -33,15 +33,14 @@ const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
 pub fn TextArea(
     title: Memo<String>,
     is_focused: Memo<bool>,
-    on_submit: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
-    on_update: Option<Arc<dyn Fn(String) -> () + Send + Sync>>,
+    on_submit: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    on_update: Option<Arc<dyn Fn(String) + Send + Sync>>,
 ) -> (Component, Trigger, Trigger) {
     // local state and derived setters
     let area = RwSignal::new(styled_text_area());
 
     // we define functions that can modify local state and return them together with the renderer/handler
     let submit: Trigger = Arc::new({
-        let area = area.clone();
         move || {
             let new_content: String = area.get_untracked().lines().join("\n").trim().into();
             if let Some(on_submit) = on_submit.clone() {
