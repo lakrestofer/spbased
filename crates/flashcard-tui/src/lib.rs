@@ -1,6 +1,5 @@
 /// Terminal events handler.
 pub mod event;
-
 /// Widget renderer.
 pub mod ui;
 
@@ -14,3 +13,7 @@ pub mod components;
 pub mod contexts;
 
 pub mod util;
+
+pub mod constants;
+
+pub mod traits;

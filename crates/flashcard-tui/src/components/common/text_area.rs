@@ -1,4 +1,7 @@
 #![allow(non_snake_case)]
+
+use crate::preamble::*;
+
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Style},
@@ -13,15 +16,16 @@ use reactive_graph::{
 };
 use std::{sync::Arc, time::Duration};
 
-use tui_textarea::TextArea;
+use tracing::{info, instrument};
+use tui_textarea::TextArea as TuiTextArea;
 
 use crate::{
     components::{Component, ComponentEventHandler, ComponentRenderer, Trigger},
     util::DebouncedFunction,
 };
 
-fn styled_text_area<'a>() -> TextArea<'a> {
-    let mut area = TextArea::default();
+fn styled_text_area<'a>() -> TuiTextArea<'a> {
+    let mut area = TuiTextArea::default();
     area.set_style(Style::default().bg(Color::Indexed(234)));
     area.set_cursor_line_style(Style::default());
     area
@@ -30,12 +34,14 @@ fn styled_text_area<'a>() -> TextArea<'a> {
 const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
 
 /// A full textarea component with emacs keybindings
+#[instrument]
 pub fn TextArea(
     title: Memo<String>,
     is_focused: Memo<bool>,
-    on_submit: Option<Arc<dyn Fn(String) + Send + Sync>>,
-    on_update: Option<Arc<dyn Fn(String) + Send + Sync>>,
+    on_submit: Option<ExtendedFn<String>>,
+    on_update: Option<ExtendedFn<String>>,
 ) -> (Component, Trigger, Trigger) {
+    info!("Building TextArea component");
     // local state and derived setters
     let area = RwSignal::new(styled_text_area());
 

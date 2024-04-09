@@ -14,6 +14,7 @@ use reactive_graph::{
     traits::{Get, GetUntracked, Update, UpdateUntracked},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 fn styled_list<'a>(items: Vec<String>) -> List<'a> {
     List::new::<Vec<String>>(items)
@@ -46,7 +47,10 @@ impl SelectionExtension for ListState {
     }
 }
 
+#[instrument]
 pub fn List(title: String, is_focused: Memo<bool>, items: Memo<Vec<String>>) -> Component {
+    info!("Building List component");
+
     let items_len = Memo::new(move |_| items.get().len());
     let state = RwSignal::new(ListState::default());
     let up = move || state.update(|state| state.up(items_len.get_untracked()));

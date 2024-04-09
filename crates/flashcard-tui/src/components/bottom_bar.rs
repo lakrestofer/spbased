@@ -12,8 +12,11 @@ use ratatui::{
 };
 use reactive_graph::{owner::use_context, signal::RwSignal, traits::Get};
 use std::sync::Arc;
+use tracing::{info, instrument};
 
+#[instrument]
 pub fn BottomBar() -> ComponentRenderer {
+    info!("Building BottomBar component");
     // == Context ===
     let help_text_context = use_context::<RwSignal<HelpContext>>().unwrap();
     let event_context = use_context::<RwSignal<EventsContext>>().unwrap();

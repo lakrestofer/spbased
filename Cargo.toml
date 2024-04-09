@@ -44,6 +44,11 @@ clap = { version = "4.4", features = ["derive", "cargo", "wrap_help", "unicode",
 ratatui = { version = "0.26", features = ["all-widgets", "serde", "macros"] }
 crossterm = { version = "0.27.0", features = ["event-stream", "serde"] }
 config = { version = "0.13" }
+tracing = "0.1.37"
+tracing-error = "0.2.0"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter", "serde"] }
+log = "0.4.20"
+strip-ansi-escapes = "0.2.0"
 # dev dependencies
 pretty_assertions = "1.4.0"
 

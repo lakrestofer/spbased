@@ -8,6 +8,7 @@ use reactive_graph::{
     traits::{Get, Set, Update},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 use crate::contexts::help::HelpContext;
 
@@ -15,7 +16,9 @@ use super::{root::ActiveView, Component, ComponentEventHandler, ComponentRendere
 
 const BROWSER_HELP_TEXT: &str = "esc: go back";
 
+#[instrument]
 pub fn Browser(active_view: RwSignal<ActiveView>) -> Component {
+    info!("Building Browser component");
     // context
     let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 

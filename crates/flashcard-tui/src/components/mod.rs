@@ -18,7 +18,6 @@ pub fn stub_component_event_handler() -> ComponentEventHandler {
 }
 
 pub type Component = (ComponentRenderer, ComponentEventHandler);
-
 // function that has some sideeffect
 pub type Trigger = Arc<dyn Fn() + Send + Sync>;
 

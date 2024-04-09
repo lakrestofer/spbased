@@ -1,3 +1,5 @@
+use crate::preamble::*;
+
 use std::{sync::Arc, time::Duration};
 
 use tokio::{select, sync::RwLock};
@@ -9,14 +11,14 @@ pub trait Boxed: Default {
     }
 }
 
-pub struct DebouncedFunction<A: Clone + Send + Sync + 'static> {
+pub struct DebouncedFunction<T: Clone + Send + Sync + 'static> {
     duration: Duration,
     previous_token: Arc<RwLock<Option<CancellationToken>>>,
-    fun: Arc<dyn Fn(A) + Sync + Send + 'static>,
+    fun: ExtendedFn<T>,
 }
 
-impl<A: Clone + Send + Sync + 'static> DebouncedFunction<A> {
-    pub fn new(duration: Duration, fun: Arc<dyn Fn(A) + Sync + Send + 'static>) -> Self {
+impl<T: Clone + Send + Sync + 'static> DebouncedFunction<T> {
+    pub fn new(duration: Duration, fun: ExtendedFn<T>) -> Self {
         let previous_token = Arc::new(RwLock::new(None));
         Self {
             duration,
@@ -29,7 +31,7 @@ impl<A: Clone + Send + Sync + 'static> DebouncedFunction<A> {
     /// consecutive calls to `call` will ancel the previously scheduled
     /// call task and schedule a new one.
     /// Returns whether a previous call task was canceled
-    pub fn call(&self, arg: A) {
+    pub fn call(&self, arg: T) {
         let previous_token = self.previous_token.clone();
         let fun = self.fun.clone();
         let duration = self.duration;

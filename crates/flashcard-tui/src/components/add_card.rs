@@ -21,6 +21,7 @@ use reactive_graph::{
     traits::{Get, GetUntracked, Set, Update},
 };
 use std::sync::Arc;
+use tracing::{info, instrument};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum FocusedField {
@@ -50,7 +51,9 @@ const ADD_CARD_HELP_TEXT: &str =
     "esc: go back, A-c: clear screen, A-enter: add card, tab/s-tab: navigate between sections";
 const TAG_AREA_HELP_TEXT: &str = "C-up / C-down: Toggle search/list";
 
+#[instrument]
 pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
+    info!("Building AddCard component");
     // state
     let focused_field = RwSignal::new(FocusedField::Question);
     let focus_next_field = move || focused_field.update(FocusedField::next);
