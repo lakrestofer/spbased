@@ -23,7 +23,7 @@ use reactive_graph::{
 use std::sync::Arc;
 use tracing::{info, instrument};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum FocusedField {
     Question,
     Answer,
@@ -107,7 +107,10 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     };
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
-        info!("running event handler for add_card");
+        info!(
+            "AddCard: handling key event: {key_event:?}, focused field: {:?}",
+            focused_field.get_untracked(),
+        );
         match (
             key_event.code,
             key_event.modifiers,
