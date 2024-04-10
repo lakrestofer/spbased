@@ -43,7 +43,6 @@ pub fn Root() -> Component {
     // ==== define context begin ====
     help_context.update(|help_context| help_context.update_desc_at_level("C-c: exit program", 0));
     provide_context(help_context);
-    provide_context(event_context);
 
     // ==== define context end ====
 
@@ -54,8 +53,6 @@ pub fn Root() -> Component {
     // ==== Event handler begin ====
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         info!("run event handler for Root");
-        // save away the event such that we can read it anywhere
-        event_context.update(|EventsContext(event)| *event = Some(key_event));
         add_card_event_handler(key_event)
     });
     // ==== Event handler begin ====
