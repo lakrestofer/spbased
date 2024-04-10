@@ -53,9 +53,7 @@ pub fn Root() -> Component {
     let focused_field = RwSignal::new(FocusedField::Question);
     let focus_next_field = move || {
         info!("Updating the focused field to the next one");
-        focused_field
-            .try_update(FocusedField::next)
-            .expect("could not update focused field");
+        focused_field.update(FocusedField::next);
         info!("Successfully updated the field to the next one!");
     };
     let help_text = RwSignal::new(HelpContext::new());
@@ -63,6 +61,14 @@ pub fn Root() -> Component {
     let a_focused = Memo::new(move |_| focused_field.get() == FocusedField::Answer);
     let q_focused = Memo::new(move |_| focused_field.get() == FocusedField::Question);
     let t_focused = Memo::new(move |_| focused_field.get() == FocusedField::Tag);
+    // memos
+    let s_title: Memo<String> = Memo::new(move |_| {
+        if t_focused.get() {
+            "Search: [Press enter to add new tag]".into()
+        } else {
+            "Search:".into()
+        }
+    });
 
     // effects
     Effect::new_sync(move |_| {
@@ -75,34 +81,15 @@ pub fn Root() -> Component {
         });
     });
 
-    // ===== Components =======
-    let (q_renderer, q_handler) = TextArea(Memo::new(|_| "Question".into()), q_focused, None, None);
-    let (a_renderer, a_handler) = TextArea(Memo::new(|_| "Answer".into()), a_focused, None, None);
-    let s_title: Memo<String> = Memo::new(move |_| {
-        if t_focused.get() {
-            "Search: [Press enter to add new tag]".into()
-        } else {
-            "Search:".into()
-        }
-    });
-    let (t_renderer, t_handler) = TextArea(s_title, t_focused, None, None);
-
     // ====== Event handler ======
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         info!(
-            "AddCard: handling key event: {key_event:?}, focused field: {:?}",
+            "root: handling key event: {key_event:?}, focused field: {:?}",
             focused_field.get_untracked(),
         );
-        match (
-            key_event.code,
-            key_event.modifiers,
-            focused_field.get_untracked(),
-        ) {
-            (KeyCode::Tab, _, _) => focus_next_field(),
-            (_, _, FocusedField::Question) => return q_handler(key_event),
-            (_, _, FocusedField::Answer) => return a_handler(key_event),
-            (_, _, FocusedField::Tag) => return t_handler(key_event),
+        if let KeyCode::Tab = key_event.code {
+            focus_next_field()
         }
         info!("AddCard: returning from event handler");
         None
@@ -110,7 +97,7 @@ pub fn Root() -> Component {
 
     // ====== Renderer ======
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
-        info!("rendering add_card");
+        info!("rendering root ");
         let [left, center, right] = Layout::horizontal([
             Constraint::Percentage(75),
             Constraint::Length(1),
@@ -134,13 +121,32 @@ pub fn Root() -> Component {
         .areas(left);
 
         // question field
-        q_renderer(frame, upper_left);
-
+        frame.render_widget(
+            Paragraph::new("Question").style(if q_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }),
+            upper_left,
+        );
         // answer field
-        a_renderer(frame, lower_left);
-
+        frame.render_widget(
+            Paragraph::new("Answer").style(if a_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }),
+            lower_left,
+        );
         // tag
-        t_renderer(frame, right);
+        frame.render_widget(
+            Paragraph::new(s_title.get()).style(if t_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }),
+            right,
+        );
     });
 
     (renderer, handler)
@@ -153,18 +159,8 @@ pub fn TextArea(
     is_focused: Memo<bool>,
     on_submit: Option<ExtendedFn<String>>,
     on_update: Option<ExtendedFn<String>>,
-) -> Component {
+) -> ComponentRenderer {
     info!("Building TextArea component");
-    // local state and derived setters
-    // let area = RwSignal::new(styled_text_area());
-
-    // we define functions that can modify local state and return them together with the renderer/handler
-
-    let handler: ComponentEventHandler = Arc::new(move |_key_event: crossterm::event::KeyEvent| {
-        info!("running event handler for text area");
-        None
-    });
-
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         info!("rendering text area");
 
@@ -178,5 +174,5 @@ pub fn TextArea(
         frame.render_widget(Paragraph::new(title.get()).style(style), rect);
     });
 
-    (renderer, handler)
+    renderer
 }
