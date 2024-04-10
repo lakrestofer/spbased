@@ -143,9 +143,9 @@ pub fn Root() -> Component {
     // memos
     let s_title: Memo<String> = Memo::new(move |_| {
         if t_focused.get() {
-            "Search: [Press enter to add new tag]".into()
+            "Lower (but with some added text since I'm focused)".into()
         } else {
-            "Search:".into()
+            "Lower:".into()
         }
     });
 
@@ -177,54 +177,40 @@ pub fn Root() -> Component {
     // ====== Renderer ======
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         info!("rendering root ");
-        let [left, center, right] = Layout::horizontal([
-            Constraint::Percentage(75),
-            Constraint::Length(1),
-            Constraint::Fill(1),
-        ])
-        .areas(rect);
-
-        let divider = Block::default().style(Style::default().bg(Color::Indexed(236)));
-
-        frame.render_widget(&divider, center);
-
-        let left = left.inner(&Margin::new(1, 1));
-        let right = right.inner(&Margin::new(1, 1));
-
-        let [upper_left, _, lower_left] = Layout::vertical([
-            Constraint::Fill(1),
-            Constraint::Length(1),
-            Constraint::Fill(1),
-        ])
-        .flex(Flex::SpaceAround)
-        .areas(left);
+        let [upper, center, lower] = Layout::vertical([Constraint::Fill(1); 3]).areas(rect);
 
         // question field
         frame.render_widget(
-            Paragraph::new("Question").style(if q_focused.get() {
-                Style::default().bg(Color::Indexed(233))
-            } else {
-                Style::default().bg(Color::Indexed(235))
-            }),
-            upper_left,
+            Paragraph::new("First")
+                .style(if q_focused.get() {
+                    Style::default().bg(Color::Indexed(233))
+                } else {
+                    Style::default().bg(Color::Indexed(235))
+                })
+                .centered(),
+            upper,
         );
         // answer field
         frame.render_widget(
-            Paragraph::new("Answer").style(if a_focused.get() {
-                Style::default().bg(Color::Indexed(233))
-            } else {
-                Style::default().bg(Color::Indexed(235))
-            }),
-            lower_left,
+            Paragraph::new("Second")
+                .style(if a_focused.get() {
+                    Style::default().bg(Color::Indexed(233))
+                } else {
+                    Style::default().bg(Color::Indexed(235))
+                })
+                .centered(),
+            center,
         );
         // tag
         frame.render_widget(
-            Paragraph::new(s_title.get()).style(if t_focused.get() {
-                Style::default().bg(Color::Indexed(233))
-            } else {
-                Style::default().bg(Color::Indexed(235))
-            }),
-            right,
+            Paragraph::new(s_title.get())
+                .style(if t_focused.get() {
+                    Style::default().bg(Color::Indexed(233))
+                } else {
+                    Style::default().bg(Color::Indexed(235))
+                })
+                .centered(),
+            lower,
         );
     });
 
