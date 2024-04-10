@@ -1,7 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use flashcard_tui::{
     constants::{log_dir_path, log_env, log_file_path},
-    contexts::{help::HelpContext, stats::FrameTimeContext, tick::TickCounterContext},
     event::TerminalEventHandler,
     preamble::{ApplicationEvent, *},
     tui::{exit_terminal, init_terminal},
@@ -66,11 +65,6 @@ async fn main() -> AppResult<()> {
 }
 
 async fn run(terminal: Arc<RwLock<CrosstermTerminal>>, mut events: TerminalEventHandler) -> ! {
-    let stats = RwSignal::new(FrameTimeContext::default());
-    provide_context::<RwSignal<FrameTimeContext>>(stats);
-    let tick_counter = RwSignal::new(TickCounterContext(0));
-    provide_context(tick_counter);
-
     let (root_renderer, root_event_handler) = Root();
 
     // Registering rendering side effect
@@ -83,7 +77,6 @@ async fn run(terminal: Arc<RwLock<CrosstermTerminal>>, mut events: TerminalEvent
         move |_| {
             let _span = tracing::span!(Level::TRACE, "Render effect");
             // we measure the time it takes to perform the draw call
-            let before = std::time::Instant::now();
             terminal
                 .write()
                 .unwrap()
@@ -92,8 +85,6 @@ async fn run(terminal: Arc<RwLock<CrosstermTerminal>>, mut events: TerminalEvent
                     renderer(frame, view_port);
                 })
                 .expect("Could not render view!");
-            let dur = std::time::Instant::now().duration_since(before);
-            stats.update_untracked(|FrameTimeContext(old_dur)| *old_dur = dur);
         }
     });
 
@@ -286,4 +277,44 @@ fn setup_logging() -> AppResult<()> {
         .with(ErrorLayer::default())
         .init();
     Ok(())
+}
+
+#[derive(Clone, Default)]
+pub struct HelpContext {
+    help_descs: Vec<Option<String>>,
+}
+
+// the maximum depth on which a new component
+const MAX_COMPONENT_DEPTH: usize = 8;
+
+impl HelpContext {
+    pub fn new() -> Self {
+        Self {
+            help_descs: vec![None; MAX_COMPONENT_DEPTH],
+        }
+    }
+
+    pub fn into_help_string(&self) -> String {
+        let mut help_descs = Vec::new();
+        for help_desc in self.help_descs.iter().flatten() {
+            help_descs.push(help_desc.clone());
+        }
+        help_descs.join(", ")
+    }
+
+    pub fn update_desc_at_level(&mut self, desc: &str, level: usize) {
+        if level >= MAX_COMPONENT_DEPTH {
+            return;
+        }
+        self.help_descs[level] = Some(desc.into());
+    }
+
+    // removes all help comments below this level
+    // usefull to remove help messages when moving uppwards in the component
+    // tree
+    pub fn clear_below_level(&mut self, level: usize) {
+        for i in (level + 1)..MAX_COMPONENT_DEPTH {
+            self.help_descs[i] = None;
+        }
+    }
 }
