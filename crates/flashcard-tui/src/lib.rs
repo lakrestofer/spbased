@@ -5,8 +5,6 @@ pub mod tui;
 
 pub mod preamble;
 
-pub mod contexts;
-
 pub mod util;
 
 pub mod constants;

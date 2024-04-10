@@ -15,9 +15,9 @@ use ratatui::{
 use reactive_graph::{
     computed::{Memo, ScopedFuture},
     effect::Effect,
-    owner::{provide_context, Owner},
+    owner::Owner,
     signal::RwSignal,
-    traits::{Get, GetUntracked, Update, UpdateUntracked},
+    traits::{Get, GetUntracked, Update},
 };
 use std::{
     io,
