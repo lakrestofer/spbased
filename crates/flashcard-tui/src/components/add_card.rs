@@ -56,8 +56,19 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     info!("Building AddCard component");
     // state
     let focused_field = RwSignal::new(FocusedField::Question);
-    let focus_next_field = move || focused_field.update(FocusedField::next);
-    let focus_previous_field = move || focused_field.update(FocusedField::previous);
+    let focus_next_field = move || {
+        info!("Updating the focused field to the next one");
+        focused_field
+            .try_update(FocusedField::next)
+            .expect("could not update focused field");
+        info!("Successfully updated the field to the next one!");
+    };
+    let focus_previous_field = move || {
+        info!("Updating the focused field to the previous one");
+        focused_field
+            .try_update(FocusedField::previous)
+            .expect("could not update focused field");
+    };
     let a_focused = Memo::new(move |_| focused_field.get() == FocusedField::Answer);
     let a_text = RwSignal::new(String::new());
     let q_focused = Memo::new(move |_| focused_field.get() == FocusedField::Question);
@@ -125,6 +136,7 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             (_, _, FocusedField::Tag) => return t_handler(key_event),
             // (_, _, _) => {}
         }
+        info!("AddCard: returning from event handler");
         None
     });
 
