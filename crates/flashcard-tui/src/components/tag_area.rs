@@ -47,8 +47,8 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
     // ==== State and setters/getters ====
     // active field
     let active_field = RwSignal::new(ActiveField::Search);
-    let up = move || active_field.update(|field| field.up());
-    let down = move || active_field.update(|field| field.down());
+    // let up = move || active_field.update(|field| field.up());
+    // let down = move || active_field.update(|field| field.down());
     let search_bar_focused =
         Memo::new(move |_| is_focused.get() && active_field.get() == ActiveField::Search);
     let search_bar_title: Memo<String> = Memo::new(move |_| {
@@ -93,8 +93,8 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
             key_event.modifiers,
             active_field.get_untracked(),
         ) {
-            (KeyCode::Up, KeyModifiers::CONTROL, _) => up(),
-            (KeyCode::Down, KeyModifiers::CONTROL, _) => down(),
+            // (KeyCode::Up, KeyModifiers::CONTROL, _) => up(),
+            // (KeyCode::Down, KeyModifiers::CONTROL, _) => down(),
             (KeyCode::Enter, _, ActiveField::Search) => add_tag(),
             (_, _, ActiveField::Search) => return s_handler(key_event),
             (_, _, _) => {}
@@ -105,20 +105,7 @@ pub fn TagArea(is_focused: Memo<bool>) -> (Component, Trigger) {
     // ======= Renderer ========
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         info!("render tag area");
-        let [upper, _, center, _, lower] = Layout::new(
-            Direction::Vertical,
-            [
-                Constraint::Fill(1),
-                Constraint::Length(1),
-                Constraint::Fill(1),
-                Constraint::Length(1),
-                Constraint::Length(2),
-            ],
-        )
-        // .flex(Flex::SpaceBetween)
-        .areas(rect);
-
-        s_renderer(frame, lower);
+        s_renderer(frame, rect);
     });
 
     ((renderer, handler), s_clear)

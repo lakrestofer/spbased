@@ -14,10 +14,7 @@ use tracing::{info, instrument};
 
 use crate::contexts::{events::EventsContext, help::HelpContext};
 
-use super::{
-    add_card::AddCard, bottom_bar::BottomBar, browser::Browser, edit_card::EditCard, home::Home,
-    review::Review, Component, ComponentEventHandler, ComponentRenderer,
-};
+use super::{add_card::AddCard, Component, ComponentEventHandler, ComponentRenderer};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ActiveView {
@@ -37,7 +34,6 @@ pub fn Root() -> Component {
 
     // state for contexts
     let help_context: RwSignal<HelpContext> = RwSignal::new(HelpContext::new());
-    let event_context = RwSignal::new(EventsContext(None));
     // ==== define state end ====
 
     // ==== define context begin ====

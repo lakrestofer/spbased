@@ -8,30 +8,13 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use reactive_graph::{
-    computed::Memo,
-    effect::Effect,
-    signal::RwSignal,
-    traits::{Get, GetUntracked, Update},
-};
+use reactive_graph::{computed::Memo, traits::Get};
 use std::{sync::Arc, time::Duration};
 
 use tracing::{info, instrument};
 use tui_textarea::TextArea as TuiTextArea;
 
-use crate::{
-    components::{Component, ComponentEventHandler, ComponentRenderer, Trigger},
-    util::DebouncedFunction,
-};
-
-fn styled_text_area<'a>() -> TuiTextArea<'a> {
-    let mut area = TuiTextArea::default();
-    area.set_style(Style::default().bg(Color::Indexed(234)));
-    area.set_cursor_line_style(Style::default());
-    area
-}
-
-const ON_UPDATE_DURATION: Duration = Duration::from_millis(200);
+use crate::components::{Component, ComponentEventHandler, ComponentRenderer, Trigger};
 
 /// A full textarea component with emacs keybindings
 #[instrument]
@@ -49,17 +32,13 @@ pub fn TextArea(
     let submit: Trigger = Arc::new(move || {});
     let clear: Trigger = Arc::new(move || {});
 
-    if let Some(on_update) = on_update {}
-
-    let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
+    let handler: ComponentEventHandler = Arc::new(move |_key_event: crossterm::event::KeyEvent| {
         info!("running event handler for text area");
         None
     });
 
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
         info!("rendering text area");
-        let [title_area, text_area] =
-            Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(rect);
 
         let style = {
             if is_focused.get() {
@@ -68,7 +47,7 @@ pub fn TextArea(
                 Style::default().bg(Color::Indexed(235))
             }
         };
-        frame.render_widget(Paragraph::new(title.get()).style(style), title_area);
+        frame.render_widget(Paragraph::new(title.get()).style(style), rect);
     });
 
     ((renderer, handler), submit, clear)
