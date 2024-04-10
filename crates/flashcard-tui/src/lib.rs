@@ -5,8 +5,4 @@ pub mod tui;
 
 pub mod preamble;
 
-pub mod util;
-
 pub mod constants;
-
-pub mod traits;

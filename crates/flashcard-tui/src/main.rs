@@ -1,3 +1,4 @@
+use any_spawner::Executor;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use flashcard_tui::{
     constants::{log_dir_path, log_env, log_file_path},
@@ -26,8 +27,6 @@ use std::{
 use tracing::{info, instrument, Level};
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{self, prelude::*, util::SubscriberInitExt, Layer};
-
-use any_spawner::Executor;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
