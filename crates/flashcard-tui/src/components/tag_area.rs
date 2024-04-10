@@ -1,14 +1,6 @@
 #![allow(non_snake_case)]
-use crossterm::event::{KeyCode, KeyModifiers};
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    Frame,
-};
-use reactive_graph::{
-    computed::Memo,
-    signal::RwSignal,
-    traits::{Get, GetUntracked, Update},
-};
+use ratatui::{layout::Rect, Frame};
+use reactive_graph::{computed::Memo, traits::Get};
 use std::sync::Arc;
 use tracing::{info, instrument};
 

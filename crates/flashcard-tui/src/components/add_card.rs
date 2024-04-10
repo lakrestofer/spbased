@@ -102,7 +102,24 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             a_text.update(|s| *s = content);
         })),
     );
-    let ((t_renderer, t_handler), t_clear) = TagArea(t_focused);
+    let search_bar_title: Memo<String> = Memo::new(move |_| {
+        if t_focused.get() {
+            "Search: [Press enter to add new tag]".into()
+        } else {
+            "Search:".into()
+        }
+    });
+    let ((t_renderer, t_handler), _, t_clear) = TextArea(
+        search_bar_title,
+        t_focused,
+        None,
+        None,
+        // Some(Arc::new(move |content| {
+        //     a_text.update(|s| *s = content);
+        // })),
+    );
+
+    // let ((t_renderer, t_handler), t_clear) = TagArea(t_focused);
 
     // ====== Event handler ======
 
