@@ -43,34 +43,16 @@ pub fn TextArea(
 ) -> (Component, Trigger, Trigger) {
     info!("Building TextArea component");
     // local state and derived setters
-    let area = RwSignal::new(styled_text_area());
+    // let area = RwSignal::new(styled_text_area());
 
     // we define functions that can modify local state and return them together with the renderer/handler
-    let submit: Trigger = Arc::new({
-        move || {
-            let new_content: String = area.get_untracked().lines().join("\n").trim().into();
-            if let Some(on_submit) = on_submit.clone() {
-                on_submit(new_content);
-            }
-        }
-    });
-    let clear: Trigger = Arc::new(move || {
-        area.update(|area| {
-            *area = styled_text_area();
-        });
-    });
+    let submit: Trigger = Arc::new(move || {});
+    let clear: Trigger = Arc::new(move || {});
 
-    if let Some(on_update) = on_update {
-        let on_update = DebouncedFunction::new(ON_UPDATE_DURATION, on_update);
-        Effect::new_sync(move |_| {
-            let new_content: String = area.get().lines().join("\n").trim().into();
-            on_update.call(new_content);
-        });
-    }
+    if let Some(on_update) = on_update {}
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         info!("running event handler for text area");
-        area.update(|area| _ = area.input(key_event));
         None
     });
 
@@ -87,7 +69,6 @@ pub fn TextArea(
             }
         };
         frame.render_widget(Paragraph::new(title.get()).style(style), title_area);
-        frame.render_widget(area.get().widget(), text_area);
     });
 
     ((renderer, handler), submit, clear)

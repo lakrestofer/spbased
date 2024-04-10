@@ -33,7 +33,7 @@ pub fn Root() -> Component {
     info!("Building Root component");
     // ==== define state begin ====
     // view state
-    let active_view = RwSignal::new(ActiveView::Home);
+    let active_view = RwSignal::new(ActiveView::AddCard);
 
     // state for contexts
     let help_context: RwSignal<HelpContext> = RwSignal::new(HelpContext::new());
@@ -48,49 +48,22 @@ pub fn Root() -> Component {
     // ==== define context end ====
 
     // ==== init child components begin ====
-    let (home_renderer, home_event_handler) = Home(active_view);
     let (add_card_renderer, add_card_event_handler) = AddCard(active_view);
-    let (edit_card_renderer, edit_card_event_handler) = EditCard(active_view);
-    let (browser_renderer, browser_event_handler) = Browser(active_view);
-    let (review_renderer, review_event_handler) = Review(active_view);
-    let help_bar_renderer = BottomBar();
     // ==== init child components end ====
 
     // ==== Event handler begin ====
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         info!("run event handler for Root");
-        let res = match active_view.get_untracked() {
-            ActiveView::Home => home_event_handler(key_event),
-            ActiveView::AddCard => add_card_event_handler(key_event),
-            ActiveView::EditCard => edit_card_event_handler(key_event),
-            ActiveView::Browser => browser_event_handler(key_event),
-            ActiveView::Review => review_event_handler(key_event),
-        };
-        if res.is_some() {
-            return res;
-        }
         // save away the event such that we can read it anywhere
         event_context.update(|EventsContext(event)| *event = Some(key_event));
-        res
+        add_card_event_handler(key_event)
     });
     // ==== Event handler begin ====
 
     // ==== Renderer begin ====
     let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, view_port: Rect| {
         info!("render Root");
-        let [center, help_rect] = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Length(2)])
-            .areas(view_port);
-
-        match active_view.get() {
-            ActiveView::Home => home_renderer(frame, center),
-            ActiveView::AddCard => add_card_renderer(frame, center),
-            ActiveView::Browser => browser_renderer(frame, center),
-            ActiveView::EditCard => edit_card_renderer(frame, center),
-            ActiveView::Review => review_renderer(frame, center),
-        }
-        help_bar_renderer(frame, help_rect);
+        add_card_renderer(frame, view_port);
     });
     // ==== Renderer end ====
 

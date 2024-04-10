@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use flashcard_tui::components::root::Root;
 use flashcard_tui::constants::{log_dir_path, log_env, log_file_path};
 use flashcard_tui::contexts::stats::FrameTimeContext;
@@ -94,35 +94,8 @@ async fn run(
     // start event loop
     loop {
         let _span = tracing::span!(Level::TRACE, "Event loop");
-        if let Ok(event) = events.next().await {
-            let event: Option<ApplicationEvent> = match event {
-                Event::Key(key_event) => {
-                    tracing::event!(Level::INFO, "Got key event: {key_event:?}");
-
-                    match key_event.code {
-                        // on C-c, always exit the application
-                        KeyCode::Char('c') | KeyCode::Char('C')
-                            if key_event.modifiers.contains(KeyModifiers::CONTROL) =>
-                        {
-                            Some(ApplicationEvent::Shutdown)
-                        }
-                        _ => root_event_handler(key_event),
-                    }
-                }
-                Event::Tick => {
-                    // tick_counter.update(|TickCounterContext(count)| *count += 1);
-                    None
-                }
-                Event::Mouse(_) => None,
-                Event::Resize(_, _) => {
-                    _ = terminal.write().unwrap().draw(|frame| {
-                        let view_port = frame.size();
-                        root_renderer(frame, view_port);
-                    });
-                    None
-                }
-            };
-
+        if let Ok(_event) = events.next().await {
+            let event = root_event_handler(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
             if let Some(event) = event {
                 tracing::event!(Level::INFO, "Got application event: {event:?}");
                 match event {
