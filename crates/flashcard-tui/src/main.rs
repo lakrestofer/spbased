@@ -3,7 +3,7 @@ use flashcard_tui::components::root::Root;
 use flashcard_tui::constants::{log_dir_path, log_env, log_file_path};
 use flashcard_tui::contexts::stats::FrameTimeContext;
 use flashcard_tui::contexts::tick::TickCounterContext;
-use flashcard_tui::event::{Event, TerminalEventHandler};
+use flashcard_tui::event::TerminalEventHandler;
 use flashcard_tui::preamble::*;
 use flashcard_tui::tui::{exit_terminal, init_terminal};
 use ratatui::backend::CrosstermBackend;
@@ -29,7 +29,7 @@ async fn main() -> AppResult<()> {
     // first we setup some terminal abstraction layers
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
-    let events = TerminalEventHandler::new(100);
+    let events = TerminalEventHandler::new(50);
 
     // we send some initial byte sequences to stdout, signaling
     // to the terminal that we want to enter a specific state.
@@ -47,7 +47,7 @@ async fn main() -> AppResult<()> {
             let terminal = terminal.clone();
             || ScopedFuture::new(run(terminal, events))
         })
-        .await?;
+        .await;
 
     exit_terminal(&mut terminal.write().unwrap()).expect("could not restore terminal");
 
@@ -56,10 +56,7 @@ async fn main() -> AppResult<()> {
     Ok(())
 }
 
-async fn run(
-    terminal: Arc<RwLock<CrosstermTerminal>>,
-    mut events: TerminalEventHandler,
-) -> AppResult<()> {
+async fn run(terminal: Arc<RwLock<CrosstermTerminal>>, mut events: TerminalEventHandler) -> ! {
     let stats = RwSignal::new(FrameTimeContext::default());
     provide_context::<RwSignal<FrameTimeContext>>(stats);
     let tick_counter = RwSignal::new(TickCounterContext(0));
@@ -95,19 +92,9 @@ async fn run(
     loop {
         let _span = tracing::span!(Level::TRACE, "Event loop");
         if let Ok(_event) = events.next().await {
-            let event = root_event_handler(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
-            if let Some(event) = event {
-                tracing::event!(Level::INFO, "Got application event: {event:?}");
-                match event {
-                    ApplicationEvent::Shutdown => {
-                        tracing::event!(Level::INFO, "Shutting down...");
-                        break;
-                    }
-                }
-            }
+            root_event_handler(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         }
     }
-    Ok(())
 }
 
 fn setup_error_hooks() -> AppResult<()> {
