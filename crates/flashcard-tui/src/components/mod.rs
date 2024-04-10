@@ -13,6 +13,4 @@ pub type Component = (ComponentRenderer, ComponentEventHandler);
 // function that has some sideeffect
 pub type Trigger = Arc<dyn Fn() + Send + Sync>;
 
-pub mod common;
 pub mod root;
-pub mod utils;

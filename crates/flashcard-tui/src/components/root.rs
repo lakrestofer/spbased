@@ -1,25 +1,30 @@
 #![allow(non_snake_case)]
+use crate::preamble::*;
 use std::sync::Arc;
+
+use ratatui::{
+    layout::{Constraint, Layout, Rect},
+    style::{Color, Style},
+    widgets::Paragraph,
+    Frame,
+};
+use reactive_graph::{computed::Memo, traits::Get};
+use tracing::{info, instrument};
 
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::{Constraint, Flex, Layout, Margin, Rect},
-    style::{Color, Style},
+    layout::{Flex, Margin},
     widgets::Block,
-    Frame,
 };
+
 use reactive_graph::{
-    computed::Memo,
     effect::Effect,
-    owner::{provide_context, use_context},
     signal::RwSignal,
-    traits::{Get, GetUntracked, Update},
+    traits::{GetUntracked, Update},
 };
-use tracing::{info, instrument};
 
-use crate::{components::common::text_area::TextArea, contexts::help::HelpContext};
-
-use super::{Component, ComponentEventHandler, ComponentRenderer};
+use crate::components::{Component, ComponentEventHandler, ComponentRenderer, Trigger};
+use crate::contexts::help::HelpContext;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum FocusedField {
@@ -54,14 +59,10 @@ pub fn Root() -> Component {
         info!("Successfully updated the field to the next one!");
     };
     let help_text = RwSignal::new(HelpContext::new());
-    provide_context(help_text);
 
     let a_focused = Memo::new(move |_| focused_field.get() == FocusedField::Answer);
     let q_focused = Memo::new(move |_| focused_field.get() == FocusedField::Question);
     let t_focused = Memo::new(move |_| focused_field.get() == FocusedField::Tag);
-
-    // context
-    let help_text = use_context::<RwSignal<HelpContext>>().unwrap();
 
     // effects
     Effect::new_sync(move |_| {
@@ -75,10 +76,8 @@ pub fn Root() -> Component {
     });
 
     // ===== Components =======
-    let ((q_renderer, q_handler), _, _) =
-        TextArea(Memo::new(|_| "Question".into()), q_focused, None, None);
-    let ((a_renderer, a_handler), _, _) =
-        TextArea(Memo::new(|_| "Answer".into()), a_focused, None, None);
+    let (q_renderer, q_handler) = TextArea(Memo::new(|_| "Question".into()), q_focused, None, None);
+    let (a_renderer, a_handler) = TextArea(Memo::new(|_| "Answer".into()), a_focused, None, None);
     let s_title: Memo<String> = Memo::new(move |_| {
         if t_focused.get() {
             "Search: [Press enter to add new tag]".into()
@@ -86,7 +85,7 @@ pub fn Root() -> Component {
             "Search:".into()
         }
     });
-    let ((t_renderer, t_handler), _, _) = TextArea(s_title, t_focused, None, None);
+    let (t_renderer, t_handler) = TextArea(s_title, t_focused, None, None);
 
     // ====== Event handler ======
 
@@ -104,7 +103,6 @@ pub fn Root() -> Component {
             (_, _, FocusedField::Question) => return q_handler(key_event),
             (_, _, FocusedField::Answer) => return a_handler(key_event),
             (_, _, FocusedField::Tag) => return t_handler(key_event),
-            (_, _, _) => {}
         }
         info!("AddCard: returning from event handler");
         None
@@ -143,6 +141,41 @@ pub fn Root() -> Component {
 
         // tag
         t_renderer(frame, right);
+    });
+
+    (renderer, handler)
+}
+
+/// A full textarea component with emacs keybindings
+#[instrument]
+pub fn TextArea(
+    title: Memo<String>,
+    is_focused: Memo<bool>,
+    on_submit: Option<ExtendedFn<String>>,
+    on_update: Option<ExtendedFn<String>>,
+) -> Component {
+    info!("Building TextArea component");
+    // local state and derived setters
+    // let area = RwSignal::new(styled_text_area());
+
+    // we define functions that can modify local state and return them together with the renderer/handler
+
+    let handler: ComponentEventHandler = Arc::new(move |_key_event: crossterm::event::KeyEvent| {
+        info!("running event handler for text area");
+        None
+    });
+
+    let renderer: ComponentRenderer = Arc::new(move |frame: &mut Frame, rect: Rect| {
+        info!("rendering text area");
+
+        let style = {
+            if is_focused.get() {
+                Style::default().bg(Color::Indexed(233))
+            } else {
+                Style::default().bg(Color::Indexed(235))
+            }
+        };
+        frame.render_widget(Paragraph::new(title.get()).style(style), rect);
     });
 
     (renderer, handler)
