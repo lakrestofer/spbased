@@ -12,7 +12,7 @@ use reactive_graph::computed::ScopedFuture;
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Update, UpdateUntracked};
+use reactive_graph::traits::UpdateUntracked;
 use std::io;
 use std::sync::{Arc, RwLock};
 use tracing::Level;
@@ -29,7 +29,7 @@ async fn main() -> AppResult<()> {
     // first we setup some terminal abstraction layers
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
-    let events = TerminalEventHandler::new(250);
+    let events = TerminalEventHandler::new(100);
 
     // we send some initial byte sequences to stdout, signaling
     // to the terminal that we want to enter a specific state.

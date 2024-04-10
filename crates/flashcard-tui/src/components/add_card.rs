@@ -63,12 +63,6 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
             .expect("could not update focused field");
         info!("Successfully updated the field to the next one!");
     };
-    let focus_previous_field = move || {
-        info!("Updating the focused field to the previous one");
-        focused_field
-            .try_update(FocusedField::previous)
-            .expect("could not update focused field");
-    };
     let a_focused = Memo::new(move |_| focused_field.get() == FocusedField::Answer);
     let a_text = RwSignal::new(String::new());
     let q_focused = Memo::new(move |_| focused_field.get() == FocusedField::Question);
@@ -111,11 +105,6 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
     let ((t_renderer, t_handler), t_clear) = TagArea(t_focused);
 
     // ====== Event handler ======
-    let clear = move || {
-        q_clear();
-        a_clear();
-        t_clear();
-    };
 
     let handler: ComponentEventHandler = Arc::new(move |key_event: crossterm::event::KeyEvent| {
         info!(
@@ -129,8 +118,6 @@ pub fn AddCard(active_view: RwSignal<ActiveView>) -> Component {
         ) {
             (KeyCode::Esc, _, _) => active_view.set(ActiveView::Home),
             (KeyCode::Tab, _, _) => focus_next_field(),
-            (KeyCode::BackTab, _, _) => focus_previous_field(),
-            (KeyCode::Char('c'), KeyModifiers::ALT, _) => clear(),
             (_, _, FocusedField::Question) => return q_handler(key_event),
             (_, _, FocusedField::Answer) => return a_handler(key_event),
             (_, _, FocusedField::Tag) => return t_handler(key_event),
