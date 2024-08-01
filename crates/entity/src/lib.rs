@@ -3,3 +3,6 @@
 pub mod prelude;
 
 pub mod review_item;
+pub mod review_item_type;
+pub mod tag;
+pub mod tag_map;

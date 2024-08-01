@@ -16,13 +16,35 @@ pub struct Model {
     pub due: TimeDate,
     pub reviews: i32,
     pub failed_reviews: i32,
-    #[sea_orm(column_type = "Text")]
-    pub r#type: String,
+    pub r#type: i32,
     #[sea_orm(column_type = "Text")]
     pub data: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::review_item_type::Entity",
+        from = "Column::Id",
+        to = "super::review_item_type::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    ReviewItemType,
+    #[sea_orm(has_many = "super::tag_map::Entity")]
+    TagMap,
+}
+
+impl Related<super::review_item_type::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ReviewItemType.def()
+    }
+}
+
+impl Related<super::tag_map::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::TagMap.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}

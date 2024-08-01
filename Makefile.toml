@@ -42,6 +42,5 @@ args = ["db.sqlite"]
 
 # one shot tasks
 [tasks.new_migration]
-command = "sea-orm-cli"
-args = ["migrate", "generate", "--migration-dir", "crates/migration", "${@}"]
+command = "./scripts/new_migration"
 
