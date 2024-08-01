@@ -1,6 +1,12 @@
 [config]
 default_to_workspace = false
 
+[tasks.nuke_gen]
+dependencies = [
+  "rm_db",
+  "gen"
+]
+
 [tasks.gen]
 command = "sea-orm-cli"
 args = [
@@ -9,6 +15,7 @@ args = [
   "--lib",
   "--with-serde=both",
   "--date-time-crate=time",
+  # "--ignore-tables",
   "--output-dir=crates/entity/src"
 ]
 dependencies = [
@@ -23,17 +30,6 @@ args = [ "\n==== generating entities from db.sqlite!!! ===\n" ]
 [tasks.migrate]
 command = "cargo"
 args = ["run", "--package", "migration", "up"]
-dependencies = [
-  "rm_db"
-]
-
-
-[tasks.varargs]
-command = "echo"
-args = [
-    "args are:", "${@}"
-]
-
 
 
 [tasks.rm_db]
