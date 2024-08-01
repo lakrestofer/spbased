@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
             .if_not_exists()
             .col(pk_auto(Tag::Id))
             .col(string(Tag::Content))
+            .col(timestamp(Tag::Created).default(Expr::current_timestamp()))
             .to_owned();
         manager.create_table(tag_table).await?;
 
@@ -23,6 +24,7 @@ impl MigrationTrait for Migration {
             .col(pk_auto(TagMap::Id))
             .col(integer(TagMap::TagId))
             .col(integer(TagMap::ItemId))
+            .col(timestamp(TagMap::Created).default(Expr::current_timestamp()))
             .foreign_key(
                 ForeignKey::create()
                     .name("FK_id_to_tag")
@@ -61,6 +63,7 @@ enum Tag {
     Table,
     Id,
     Content,
+    Created,
 }
 
 #[derive(DeriveIden)]
@@ -69,4 +72,5 @@ enum TagMap {
     Id,
     TagId,
     ItemId,
+    Created,
 }

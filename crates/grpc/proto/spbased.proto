@@ -1,6 +1,11 @@
 syntax = "proto3";
 package spbased;
 
+
+service Scheduler {
+  
+}
+
 // the container for any review item
 // contains the data neccessary to schedule it
 // together with the untyped json data
@@ -16,15 +21,20 @@ message ReviewItem {
   int32 failed_reviews = 7;
   ItemType item_type = 8;
   string data = 9;
+  string created = 10;
+  string updated = 11;
 }
 
 // we can multiple types
 message ItemType {
   int32 id = 1;
   string name = 2;
+  string created = 3;
+  string updated = 4;
 }
 
 message Tag {
   int32 id = 1;
   string content = 2;
+  string created = 3;
 }

@@ -12,6 +12,8 @@ impl MigrationTrait for Migration {
             .if_not_exists()
             .col(pk_auto(ReviewItemType::Id))
             .col(string(ReviewItemType::Type))
+            .col(timestamp(ReviewItemType::Created).default(Expr::current_timestamp()))
+            .col(timestamp(ReviewItemType::Updated).default(Expr::current_timestamp()))
             .to_owned();
         manager.create_table(review_item_type).await?;
 
@@ -27,6 +29,8 @@ impl MigrationTrait for Migration {
             .col(integer(ReviewItem::FailedReviews))
             .col(integer(ReviewItem::Type))
             .col(text(ReviewItem::Data))
+            .col(timestamp(ReviewItem::Created).default(Expr::current_timestamp()))
+            .col(timestamp(ReviewItem::Updated).default(Expr::current_timestamp()))
             .foreign_key(
                 ForeignKey::create()
                     .name("FK_review_item_type")
@@ -65,6 +69,8 @@ pub(crate) enum ReviewItem {
     FailedReviews,
     Type,
     Data,
+    Created,
+    Updated,
 }
 
 #[derive(DeriveIden)]
@@ -72,4 +78,6 @@ enum ReviewItemType {
     Table,
     Id,
     Type,
+    Created,
+    Updated,
 }

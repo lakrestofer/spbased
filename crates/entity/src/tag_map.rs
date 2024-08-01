@@ -10,6 +10,7 @@ pub struct Model {
     pub id: i32,
     pub tag_id: i32,
     pub item_id: i32,
+    pub created: TimeDateTime,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
