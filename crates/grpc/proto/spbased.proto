@@ -1,0 +1,22 @@
+syntax = "proto3";
+package spbased;
+
+// the container for any review item
+// contains the data neccessary to schedule it
+// together with the untyped json data
+// of the specific item type (flashcards contain different data
+// from e.g a book)
+message ReviewItem {
+  int32 id = 1;
+  float stability = 2;
+  float difficulty = 3;
+  string last_review = 4;
+  string due = 5;
+  int32 reviews = 6;
+  int32 failed_reviews = 7;
+}
+
+// we can multiple types
+message ItemType {
+  
+}
