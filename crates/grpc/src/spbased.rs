@@ -21,8 +21,25 @@ pub struct ReviewItem {
     pub reviews: i32,
     #[prost(int32, tag = "7")]
     pub failed_reviews: i32,
+    #[prost(message, optional, tag = "8")]
+    pub item_type: ::core::option::Option<ItemType>,
+    #[prost(string, tag = "9")]
+    pub data: ::prost::alloc::string::String,
 }
 /// we can multiple types
 #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct ItemType {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ItemType {
+    #[prost(int32, tag = "1")]
+    pub id: i32,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Tag {
+    #[prost(int32, tag = "1")]
+    pub id: i32,
+    #[prost(string, tag = "2")]
+    pub content: ::prost::alloc::string::String,
+}

@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
 #[sea_orm(table_name = "tag_map")]
 pub struct Model {
+    #[sea_orm(primary_key)]
+    pub id: i32,
     pub tag_id: i32,
     pub item_id: i32,
 }

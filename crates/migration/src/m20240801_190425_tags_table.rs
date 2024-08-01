@@ -13,13 +13,14 @@ impl MigrationTrait for Migration {
             .table(Tag::Table)
             .if_not_exists()
             .col(pk_auto(Tag::Id))
-            .col(string(Tag::Tag))
+            .col(string(Tag::Content))
             .to_owned();
         manager.create_table(tag_table).await?;
 
         let tag_map_table = Table::create()
             .table(TagMap::Table)
             .if_not_exists()
+            .col(pk_auto(TagMap::Id))
             .col(integer(TagMap::TagId))
             .col(integer(TagMap::ItemId))
             .foreign_key(
@@ -59,12 +60,13 @@ impl MigrationTrait for Migration {
 enum Tag {
     Table,
     Id,
-    Tag,
+    Content,
 }
 
 #[derive(DeriveIden)]
 enum TagMap {
     Table,
+    Id,
     TagId,
     ItemId,
 }

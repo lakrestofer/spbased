@@ -14,12 +14,17 @@ message ReviewItem {
   string due = 5;
   int32 reviews = 6;
   int32 failed_reviews = 7;
-  ItemType type = 8;
+  ItemType item_type = 8;
   string data = 9;
 }
 
 // we can multiple types
 message ItemType {
   int32 id = 1;
-  string type = 2;
+  string name = 2;
+}
+
+message Tag {
+  int32 id = 1;
+  string content = 2;
 }
