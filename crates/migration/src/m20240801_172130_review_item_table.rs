@@ -7,15 +7,6 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // table of item types
-        let review_item_type = Table::create()
-            .table(ReviewItemType::Table)
-            .if_not_exists()
-            .col(pk_auto(ReviewItemType::Id))
-            .col(string(ReviewItemType::Type))
-            .col(timestamp(ReviewItemType::Created).default(Expr::current_timestamp()))
-            .col(timestamp(ReviewItemType::Updated).default(Expr::current_timestamp()))
-            .to_owned();
-        manager.create_table(review_item_type).await?;
 
         let review_item_table = Table::create()
             .table(ReviewItem::Table)
@@ -27,19 +18,20 @@ impl MigrationTrait for Migration {
             .col(date(ReviewItem::Due))
             .col(integer(ReviewItem::Reviews))
             .col(integer(ReviewItem::FailedReviews))
-            .col(integer(ReviewItem::Type))
+            .col(text(ReviewItem::Maturity))
+            .col(string(ReviewItem::ItemType))
             .col(text(ReviewItem::Data))
             .col(timestamp(ReviewItem::Created).default(Expr::current_timestamp()))
             .col(timestamp(ReviewItem::Updated).default(Expr::current_timestamp()))
-            .foreign_key(
-                ForeignKey::create()
-                    .name("FK_review_item_type")
-                    .from(ReviewItem::Table, ReviewItem::Id)
-                    .to(ReviewItemType::Table, ReviewItemType::Id)
-                    .on_delete(ForeignKeyAction::Cascade),
-            )
             .to_owned();
         manager.create_table(review_item_table).await?;
+
+        let maturity_index = Index::create()
+            .name("review_item_maturity_index")
+            .table(ReviewItem::Table)
+            .col(ReviewItem::Maturity)
+            .to_owned();
+        manager.create_index(maturity_index).await?;
 
         Ok(())
     }
@@ -47,10 +39,6 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(ReviewItem::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(ReviewItemType::Table).to_owned())
             .await?;
 
         Ok(())
@@ -67,17 +55,9 @@ pub(crate) enum ReviewItem {
     Due,
     Reviews,
     FailedReviews,
-    Type,
+    Maturity,
+    ItemType,
     Data,
-    Created,
-    Updated,
-}
-
-#[derive(DeriveIden)]
-enum ReviewItemType {
-    Table,
-    Id,
-    Type,
     Created,
     Updated,
 }

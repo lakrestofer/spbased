@@ -1,13 +1,10 @@
 syntax = "proto3";
 package spbased;
 
-
-service Scheduler {
-  
-}
+import "google/protobuf/field_mask.proto";
 
 // the container for any review item
-// contains the data neccessary to schedule it
+// contains the data necessary to schedule it
 // together with the untyped json data
 // of the specific item type (flashcards contain different data
 // from e.g a book)
@@ -19,22 +16,80 @@ message ReviewItem {
   string due = 5;
   int32 reviews = 6;
   int32 failed_reviews = 7;
-  ItemType item_type = 8;
-  string data = 9;
-  string created = 10;
-  string updated = 11;
+  string maturity = 8;
+  string item_type = 9;
+  string data = 10;
+  string created = 11;
+  string updated = 12;
 }
 
-// we can multiple types
-message ItemType {
-  int32 id = 1;
-  string name = 2;
-  string created = 3;
-  string updated = 4;
-}
 
 message Tag {
   int32 id = 1;
   string content = 2;
   string created = 3;
 }
+
+message Error {
+  int32 code = 1;
+  string message = 2;
+}
+
+// === Review items section begin ===
+
+service ReviewItems {
+  rpc List(ListReviewItemRequest) returns (ListReviewItemResponse) {}; 
+  rpc Get(GetReviewItemRequest) returns (GetReviewItemResponse) {}; 
+  rpc Create(CreateReviewItemRequest) returns (CreateReviewItemResponse) {}; 
+  rpc Update(UpdateReviewItemRequest) returns (UpdateReviewItemResponse) {}; 
+  rpc Delete(DeleteReviewItemRequest) returns (DeleteReviewItemResponse) {}; 
+}
+
+// --- List --- 
+message ListReviewItemRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  string order_by = 3;
+}
+
+message ListReviewItemResponse {
+  string next_page_token = 2;
+  int32 total_size = 3;
+}
+
+// --- Get ---
+message GetReviewItemRequest {
+  int32 id = 1;
+}
+
+message GetReviewItemResponse {
+  ReviewItem item = 1;
+}
+
+// -- Create --
+message CreateReviewItemRequest {
+  string item_type = 1;
+  string data = 2;
+}
+
+message CreateReviewItemResponse {
+  ReviewItem item = 1;
+}
+
+// -- Update --
+message UpdateReviewItemRequest {
+  ReviewItem item = 1;
+}
+
+message UpdateReviewItemResponse {
+    ReviewItem item = 1;
+}
+
+// -- Delete --
+message DeleteReviewItemRequest {
+  int32 id = 1;
+}
+
+message DeleteReviewItemResponse {}
+
+// === Review items section end ===
