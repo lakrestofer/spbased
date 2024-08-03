@@ -1,8 +1,5 @@
 syntax = "proto3";
 package spbased;
-
-import "google/protobuf/field_mask.proto";
-
 // the container for any review item
 // contains the data necessary to schedule it
 // together with the untyped json data
@@ -53,6 +50,7 @@ message ListReviewItemRequest {
 }
 
 message ListReviewItemResponse {
+  repeated ReviewItem review_items = 1;
   string next_page_token = 2;
   int32 total_size = 3;
 }
@@ -79,10 +77,12 @@ message CreateReviewItemResponse {
 // -- Update --
 message UpdateReviewItemRequest {
   ReviewItem item = 1;
+  string mask = 2;
+  
 }
 
 message UpdateReviewItemResponse {
-    ReviewItem item = 1;
+  ReviewItem item = 1;
 }
 
 // -- Delete --

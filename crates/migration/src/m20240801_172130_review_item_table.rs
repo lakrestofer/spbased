@@ -26,12 +26,19 @@ impl MigrationTrait for Migration {
             .to_owned();
         manager.create_table(review_item_table).await?;
 
+        // any filtering based on the maturity fields
+        // should be quick
         let maturity_index = Index::create()
             .name("review_item_maturity_index")
             .table(ReviewItem::Table)
             .col(ReviewItem::Maturity)
             .to_owned();
         manager.create_index(maturity_index).await?;
+
+        // we also a want a trigger that automatically sets the updated fields
+        let db = manager.get_connection();
+        db.execute_unprepared(include_str!("m20240801_172130_review_item_trigger.sql"))
+            .await?;
 
         Ok(())
     }
