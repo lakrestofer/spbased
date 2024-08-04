@@ -1,23 +1,23 @@
 <script lang="ts">
 	import * as Resizable from '$lib/components/ui/resizable/index.js';
 	import { Maximize2 } from 'lucide-svelte';
-	import CollectionTable from './CollectionTable.svelte';
-	import FlashCardTable from './FlashCardTable.svelte';
-	import SourceTable from './SourceTable.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import Collection from './Collection.svelte';
+	import Source from './Source.svelte';
+	import FlashCard from './FlashCard.svelte';
 </script>
 
 <main class="flex h-full flex-col">
-	<div class="flex justify-end border bg-primary-foreground">
+	<div class="flex justify-end">
 		<Button variant="ghost" size="icon">
 			<Maximize2 class="size-4" />
 		</Button>
 	</div>
 	<Resizable.PaneGroup direction="horizontal" autoSaveId="spbased_library_layout">
-		<CollectionTable />
+		<Collection />
 		<Resizable.Handle withHandle />
-		<SourceTable />
+		<Source />
 		<Resizable.Handle withHandle />
-		<FlashCardTable />
+		<FlashCard />
 	</Resizable.PaneGroup>
 </main>

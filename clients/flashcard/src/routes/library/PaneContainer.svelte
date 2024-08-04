@@ -35,9 +35,9 @@
 >
 	{#if collapsed}
 		<Button
-			variant="ghost"
+			variant="outline"
 			size="icon"
-			class="flex grow flex-col items-center justify-start rounded-none bg-primary-foreground px-2 py-3"
+			class="flex grow flex-col items-center justify-start rounded-none bg-accent px-2 py-3"
 			on:click={expand}
 		>
 			<div class="flex flex-nowrap items-center overflow-hidden [writing-mode:vertical-lr]">
@@ -52,7 +52,7 @@
 			</div>
 		</Button>
 	{:else}
-		<div class="flex items-center justify-between bg-primary-foreground px-3">
+		<div class="border-x-1 flex items-center justify-between border-y-2 px-3">
 			<div class="flex flex-nowrap items-center overflow-hidden align-middle">
 				<h1 class="mr-2 font-mono text-xl font-bold">
 					{title}
@@ -67,6 +67,8 @@
 				<X class="size-4" />
 			</Button>
 		</div>
-		<slot />
+		<div class="p-3">
+			<slot />
+		</div>
 	{/if}
 </Resizable.Pane>
