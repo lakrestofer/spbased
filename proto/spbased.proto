@@ -44,15 +44,15 @@ service ReviewItems {
 
 // --- List --- 
 message ListReviewItemRequest {
-  int32 page_size = 1;
-  string page_token = 2;
+  int32 page = 1;
+  int32 page_size = 2;
   string order_by = 3;
+  string filter_by = 4;
 }
 
 message ListReviewItemResponse {
   repeated ReviewItem review_items = 1;
-  string next_page_token = 2;
-  int32 total_size = 3;
+  int32 total_size = 2;
 }
 
 // --- Get ---
