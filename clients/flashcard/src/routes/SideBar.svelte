@@ -14,13 +14,13 @@
 	</div>
 	<!-- navigation -->
 	<div class="flex flex-col">
-		<NavButton icon={Home} />
-		<NavButton icon={Library} />
-		<NavButton icon={BookOpen} />
+		<NavButton icon={Home} page={'/'} tooltip="Home" />
+		<NavButton icon={Library} page={'/library'} tooltip="Library" />
+		<NavButton icon={BookOpen} page={'study'} tooltip="Study" />
 	</div>
 	<!-- more navigation and settings -->
 	<div class="flex flex-col">
 		<ThemeToggleButton />
-		<NavButton icon={Settings} />
+		<NavButton icon={Settings} page="/settings" tooltip="Settings" />
 	</div>
 </div>
