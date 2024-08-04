@@ -67,8 +67,6 @@
 				<X class="size-4" />
 			</Button>
 		</div>
-		<div class="p-3">
-			<slot />
-		</div>
+		<slot />
 	{/if}
 </Resizable.Pane>
