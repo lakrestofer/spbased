@@ -5,7 +5,7 @@
 	import SourceTable from './SourceTable.svelte';
 </script>
 
-<Container title="Sources" subtitle="hello there!" order={2}>
+<Container lowerButtonText="Add source" title="Sources" subtitle="hello there!" order={2}>
 	<div class="flex flex-col gap-3">
 		<!-- Actions -->
 		<div class="flex justify-end">

@@ -8,7 +8,7 @@
 </script>
 
 <main class="flex h-full flex-col">
-	<div class="flex justify-end">
+	<div class="flex justify-end border-b">
 		<Button variant="ghost" size="icon">
 			<Maximize2 class="size-4" />
 		</Button>

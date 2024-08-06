@@ -5,7 +5,7 @@
 	import FlashCardTable from './FlashCardTable.svelte';
 </script>
 
-<Container title="Flashcards" subtitle="hello there!" order={3}>
+<Container lowerButtonText="Add flashcard" title="Flashcards" subtitle="hello there!" order={3}>
 	<div class="flex flex-col gap-3">
 		<!-- Actions -->
 		<div class="flex justify-end">
