@@ -5,15 +5,4 @@
 	import { Input } from '$lib/components/ui/input';
 </script>
 
-<Container lowerButtonText="Add collection" title="Collections" subtitle="hello there" order={1}>
-	<div class="flex h-full flex-col gap-3" slot="upper">
-		<!-- Actions -->
-		<div class="flex items-center gap-3">
-			<Search />
-			<Input />
-		</div>
-		<!-- Table -->
-		<CollectionTable />
-	</div>
-	<div slot="lower">hello there</div>
-</Container>
+<Container title="Collections" subtitle="hello there" order={1}>test</Container>

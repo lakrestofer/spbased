@@ -11,7 +11,6 @@
 	export let title: string;
 	export let order: number;
 	export let subtitle: string;
-	export let lowerButtonText: string;
 
 	// state
 	let expanded: boolean = true;
@@ -40,7 +39,7 @@
 		<Button
 			variant="outline"
 			size="icon"
-			class="flex grow flex-col items-center justify-start rounded-none bg-accent px-2 py-3"
+			class="bg-accent flex grow flex-col items-center justify-start rounded-none px-2 py-3"
 			on:click={api.expand}
 		>
 			<div class="flex flex-nowrap items-center overflow-hidden [writing-mode:vertical-lr]">
@@ -56,7 +55,7 @@
 		</Button>
 	{:else}
 		<div class="flex items-center justify-between">
-			<div class="flex flex-nowrap items-center overflow-hidden align-middle">
+			<div class="flex flex-nowrap items-center overflow-hidden px-3 py-2 align-middle">
 				<h1 class="mr-2 font-mono text-xl font-bold">
 					{title}
 				</h1>
@@ -70,35 +69,8 @@
 				<X class="size-4" />
 			</Button>
 		</div>
-
-		<Resizable.PaneGroup direction="vertical" autoSaveId={`spbased_library_${title}_inner_layout`}>
-			<Resizable.Pane defaultSize={90} minSize={10}>
-				<slot name="upper" />
-			</Resizable.Pane>
-			<Resizable.Handle />
-			<Resizable.Pane
-				collapsible
-				collapsedSize={4}
-				defaultSize={0}
-				minSize={10}
-				onExpand={() => (innerExpanded = true)}
-				onCollapse={() => (innerExpanded = false)}
-				bind:pane={innerApi}
-			>
-				{#if innerExpanded}
-					<div class="flex items-center justify-end">
-						<Button variant="ghost" size="icon" class="rounded-full" on:click={innerApi.collapse}>
-							<X class="size-4" />
-						</Button>
-					</div>
-					<slot name="lower" />
-				{:else}
-					<Button class="w-full" on:click={() => innerApi.resize(50)}>
-						{lowerButtonText}
-						<Plus />
-					</Button>
-				{/if}
-			</Resizable.Pane>
-		</Resizable.PaneGroup>
+		<div class="p-3">
+			<slot />
+		</div>
 	{/if}
 </Resizable.Pane>
