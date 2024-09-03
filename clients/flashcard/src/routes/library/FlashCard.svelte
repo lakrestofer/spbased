@@ -5,4 +5,4 @@
 	import FlashCardTable from './FlashCardTable.svelte';
 </script>
 
-<Container title="Flashcards" subtitle="hello there!" order={3}>test</Container>
+<Container title="Flashcards" order={2}>test</Container>

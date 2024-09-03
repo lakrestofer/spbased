@@ -5,12 +5,11 @@
 	import type { PaneAPI } from 'paneforge';
 
 	let api: PaneAPI;
-	let innerApi: PaneAPI;
 
 	// props
 	export let title: string;
 	export let order: number;
-	export let subtitle: string;
+	export let subtitle: string | undefined = undefined;
 
 	// state
 	let expanded: boolean = true;
@@ -39,7 +38,7 @@
 		<Button
 			variant="outline"
 			size="icon"
-			class="bg-accent flex grow flex-col items-center justify-start rounded-none px-2 py-3"
+			class="flex grow flex-col items-center justify-start rounded-none bg-accent px-2 py-3"
 			on:click={api.expand}
 		>
 			<div class="flex flex-nowrap items-center overflow-hidden [writing-mode:vertical-lr]">

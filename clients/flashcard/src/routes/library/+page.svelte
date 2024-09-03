@@ -5,17 +5,17 @@
 	import Collection from './Collection.svelte';
 	import Source from './Source.svelte';
 	import FlashCard from './FlashCard.svelte';
+	import ViewPicker from './ViewPicker.svelte';
 </script>
 
 <main class="flex h-full flex-col">
-	<div class="flex justify-end border-b">
+	<div class="flex justify-between border-b px-3 py-2">
+		<ViewPicker />
 		<Button variant="ghost" size="icon">
 			<Maximize2 class="size-4" />
 		</Button>
 	</div>
 	<Resizable.PaneGroup direction="horizontal" autoSaveId="spbased_library_layout">
-		<Collection />
-		<Resizable.Handle withHandle />
 		<Source />
 		<Resizable.Handle withHandle />
 		<FlashCard />
