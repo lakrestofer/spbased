@@ -1,5 +1,5 @@
 import type { Readable } from 'svelte/motion';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 import { faker } from '@faker-js/faker';
 
@@ -27,6 +27,7 @@ const initialSources = createRandomSources(5);
 export type SourceStore = Readable<Source[]> & {
 	addSource: (source: NewSource) => void;
 	editSource: (source: Source) => void;
+	getSource: (id: string) => Source | undefined;
 };
 
 const createSourcesStore = () => {
@@ -46,10 +47,16 @@ const createSourcesStore = () => {
 		});
 	};
 
+	const getSource = (id: string) => {
+		const _sources = get(sources);
+		return _sources.find((x) => x.id === id);
+	};
+
 	return {
 		subscribe: sources.subscribe,
 		addSource,
-		editSource
+		editSource,
+		getSource
 	};
 };
 

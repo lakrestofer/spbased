@@ -46,7 +46,7 @@
 
 <Dialog.Root bind:open {onOpenChange}>
 	<Dialog.Trigger />
-	<Dialog.Content>
+	<Dialog.Content class="w-full border border-yellow-400">
 		<Dialog.Header>
 			<Dialog.Title>Edit source</Dialog.Title>
 			<Dialog.Description>Edit the source details below</Dialog.Description>

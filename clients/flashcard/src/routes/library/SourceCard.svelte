@@ -5,10 +5,9 @@
 	import { onMount } from 'svelte';
 	import { faker } from '@faker-js/faker';
 	import { Button } from '$lib/components/ui/button';
-	import { Edit } from 'lucide-svelte';
+	import { Book } from 'lucide-svelte';
 
 	export let source: Source;
-	export let onClickEdit: () => void;
 </script>
 
 <Card.Root class="w-[20rem]">
@@ -23,6 +22,6 @@
 		<Card.Title>{source.name}</Card.Title>
 	</Card.Content>
 	<Card.Footer class="flex justify-end">
-		<Button variant="ghost" size="icon" on:click={onClickEdit}><Edit /></Button>
+		<Button variant="ghost" size="icon" href={`/source/${source.id}`}><Book /></Button>
 	</Card.Footer>
 </Card.Root>
