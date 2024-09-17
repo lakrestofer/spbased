@@ -38,7 +38,7 @@
 		<Button
 			variant="outline"
 			size="icon"
-			class="flex grow flex-col items-center justify-start rounded-none bg-accent px-2 py-3"
+			class="bg-accent flex grow flex-col items-center justify-start rounded-none px-2 py-3"
 			on:click={api.expand}
 		>
 			<div class="flex flex-nowrap items-center overflow-hidden [writing-mode:vertical-lr]">
@@ -68,7 +68,7 @@
 				<X class="size-4" />
 			</Button>
 		</div>
-		<div class="p-3">
+		<div class="h-full grow p-3">
 			<slot />
 		</div>
 	{/if}

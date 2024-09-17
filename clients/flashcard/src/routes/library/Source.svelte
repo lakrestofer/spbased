@@ -7,22 +7,33 @@
 	import AddSourceModal from './AddSourceModal.svelte';
 	import SourceGrid from './SourceGrid.svelte';
 	import SourceList from './SourceList.svelte';
+	import EditSourceModal from './EditSourceModal.svelte';
 
-	let layout: Layout;
+	let layout: Layout; // grid or list view for sources
 
-	let open = false;
+	// add modal
+	let addModalOpen = false;
+	// edit modal
+	let sourceToEdit: Source | undefined = undefined;
+	let editModalOpen = false;
 </script>
 
-<AddSourceModal bind:open />
+<AddSourceModal bind:open={addModalOpen} />
+<EditSourceModal bind:open={editModalOpen} bind:source={sourceToEdit} />
 <Container title="Sources" order={1}>
 	<!-- filter and add source button -->
 	<div class="flex justify-end gap-3">
 		<SourceViewDropdown bind:layout />
-		<Button on:click={() => (open = true)}>Add source</Button>
+		<Button on:click={() => (addModalOpen = true)}>Add source</Button>
 	</div>
 	<div>
 		{#if layout === 'grid'}
-			<SourceGrid />
+			<SourceGrid
+				onClickEditSource={(source) => {
+					sourceToEdit = source;
+					editModalOpen = true;
+				}}
+			/>
 		{:else}
 			<SourceList />
 		{/if}

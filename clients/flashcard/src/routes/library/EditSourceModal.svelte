@@ -7,11 +7,26 @@
 	import { toast } from 'svelte-sonner';
 
 	export let open = false;
+	export let source: Source | undefined = undefined;
 
-	let file: File | undefined = undefined;
+	let file: File | undefined;
 	let name: string = '';
 
+	$: {
+		if (open && source) {
+			name = source.name;
+			console.log('editing source!');
+		}
+	}
+	const onOpenChange = (opening: boolean) => {
+		if (!opening) source = undefined;
+	};
+
 	const onSubmit = async () => {
+		if (!source) {
+			toast.error('No source to edit');
+			return;
+		}
 		if (!file) {
 			toast.error('Please select a file');
 			return;
@@ -20,17 +35,21 @@
 			toast.error('Please enter a name');
 			return;
 		}
-		sources.addSource({ name });
+
+		source.name = name;
+
+		sources.editSource(source);
+
 		open = false;
 	};
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open {onOpenChange}>
 	<Dialog.Trigger />
 	<Dialog.Content>
 		<Dialog.Header>
-			<Dialog.Title>Add source</Dialog.Title>
-			<Dialog.Description>Add a new source to the library</Dialog.Description>
+			<Dialog.Title>Edit source</Dialog.Title>
+			<Dialog.Description>Edit the source details below</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<Label for="source_file">Source</Label>
@@ -40,7 +59,7 @@
 			<Input id="name" bind:value={name} />
 		</div>
 		<Dialog.Footer>
-			<Button on:click={onSubmit}>Add source</Button>
+			<Button on:click={onSubmit}>Save changes</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
