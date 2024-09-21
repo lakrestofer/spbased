@@ -26,7 +26,7 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger />
+	<Dialog.Trigger class={buttonVariants()}>Add source</Dialog.Trigger>
 	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>Add source</Dialog.Title>

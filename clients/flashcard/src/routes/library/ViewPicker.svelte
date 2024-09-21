@@ -7,17 +7,17 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { cn } from '$lib/utils.js';
 
-	const frameworks = [
+	const views = [
 		{
 			value: 'default',
-			label: 'Default'
+			label: 'Default view'
 		}
 	];
 
 	let open = false;
 	let value = 'default';
 
-	$: selectedValue = frameworks.find((f) => f.value === value)?.label ?? 'Select a framework...';
+	$: selectedValue = views.find((f) => f.value === value)?.label ?? 'Select a view...';
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
@@ -45,19 +45,19 @@
 	</Popover.Trigger>
 	<Popover.Content class="w-[200px] p-0">
 		<Command.Root>
-			<Command.Input placeholder="Search framework..." class="h-9" />
-			<Command.Empty>No framework found.</Command.Empty>
+			<Command.Input placeholder="Search view..." class="h-9" />
+			<Command.Empty>No view with that name found.</Command.Empty>
 			<Command.Group>
-				{#each frameworks as framework}
+				{#each views as view}
 					<Command.Item
-						value={framework.value}
+						value={view.value}
 						onSelect={(currentValue) => {
 							value = currentValue;
 							closeAndFocusTrigger(ids.trigger);
 						}}
 					>
-						<Check class={cn('mr-2 h-4 w-4', value !== framework.value && 'text-transparent')} />
-						{framework.label}
+						<Check class={cn('mr-2 h-4 w-4', value !== view.value && 'text-transparent')} />
+						{view.label}
 					</Command.Item>
 				{/each}
 			</Command.Group>

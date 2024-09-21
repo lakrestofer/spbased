@@ -7,7 +7,12 @@ import { faker } from '@faker-js/faker';
 export type Source = {
 	id: string;
 	name: string;
-	url?: string;
+	n_fragments: number;
+	n_pages: number;
+	completion: number;
+	tags: string[];
+	created_at: string;
+	updated_at: string;
 };
 /// new source object
 export type NewSource = {
@@ -15,11 +20,26 @@ export type NewSource = {
 };
 
 const createRandomSources = (count: number): Source[] => {
-	return Array.from({ length: count }, () => ({
-		id: faker.string.uuid(),
-		name: faker.company.name(),
-		url: faker.image.url()
-	}));
+	return Array.from({ length: count }, () => {
+		const n_fragments = faker.number.int({ min: 0, max: 100 });
+		const n_pages = faker.number.int({ min: n_fragments, max: 323 });
+		const completion = n_fragments / n_pages;
+
+		const tags = Array.from({ length: faker.number.int({ min: 0, max: 5 }) }, () =>
+			faker.hacker.noun()
+		);
+
+		return {
+			id: faker.string.uuid(),
+			name: faker.company.name(),
+			n_fragments,
+			n_pages,
+			completion,
+			tags,
+			created_at: faker.date.past({ years: 3 }).toISOString(),
+			updated_at: faker.date.recent().toISOString()
+		};
+	});
 };
 
 const initialSources = createRandomSources(5);
@@ -34,7 +54,20 @@ const createSourcesStore = () => {
 	const sources = writable<Source[]>(initialSources);
 
 	const addSource = (source: NewSource) => {
-		sources.update((s) => [...s, { id: faker.string.uuid(), name: source.name }]);
+		const now = new Date().toISOString();
+		sources.update((s) => [
+			...s,
+			{
+				id: faker.string.uuid(),
+				name: source.name,
+				n_fragments: 0,
+				n_pages: faker.number.int({ min: 10, max: 323 }),
+				completion: 0,
+				tags: [],
+				created_at: now,
+				updated_at: now
+			}
+		]);
 	};
 
 	const editSource = (source: Source) => {
