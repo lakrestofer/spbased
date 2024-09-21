@@ -1,5 +1,5 @@
 {
-	"productName": "flashcard",
+	"productName": "reading",
 	"version": "0.1.0",
 	"identifier": "com.tauri.dev",
 	"build": {
@@ -11,7 +11,7 @@
 	"app": {
 		"windows": [
 			{
-				"title": "flashcard",
+				"title": "reading",
 				"width": 800,
 				"height": 600,
 				"resizable": true,
