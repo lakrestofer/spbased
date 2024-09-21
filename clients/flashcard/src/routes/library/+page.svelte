@@ -2,9 +2,8 @@
 	import * as Resizable from '$lib/components/ui/resizable/index.js';
 	import { Maximize2 } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
-	import Collection from './Collection.svelte';
+	import SourcePane from './SourcePane.svelte';
 	import Source from './Source.svelte';
-	import FlashCard from './FlashCard.svelte';
 	import ViewPicker from './ViewPicker.svelte';
 </script>
 
@@ -16,8 +15,8 @@
 		</Button>
 	</div>
 	<Resizable.PaneGroup direction="horizontal" autoSaveId="spbased_library_layout">
-		<Source />
+		<SourcePane />
 		<Resizable.Handle withHandle />
-		<FlashCard />
+		<Source />
 	</Resizable.PaneGroup>
 </main>
