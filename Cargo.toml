@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "crates/*",
-  "clients/flashcard/src-tauri"
 ]
 
 resolver = "2"
