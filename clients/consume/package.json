@@ -20,7 +20,7 @@
 		"@tauri-apps/cli": "^2.0.4",
 		"@types/eslint": "^9.6.0",
 		"autoprefixer": "^10.4.20",
-		"bits-ui": "^1.0.0-next.29",
+		"bits-ui": "^1.0.0-next.30",
 		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -31,6 +31,7 @@
 		"prettier-plugin-tailwindcss": "^0.6.5",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
+		"svelte-radix": "^2.0.1",
 		"tailwind-merge": "^2.5.4",
 		"tailwind-variants": "^0.2.1",
 		"tailwindcss": "^3.4.9",
@@ -40,7 +41,8 @@
 		"vite": "^5.0.3"
 	},
 	"dependencies": {
+		"lucide-svelte": "^0.453.0",
 		"mode-watcher": "^0.4.1",
-		"lucide-svelte": "^0.453.0"
+		"runed": "^0.15.3"
 	}
 }
