@@ -36,13 +36,13 @@ const F: f32 = 19.0 / 81.0;
 const D: f32 = -0.5;
 
 /// retrievability - the probability after t days that prompt will be satisfied
-pub fn r(t: f32, s: f32) -> f32 {
+pub fn retrievability(t: f32, s: f32) -> f32 {
     (1.0 + F * t / s).powf(D)
 }
 
 /// interval - the amount of days until retrievability reaches [`r`], rounded away from zero
 /// `i(0.9, s) == s`
-pub fn i(r: f32, s: f32) -> f32 {
+pub fn interval(r: f32, s: f32) -> f32 {
     s / F * (r.powf(1.0 / D) - 1.0)
 }
 
@@ -52,7 +52,7 @@ pub mod update {
     pub mod success {
         use super::*;
 
-        pub fn s(s: f32, d: f32, r: f32, g: Grade) -> f32 {
+        pub fn stability(s: f32, d: f32, r: f32, g: Grade) -> f32 {
             let f = match g {
                 Hard => W[15],
                 Easy => W[16],
@@ -65,18 +65,18 @@ pub mod update {
 
     pub mod fail {
         use super::*;
-        pub fn s(s: f32, d: f32, r: f32) -> f32 {
+        pub fn stability(s: f32, d: f32, r: f32) -> f32 {
             W[11] * d.powf(-W[12]) * ((s + 1.0).powf(W[13]) - 1.0) * (W[14] * (1.0 - r)).exp()
         }
     }
 
-    pub fn d(d: f32, g: Grade) -> f32 {
-        W[7] * init::d(Ok) + (1.0 - W[7]) * (d - W[6] * (g as i32 as f32 - 3.0))
+    pub fn difficulty(d: f32, g: Grade) -> f32 {
+        W[7] * init::difficulty(Ok) + (1.0 - W[7]) * (d - W[6] * (g as i32 as f32 - 3.0))
     }
 
     pub mod shortterm {
         use super::*;
-        pub fn s(s: f32, g: Grade) -> f32 {
+        pub fn stability(s: f32, g: Grade) -> f32 {
             s * (W[17] * (g as i32 as f32 - 3.0 + W[18])).exp()
         }
     }
@@ -85,12 +85,12 @@ pub mod update {
 pub mod init {
     use super::*;
 
-    pub fn s(g: Grade) -> f32 {
+    pub fn stability(g: Grade) -> f32 {
         W[g as i32 as usize]
     }
 
     /// the initial difficulty given a review grade
-    pub fn d(g: Grade) -> f32 {
+    pub fn difficulty(g: Grade) -> f32 {
         W[4] - (W[5] * (g as i32 as f32 - 1.0)).exp() + 1.0
     }
 }
