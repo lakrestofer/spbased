@@ -1,0 +1,9 @@
+[package]
+name = "new_migration"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { workspace = true }
+dialoguer = { workspace = true }
+anyhow = { workspace = true }

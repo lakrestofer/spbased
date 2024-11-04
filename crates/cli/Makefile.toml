@@ -1,0 +1,13 @@
+[config]
+default_to_workspace = false
+
+[tasks.gen_migration]
+command = "cargo"
+args = ["run", "--package", "new_migration", "--release", "--", "migrations"]
+
+# build cli and setup sqlite db
+# (this allows our sql lsp to connect to the same db that the cli itself will use)
+[tasks.setup_dev_db]
+command = "cargo"
+args = ["run", "--package", "spbased-cli", "--", "init", ".tmp"]
+
