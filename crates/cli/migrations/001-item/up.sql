@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS review_item_model (
     name TEXT NOT NULL,       -- name of model
     program TEXT NOT NULL,    -- name of program on $PATH that will be called
     updated_at TEXT NOT NULL, -- metadata
-    created_at TEXT NOT NULL, -- metadata
+    created_at TEXT NOT NULL -- metadata
 );
 
 --- Review Item. Content agnostic container for scheduling data
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tag (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     updated_at TEXT NOT NULL, -- metadata
-    created_at TEXT NOT NULL, -- metadata
+    created_at TEXT NOT NULL -- metadata
 );
 
 --- mapping between tag and review_item
@@ -35,6 +35,6 @@ CREATE TABLE IF NOT EXISTS tag_item_map (
     id INTEGER PRIMARY KEY,
     tag_id INTEGER NOT NULL,
     item_id INTEGER NOT NULL,
-    FOREIGN KEY(tag_id) REFERENCES tag(id)
+    FOREIGN KEY(tag_id) REFERENCES tag(id),
     FOREIGN KEY(item_id) REFERENCES review_item(id)
 );
