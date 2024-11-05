@@ -39,7 +39,14 @@ pub enum Command {
 }
 #[derive(Subcommand)]
 pub enum ModelCommand {
-    Register { name: String, cmd: String },
+    ///
+    Register {
+        name: String,
+        cmd: String,
+    },
+    UnRegister {
+        name: String,
+    },
 }
 // ======= CLI ARGUMENT AND COMMAND DEFINITIONS END ======
 
@@ -56,8 +63,7 @@ pub fn handle_command(command: Command) -> Result<()> {
 /// and a config file
 pub fn init(directory: Option<PathBuf>) -> Result<()> {
     if directory.is_none() {
-        // use default location
-        // .local/share/spbased
+        // TODO init in default location .local/share/spbased
         todo!();
         return Ok(());
     }
@@ -100,7 +106,7 @@ pub fn init(directory: Option<PathBuf>) -> Result<()> {
     std::fs::create_dir_all(&spbased_dir)?;
 
     let db_path = spbased_dir.join("db.sqlite");
-    DB::init(&db_path)?;
+    DB::create_db_and_apply_migrations(&db_path)?;
 
     Ok(())
 }
@@ -117,6 +123,7 @@ pub struct DB {
     pub conn: Connection,
 }
 
+// TODO perform build step that removes any comments and whitespace from the files
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 const MIGRATIONS: LazyCell<Migrations> =
     LazyCell::new(|| Migrations::from_directory(&MIGRATIONS_DIR).unwrap());
@@ -124,7 +131,7 @@ const MIGRATIONS: LazyCell<Migrations> =
 impl DB {
     /// Creates a new instance of the spbased sqlite db and runs all migrations on it.
     /// If there already exists an instance at `db_path`, we will reinit it.
-    pub fn init(db_path: &Path) -> Result<()> {
+    pub fn create_db_and_apply_migrations(db_path: &Path) -> Result<()> {
         // if a file with the name db_path exist, we delete it
         if db_path.exists() {
             std::fs::remove_file(db_path)?;
