@@ -18,6 +18,7 @@ serde_json = "1.0"
 clap = { version = "4.5", features = ["derive", "cargo", "wrap_help", "unicode", "string", "unstable-styles"] }
 rusqlite = { version = "0.31.0", features = ["bundled", "time", "uuid"] }
 rusqlite_migration = { version = "1.2", features = [ "from-directory"] }
+serde_rusqlite = "0.36.0"
 dirs = "5.0.1"
 anyhow = "1.0.86"
 dialoguer = "0.11.0"
