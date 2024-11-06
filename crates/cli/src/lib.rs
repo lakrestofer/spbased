@@ -31,22 +31,42 @@ pub struct Cli {
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
     Init { directory: Option<PathBuf> },
-    /// commands pertaining to the different review item Models
-    Model {
+    /// Query, or CRUD models (format of specific kind of review item)
+    #[command(subcommand)]
+    Model(ModelCommand),
+    /// Query, or CRUD review items
+    #[command(subcommand)]
+    Item(ItemCommand),
+    /// Review the review items
+    Review {
+        #[arg(short, long)]
+        filter: Option<String>,
         #[command(subcommand)]
-        cmd: ModelCommand,
+        cmd: ReviewCommand,
     },
 }
 #[derive(Subcommand)]
 pub enum ModelCommand {
-    ///
-    Register {
-        name: String,
-        cmd: String,
+    Register { name: String, cmd: String },
+    UnRegister { name: String },
+}
+#[derive(Subcommand)]
+pub enum ItemCommand {
+    Add {
+        model: String,
+        data: String,
     },
-    UnRegister {
-        name: String,
+    Edit {
+        id: i32,
+        model: String,
+        data: String,
     },
+}
+#[derive(Subcommand)]
+pub enum ReviewCommand {
+    /// Review the most urgent review item that is due
+    Next,
+    Query,
 }
 // ======= CLI ARGUMENT AND COMMAND DEFINITIONS END ======
 
@@ -54,7 +74,9 @@ pub enum ModelCommand {
 pub fn handle_command(command: Command) -> Result<()> {
     match command {
         Command::Init { directory } => init(directory),
-        Command::Model { cmd: _cmd } => Ok(()),
+        Command::Model(_) => Ok(()),
+        Command::Item(_) => Ok(()),
+        Command::Review { filter, cmd } => todo!(),
     }?;
     Ok(())
 }
@@ -106,7 +128,7 @@ pub fn init(directory: Option<PathBuf>) -> Result<()> {
     std::fs::create_dir_all(&spbased_dir)?;
 
     let db_path = spbased_dir.join("db.sqlite");
-    DB::create_db_and_apply_migrations(&db_path)?;
+    create_db_and_apply_migrations(&db_path)?;
 
     Ok(())
 }
@@ -114,39 +136,28 @@ pub fn init(directory: Option<PathBuf>) -> Result<()> {
 
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======
 
-/// Wrapper around rustqlite [`Connection`].
-/// We expose the inner conn since this struct
-/// is to be used using a dependency injection
-/// style.
-pub struct DB {
-    /// the inner connection fields
-    pub conn: Connection,
-}
-
 // TODO perform build step that removes any comments and whitespace from the files
 static MIGRATIONS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
 const MIGRATIONS: LazyCell<Migrations> =
     LazyCell::new(|| Migrations::from_directory(&MIGRATIONS_DIR).unwrap());
 
-impl DB {
-    /// Creates a new instance of the spbased sqlite db and runs all migrations on it.
-    /// If there already exists an instance at `db_path`, we will reinit it.
-    pub fn create_db_and_apply_migrations(db_path: &Path) -> Result<()> {
-        // if a file with the name db_path exist, we delete it
-        if db_path.exists() {
-            std::fs::remove_file(db_path)?;
-        }
-
-        // open and create a sqlite db
-        let mut conn = Connection::open(db_path).context("trying to open connection")?;
-
-        // run migrations on it
-        MIGRATIONS
-            .to_latest(&mut conn)
-            .context("Trying to migrate sqlite schema")?;
-
-        Ok(())
+/// Creates a new instance of the spbased sqlite db and runs all migrations on it.
+/// If there already exists an instance at `db_path`, we will reinit it.
+pub fn create_db_and_apply_migrations(db_path: &Path) -> Result<()> {
+    // if a file with the name db_path exist, we delete it
+    if db_path.exists() {
+        std::fs::remove_file(db_path)?;
     }
+
+    // open and create a sqlite db
+    let mut conn = Connection::open(db_path).context("trying to open connection")?;
+
+    // run migrations on it
+    MIGRATIONS
+        .to_latest(&mut conn)
+        .context("Trying to migrate sqlite schema")?;
+
+    Ok(())
 }
 
 // ======= DB WRAPPER AND DATA MODEL BEGIN END ======

@@ -33,9 +33,30 @@ a specific "item type", and a "data" field. That's it.
 
 - a review can be narrowed to only include review items with a specific tag, review item type
 
+
 ## Quick rundown of vocabulary
 
 - "review item" - the flashcard,prompt,task etc. being scheduled in a spased maner.
 - "review" - (in the context of spbased) given a review item that is due, launch the program that can interpret it, review it and return a measure of how well it went.
 - "review item model" - or just 'model', the specific type of review item, and 
 
+## Example use
+
+**Register new model**
+```
+>> spbasedctl model register "flashcard" ./spbased_flashcards
+```
+
+**Unregister new model**
+```
+>> spbasedctl model unregister "flashcard"
+```
+
+**Add review item (flashcard)**
+```
+>> spbasedctl item add \
+  "flashcard" \
+  "{"front":"what is the capital of sweden","back":"stockholm","tags":["geography"]}"
+```
+
+**review item (flashcard)**
