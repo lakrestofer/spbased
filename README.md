@@ -1,5 +1,12 @@
 # Spbased
 
+## Current TODO
+
+- [ ] finish user commands to interact with cli
+
+## Description
+
+
 Spbased is a content agnostic spased repetition tool. It only knows about the notion of a
 generic "review item", an object with an id, parameters for the spased repetition algorithm,
 a specific "item type", and a "data" field. That's it. 

@@ -1,0 +1,8 @@
+{
+  "name": "spbased",
+  "adapter": "sqlite3",
+  "filename": "db.sqlite",
+  "projectPaths": [
+    "."
+  ]
+}

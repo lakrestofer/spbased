@@ -11,6 +11,7 @@ rusqlite = { workspace = true }
 rusqlite_migration = { workspace = true }
 dirs = { workspace = true }
 serde_json = { workspace = true }
+toml = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 dialoguer = { workspace = true }
@@ -19,3 +20,4 @@ resolve-path = { workspace = true }
 normalize-path = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
+config = { workspace = true }

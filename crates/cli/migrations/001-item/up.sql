@@ -1,40 +1,47 @@
---- Model. Descriptor of Review Item data format
---- and the program used to consume it.
-CREATE TABLE IF NOT EXISTS review_item_model (
+--- ============================ Item ============================ 
+--- Content agnostic container for scheduling data and model data.
+CREATE TABLE IF NOT EXISTS item (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,       -- name of model
-    program TEXT NOT NULL,    -- name of program on $PATH that will be called
-    updated_at TEXT NOT NULL, -- metadata
-    created_at TEXT NOT NULL -- metadata
+    maturity TEXT NOT NULL DEFAULT "NEW",
+    stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter
+    difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter
+    last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter
+    model TEXT NOT NULL,                                      -- the model, tells us how data is to be interpreted
+    data TEXT NOT NULL,                                       -- untyped text field, usually json data
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP        -- metadata
 );
+CREATE TRIGGER IF NOT EXISTS 
+update_at_field_trigger__item 
+AFTER UPDATE ON 
+item 
+BEGIN
+    UPDATE item SET updated_at = datetime('now');
+END;
+--- --------------------------------------------------------------------------
 
---- Review Item. Content agnostic container for scheduling data
---- and model data.
-CREATE TABLE IF NOT EXISTS review_item (
-    id INTEGER PRIMARY KEY,
-    stability REAL NOT NULL,        -- sra parameter
-    difficulty REAL NOT NULL,       -- sra parameter
-    last_review_date TEXT NOT NULL, -- sra parameter
-    model INTEGER NOT NULL,         -- the model, tells us how data is to be interpreted
-    data TEXT NOT NULL,             -- untyped text field, usually json data
-    updated_at TEXT NOT NULL,       -- metadata
-    created_at TEXT NOT NULL,       -- metadata
-    FOREIGN KEY(model) REFERENCES review_item_model(id)
-);
 
---- tag
+--- ============================ Tag ============================ 
 CREATE TABLE IF NOT EXISTS tag (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    updated_at TEXT NOT NULL, -- metadata
-    created_at TEXT NOT NULL -- metadata
+    name TEXT NOT NULL UNIQUE,                          -- name of tag
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- metadata
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP  -- metadata
 );
-
---- mapping between tag and review_item
+CREATE TRIGGER IF NOT EXISTS 
+update_at_field_trigger__tag 
+AFTER UPDATE ON 
+tag 
+BEGIN
+    UPDATE tag SET updated_at = datetime('now');
+END;
 CREATE TABLE IF NOT EXISTS tag_item_map (
     id INTEGER PRIMARY KEY,
     tag_id INTEGER NOT NULL,
-    item_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL, 
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
     FOREIGN KEY(tag_id) REFERENCES tag(id),
-    FOREIGN KEY(item_id) REFERENCES review_item(id)
+    FOREIGN KEY(item_id) REFERENCES item(id),
+    UNIQUE(tag_id, item_id)
 );
+--- --------------------------------------------------------------------------
