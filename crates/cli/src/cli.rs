@@ -18,7 +18,7 @@ pub enum Command {
     Init { directory: PathBuf },
     /// Query, or CRUD items
     #[command(subcommand)]
-    Item(ItemCommand),
+    Items(ItemCommand),
     /// Query, or CRUD tags
     #[command(subcommand)]
     Tags(TagCommand),
@@ -41,7 +41,10 @@ pub enum ItemCommand {
     },
     // TODO add filters, for now simply list all options
     Query {
+        #[arg(short, long)]
         filter: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        pretty: bool,
     },
 }
 
@@ -50,7 +53,11 @@ pub enum ReviewCommand {
     /// Review the most urgent review item that is due
     Next,
     /// Retrieve information about a review event
-    Query { filter: Option<String> },
+    Query {
+        filter: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        pretty: bool,
+    },
 }
 #[derive(Subcommand)]
 pub enum TagCommand {
@@ -60,5 +67,9 @@ pub enum TagCommand {
     Edit { old_name: String, new_name: String },
     /// List tags
     /// TODO: add query options
-    Query { filter: Option<String> },
+    Query {
+        filter: Option<String>,
+        #[arg(short, long, default_value_t = false)]
+        pretty: bool,
+    },
 }

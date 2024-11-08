@@ -31,16 +31,14 @@ pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(command: Command) -> Result<()> {
-    let output: String = match command {
+    match command {
         Command::Init { directory } => {
             command::init(directory)?;
-            "spbased initialized successfully".into()
         }
-        Command::Item(c) => command::item::handle_command(c)?,
+        Command::Items(c) => command::item::handle_command(c)?,
         Command::Review(_) => todo!(),
-        Command::Tags(_) => todo!(),
+        Command::Tags(c) => command::tag::handle_command(c)?,
     };
-    println!("{output}");
     Ok(())
 }
 
@@ -97,7 +95,7 @@ pub mod command {
         use super::*;
         use crate::ItemCommand;
 
-        pub fn handle_command(command: ItemCommand) -> Result<String> {
+        pub fn handle_command(command: ItemCommand) -> Result<()> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
@@ -108,16 +106,49 @@ pub mod command {
                         &data,
                         &(tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
                     )?;
-                    json!({ "id": id }).to_string()
+                    println!("{}", json!({ "id": id }).to_string())
                 }
                 ItemCommand::Edit { id, model, data } => {
                     queries::item::edit_model(&mut c, id, &model)?;
                     queries::item::edit_data(&mut c, id, &data)?;
-                    "".into()
                 }
-                ItemCommand::Query { filter: _ } => {
+                ItemCommand::Query { filter: _, pretty } => {
                     let items = queries::item::query(&mut c)?;
-                    serde_json::to_string(&items)?
+                    let items = if pretty {
+                        serde_json::to_string_pretty(&items)?
+                    } else {
+                        serde_json::to_string(&items)?
+                    };
+                    println!("{items}");
+                }
+            })
+        }
+    }
+    pub mod tag {
+        use serde_json::json;
+
+        use super::*;
+        use crate::ItemCommand;
+
+        pub fn handle_command(command: TagCommand) -> Result<()> {
+            let mut c: Connection = db::open(&get_db_path()?)?;
+
+            Ok(match command {
+                TagCommand::Add { name } => {
+                    let id = queries::tag::add(&mut c, &name)?;
+                    println!("{}", json!({ "id": id }).to_string())
+                }
+                TagCommand::Edit { old_name, new_name } => {
+                    queries::tag::edit(&mut c, &old_name, &new_name)?;
+                }
+                TagCommand::Query { filter: _, pretty } => {
+                    let items = queries::tag::query(&mut c)?;
+                    let items = if pretty {
+                        serde_json::to_string_pretty(&items)?
+                    } else {
+                        serde_json::to_string(&items)?
+                    };
+                    println!("{items}");
                 }
             })
         }
@@ -159,9 +190,9 @@ impl FromSql for Maturity {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         let s = value.as_str()?;
         match s {
-            "NEW" => Ok(Maturity::New),
-            "YOUNG" => Ok(Maturity::Young),
-            "TENURED" => Ok(Maturity::Tenured),
+            "New" => Ok(Maturity::New),
+            "Young" => Ok(Maturity::Young),
+            "Tenured" => Ok(Maturity::Tenured),
             _ => Err(FromSqlError::InvalidType),
         }
     }
@@ -170,9 +201,9 @@ impl FromSql for Maturity {
 impl std::fmt::Display for Maturity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Maturity::New => write!(f, "NEW"),
-            Maturity::Young => write!(f, "YOUNG"),
-            Maturity::Tenured => write!(f, "TENURED"),
+            Maturity::New => write!(f, "New"),
+            Maturity::Young => write!(f, "Young"),
+            Maturity::Tenured => write!(f, "Tenured"),
         }
     }
 }
@@ -181,22 +212,29 @@ impl std::fmt::Display for Maturity {
 pub type ItemModel = String;
 pub type ItemData = String;
 pub type TagName = String;
+
 #[derive(Serialize, Deserialize)]
 pub struct Item {
     id: i32,
     maturity: Maturity,
     stability: sra::model::Stability,
     difficulty: sra::model::Difficulty,
+    #[serde(with = "time::serde::iso8601")]
     last_review_date: OffsetDateTime,
     model: ItemModel,
     data: ItemData,
+    #[serde(with = "time::serde::iso8601")]
     updated_at: OffsetDateTime,
+    #[serde(with = "time::serde::iso8601")]
     created_at: OffsetDateTime,
 }
+#[derive(Serialize, Deserialize)]
 pub struct Tag {
     id: i32,
     name: TagName,
+    #[serde(with = "time::serde::iso8601")]
     updated_at: OffsetDateTime,
+    #[serde(with = "time::serde::iso8601")]
     created_at: OffsetDateTime,
 }
 

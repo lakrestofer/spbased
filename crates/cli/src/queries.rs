@@ -95,20 +95,43 @@ pub mod item {
 pub mod tag {
     use super::*;
     pub fn add(c: &mut Connection, tag: &str) -> Result<i32> {
-        let mut stmt = c.prepare("insert into tag (name) values (?1) returning id")?;
+        let mut stmt = c
+            .prepare("insert into tag (name) values (?1) returning id")
+            .context("preparing sql statement")?;
         let mut id = stmt
-            .query_map((tag,), |r| Ok(r.get(0)?))?
-            .filter_map(Result::ok);
-        Ok(id.next().context("retrieving item from db")?)
+            .query_map((tag,), |r| Ok(r.get::<usize, i32>(0)?))
+            .context("retrieving tag from sql result")?;
+
+        let id = match id.next() {
+            Some(id) => id.context("retrieving i32 from sql result")?,
+            _ => return Err(anyhow!("insertion of tag did not return any result")),
+        };
+
+        Ok(id)
     }
-    pub fn edit(c: &mut Connection, id: i32, name: &str) -> Result<()> {
-        c.execute("update tag set name = ?1 where id = ?2", (name, id))?;
+    pub fn edit(c: &mut Connection, old_name: &str, name: &str) -> Result<()> {
+        c.execute("update tag set name = ?1 where name = ?2", (name, old_name))?;
         Ok(())
     }
     pub fn get(c: &mut Connection, id: i32) -> Result<Tag> {
         let mut stmt = c.prepare("select * from tag  where id = ?1")?;
-        let mut tag = stmt
-            .query_map((id,), |r| {
+        let mut tag = stmt.query_map((id,), |r| {
+            Ok(Tag {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                updated_at: r.get(2)?,
+                created_at: r.get(3)?,
+            })
+        })?;
+        let tag = match tag.next() {
+            Some(tag) => tag?,
+            _ => return Err(anyhow!("sql query did not return any result")),
+        };
+        Ok(tag)
+    }
+    pub fn query(c: &mut Connection) -> Result<Vec<Tag>> {
+        Ok(c.prepare("select * from tag")?
+            .query_map([], |r| {
                 Ok(Tag {
                     id: r.get(0)?,
                     name: r.get(1)?,
@@ -116,11 +139,8 @@ pub mod tag {
                     created_at: r.get(3)?,
                 })
             })?
-            .filter_map(Result::ok);
-        Ok(tag.next().context("retrieving tag from db")?)
-    }
-    pub fn query(c: &mut Connection) -> Result<Item> {
-        Err(anyhow!("not yet implemented"))
+            .filter_map(Result::ok)
+            .collect())
     }
 }
 #[cfg(test)]
@@ -179,7 +199,7 @@ mod tests {
         let mut c = init();
         let id = tag::add(&mut c, "edan35").unwrap();
         assert!(id == 1);
-        tag::edit(&mut c, id, "edaf35").unwrap();
+        tag::edit(&mut c, "edan35", "edaf35").unwrap();
         let tag = tag::get(&mut c, id).unwrap();
         assert_eq!(&tag.name, "edaf35");
     }

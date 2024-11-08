@@ -2,7 +2,7 @@
 --- Content agnostic container for scheduling data and model data.
 CREATE TABLE IF NOT EXISTS item (
     id INTEGER PRIMARY KEY,
-    maturity TEXT NOT NULL DEFAULT "NEW",
+    maturity TEXT NOT NULL DEFAULT "New",
     stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter
     difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter
     last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter
