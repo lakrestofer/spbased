@@ -39,9 +39,22 @@ CREATE TABLE IF NOT EXISTS tag_item_map (
     id INTEGER PRIMARY KEY,
     tag_id INTEGER NOT NULL,
     item_id INTEGER NOT NULL, 
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- metadata
     FOREIGN KEY(tag_id) REFERENCES tag(id),
     FOREIGN KEY(item_id) REFERENCES item(id),
     UNIQUE(tag_id, item_id)
 );
+--- --------------------------------------------------------------------------
+
+
+--- ============================ Due items ============================ 
+CREATE VIEW IF NOT EXISTS due_items AS
+SELECT 
+    *
+FROM 
+    item
+WHERE 
+    date(last_review_date, '+' || stability || ' days') < date('now')
+ORDER BY 
+    stability ASC;
 --- --------------------------------------------------------------------------

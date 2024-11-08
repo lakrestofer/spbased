@@ -72,8 +72,23 @@ pub mod item {
             .filter_map(Result::ok);
         Ok(item.next().context("retrieving item from db")?)
     }
-    pub fn query(c: &mut Connection) -> Result<Item> {
-        Err(anyhow!("not yet implemented"))
+    pub fn query(c: &mut Connection) -> Result<Vec<Item>> {
+        Ok(c.prepare("select * from item")?
+            .query_map([], |r| {
+                Ok(Item {
+                    id: r.get(0)?,
+                    maturity: r.get(1)?,
+                    stability: r.get(2)?,
+                    difficulty: r.get(3)?,
+                    last_review_date: r.get(4)?,
+                    model: r.get(5)?,
+                    data: r.get(6)?,
+                    updated_at: r.get(7)?,
+                    created_at: r.get(8)?,
+                })
+            })?
+            .filter_map(Result::ok)
+            .collect())
     }
 }
 // tags
