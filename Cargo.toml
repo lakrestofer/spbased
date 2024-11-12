@@ -29,4 +29,6 @@ normalize-path = "0.2.1"
 uuid = { version = "1.10.0", features = ["v4"] }
 config = "0.14.0"
 jmespath = { version = "0.3", features = ["specialized"]}
-logos = "0.14.2"
+pest = { version = "2.7" }
+pest_derive = { version = "2.7" }
+pest_ascii_tree = "0.1.0"

@@ -22,4 +22,6 @@ time = { workspace = true }
 uuid = { workspace = true }
 config = { workspace = true }
 jmespath = { workspace = true }
-logos = { workspace = true }
+pest = { workspace = true }
+pest_derive = { workspace = true }
+pest_ascii_tree = { workspace = true }

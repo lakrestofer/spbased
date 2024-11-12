@@ -91,10 +91,114 @@ pub enum TagCommand {
 }
 
 pub mod filter_language {
+    use super::*;
+    use pest::iterators::Pairs;
+    use pest::pratt_parser::PrattParser;
+    use pest::Parser;
+    use pest_derive::Parser;
+    use std::sync::LazyLock;
 
-    pub enum FilterExprToken {}
+    #[derive(Parser)]
+    #[grammar = "../grammars/filter_lang.pest"]
+    // NOTE: not used directly.
+    struct FilterLangPrimitiveParser;
 
-    pub enum FilterOp {
+    pub struct FilterLangParser;
+
+    impl FilterLangParser {
+        pub fn parse(input: &str) -> Result<AstNode> {
+            let mut primitive_parser = FilterLangPrimitiveParser::parse(Rule::filter, input)?;
+            // the 'filter' rule will consume the whole input
+            // therefore we will only need the first result of the primitive parser
+            let inner = primitive_parser
+                .next()
+                .ok_or(anyhow!("could not parse filter node from input"))?
+                .into_inner();
+            let result = parse_filter_expr(inner);
+            Ok(result)
+        }
+    }
+
+    fn parse_filter_expr(pairs: Pairs<Rule>) -> AstNode {
+        static FILTER_PARSER: LazyLock<PrattParser<Rule>> = LazyLock::new(|| {
+            use pest::pratt_parser::{Assoc::*, Op};
+            use Rule::*;
+            let parser = PrattParser::new()
+                .op(Op::infix(or, Left))
+                .op(Op::infix(and, Left))
+                .op(Op::infix(eq, Left)
+                    | Op::infix(neq, Left)
+                    | Op::infix(le, Left)
+                    | Op::infix(leq, Left)
+                    | Op::infix(ge, Left)
+                    | Op::infix(geq, Left));
+            parser
+        });
+        FILTER_PARSER
+            .map_primary(|p| match p.as_rule() {
+                Rule::column_identifier => AstNode::Identifier(p.as_str().into()),
+                Rule::string => {
+                    let s = p.as_str();
+                    AstNode::String(s[1..(s.len() - 1)].into())
+                }
+                Rule::integer => AstNode::Integer(p.as_str().parse().unwrap()),
+                Rule::float => AstNode::Float(p.as_str().parse().unwrap()),
+                Rule::boolean => AstNode::Bool(p.as_str().parse().unwrap()),
+                rule => unreachable!("expected atom but got: {:?}", rule),
+            })
+            .map_infix(|lhs, op, rhs| {
+                eprintln!("lhs: {:?} op: {:?} rhs: {:?}", lhs, op.as_str(), rhs);
+                use AstNode::*;
+                use Operator::*;
+                use Rule::*;
+
+                let op_rule = op.as_rule();
+
+                let op = match op_rule {
+                    and => And,
+                    or => Or,
+                    eq => Eq,
+                    neq => Neq,
+                    le => Le,
+                    leq => Leq,
+                    ge => Ge,
+                    geq => Geq,
+                    _ => unreachable!(),
+                };
+
+                match (lhs, op, rhs) {
+                    (lhs, And | Or, rhs) => AstNode::logical_filter(lhs, op, rhs),
+                    (
+                        Identifier(c),
+                        Eq | Neq | Le | Leq | Ge | Geq,
+                        v @ String(_) | v @ Integer(_) | v @ Float(_) | v @ Bool(_),
+                    ) => AstNode::comparative_filter(c, op, v),
+                    rule => unreachable!("expected operator but got: {:?}", rule),
+                }
+            })
+            .parse(pairs)
+    }
+
+    #[derive(Debug, PartialEq)]
+    pub enum AstNode {
+        LogicalFilter {
+            lhs: Box<AstNode>,
+            op: Operator,
+            rhs: Box<AstNode>,
+        },
+        ComparativeFilter {
+            column: String,
+            op: Operator,
+            value: Box<AstNode>,
+        },
+        Identifier(String),
+        String(String),
+        Integer(i32),
+        Float(f32),
+        Bool(bool),
+    }
+    #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+    pub enum Operator {
         And,
         Or,
         Eq,
@@ -103,20 +207,58 @@ pub mod filter_language {
         Leq,
         Ge,
         Geq,
-        Add,
-        Sub,
-        Mul,
-        Div,
     }
 
-    pub enum FilterExpr {
-        Binop {
-            lhs: Box<FilterExpr>,
-            op: FilterOp,
-            rhs: Box<FilterExpr>,
-        },
-        Integer(i32),
-        Float(f32),
-        String(String),
+    impl AstNode {
+        pub fn logical_filter<T: Into<Box<AstNode>>>(lhs: T, op: Operator, rhs: T) -> Self {
+            Self::LogicalFilter {
+                lhs: lhs.into(),
+                op,
+                rhs: rhs.into(),
+            }
+        }
+        pub fn comparative_filter<T2: Into<Box<AstNode>>, T: Into<String>>(
+            column: T,
+            op: Operator,
+            value: T2,
+        ) -> Self {
+            Self::ComparativeFilter {
+                column: column.into(),
+                op,
+                value: value.into(),
+            }
+        }
+        pub fn identifier<I: Into<String>>(i: I) -> Self {
+            Self::Identifier(i.into())
+        }
+        pub fn string<I: Into<String>>(i: I) -> Self {
+            Self::String(i.into())
+        }
+        pub fn integer(i: i32) -> Self {
+            Self::Integer(i)
+        }
+        pub fn float(f: f32) -> Self {
+            Self::Float(f)
+        }
+        pub fn bool(b: bool) -> Self {
+            Self::Bool(b)
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+        use Operator::*;
+        #[test]
+        fn test_parser() {
+            assert_eq!(
+                FilterLangParser::parse("id == 3").unwrap(),
+                AstNode::comparative_filter("id", Eq, AstNode::integer(3))
+            );
+            assert_eq!(
+                FilterLangParser::parse("data != 'hello'").unwrap(),
+                AstNode::comparative_filter("data", Neq, AstNode::string("hello"))
+            );
+        }
     }
 }
