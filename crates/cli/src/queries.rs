@@ -1,4 +1,5 @@
 use super::*;
+use model::*;
 pub mod template {
     //! Various string builders for to dynamically generate sql queries
 
@@ -13,6 +14,7 @@ pub mod template {
 }
 
 pub mod item {
+
     use super::*;
 
     /// Add item to db

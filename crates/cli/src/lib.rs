@@ -15,7 +15,7 @@ use rusqlite::Connection;
 use rusqlite_migration::Migrations;
 use serde::Deserialize;
 use serde::Serialize;
-use std::io::Write;
+use serde_json::json;
 use std::path::PathBuf;
 use std::{cell::LazyCell, path::Path};
 use time::OffsetDateTime;
@@ -90,10 +90,7 @@ pub mod command {
     }
 
     pub mod item {
-        use serde_json::json;
-
         use super::*;
-        use crate::ItemCommand;
 
         pub fn handle_command(command: ItemCommand) -> Result<()> {
             let mut c: Connection = db::open(&get_db_path()?)?;
@@ -112,13 +109,32 @@ pub mod command {
                     queries::item::edit_model(&mut c, id, &model)?;
                     queries::item::edit_data(&mut c, id, &data)?;
                 }
-                ItemCommand::Query { filter: _, pretty } => {
+                ItemCommand::Query {
+                    pre_filter,
+                    post_filter,
+                    pretty,
+                } => {
+                    // we apply sql filtering on items
+
                     let items = queries::item::query(&mut c)?;
-                    let items = if pretty {
-                        serde_json::to_string_pretty(&items)?
-                    } else {
-                        serde_json::to_string(&items)?
+
+                    // we apply json filter on items
+                    let items = match (post_filter, pretty) {
+                        (Some(post_filter), pretty) => {
+                            let expr = jmespath::compile(&post_filter)
+                                .context("compiling jmespath filter expression")?;
+                            let json = jmespath::Variable::from_serializable(items)?;
+                            let var = expr.search(json)?;
+                            if pretty {
+                                serde_json::to_string_pretty(&var)?
+                            } else {
+                                serde_json::to_string(&var)?
+                            }
+                        }
+                        (None, true) => serde_json::to_string_pretty(&items)?,
+                        (None, false) => serde_json::to_string(&items)?,
                     };
+
                     println!("{items}");
                 }
             })
@@ -128,7 +144,6 @@ pub mod command {
         use serde_json::json;
 
         use super::*;
-        use crate::ItemCommand;
 
         pub fn handle_command(command: TagCommand) -> Result<()> {
             let mut c: Connection = db::open(&get_db_path()?)?;
@@ -141,7 +156,11 @@ pub mod command {
                 TagCommand::Edit { old_name, new_name } => {
                     queries::tag::edit(&mut c, &old_name, &new_name)?;
                 }
-                TagCommand::Query { filter: _, pretty } => {
+                TagCommand::Query {
+                    pretty,
+                    pre_filter,
+                    post_filter,
+                } => {
                     let items = queries::tag::query(&mut c)?;
                     let items = if pretty {
                         serde_json::to_string_pretty(&items)?
@@ -208,34 +227,37 @@ impl std::fmt::Display for Maturity {
     }
 }
 
-/// Review item
-pub type ItemModel = String;
-pub type ItemData = String;
-pub type TagName = String;
+pub mod model {
+    use super::*;
 
-#[derive(Serialize, Deserialize)]
-pub struct Item {
-    id: i32,
-    maturity: Maturity,
-    stability: sra::model::Stability,
-    difficulty: sra::model::Difficulty,
-    #[serde(with = "time::serde::iso8601")]
-    last_review_date: OffsetDateTime,
-    model: ItemModel,
-    data: ItemData,
-    #[serde(with = "time::serde::iso8601")]
-    updated_at: OffsetDateTime,
-    #[serde(with = "time::serde::iso8601")]
-    created_at: OffsetDateTime,
-}
-#[derive(Serialize, Deserialize)]
-pub struct Tag {
-    id: i32,
-    name: TagName,
-    #[serde(with = "time::serde::iso8601")]
-    updated_at: OffsetDateTime,
-    #[serde(with = "time::serde::iso8601")]
-    created_at: OffsetDateTime,
+    pub type ItemModel = String;
+    pub type ItemData = String;
+    pub type TagName = String;
+
+    #[derive(Serialize, Deserialize)]
+    pub struct Item {
+        pub id: i32,
+        pub maturity: Maturity,
+        pub stability: sra::model::Stability,
+        pub difficulty: sra::model::Difficulty,
+        #[serde(with = "time::serde::iso8601")]
+        pub last_review_date: OffsetDateTime,
+        pub model: ItemModel,
+        pub data: ItemData,
+        #[serde(with = "time::serde::iso8601")]
+        pub updated_at: OffsetDateTime,
+        #[serde(with = "time::serde::iso8601")]
+        pub created_at: OffsetDateTime,
+    }
+    #[derive(Serialize, Deserialize)]
+    pub struct Tag {
+        pub id: i32,
+        pub name: TagName,
+        #[serde(with = "time::serde::iso8601")]
+        pub updated_at: OffsetDateTime,
+        #[serde(with = "time::serde::iso8601")]
+        pub created_at: OffsetDateTime,
+    }
 }
 
 pub mod db {

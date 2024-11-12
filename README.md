@@ -49,16 +49,6 @@ a specific "item type", and a "data" field. That's it.
 
 ## Example use
 
-**Register new model**
-```
->> spbasedctl model register "flashcard" ./spbased_flashcards
-```
-
-**Unregister new model**
-```
->> spbasedctl model unregister "flashcard"
-```
-
 **Add review item (flashcard)**
 ```
 >> spbasedctl item add \

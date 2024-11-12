@@ -21,3 +21,5 @@ normalize-path = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
 config = { workspace = true }
+jmespath = { workspace = true }
+logos = { workspace = true }

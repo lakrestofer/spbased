@@ -1,9 +1,12 @@
 use super::*;
 
+/// #     _______  ___  ___   ___________
+/// #    / __/ _ \/ _ )/ _ | / __/ __/ _ \
+/// #   _\ \/ ___/ _  / __ |_\ \/ _// // /
+/// #  /___/_/  /____/_/ |_/___/___/____/
+/// Content agnostic spaced repetition                                   
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
-/// Struct defining the arguments and commands that the cli takes.
-/// The outward facing api of the cli
+#[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
     /// Turn debugging information on
     #[arg(short, long, action = clap::ArgAction::Count)]
@@ -16,10 +19,10 @@ pub struct Cli {
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
     Init { directory: PathBuf },
-    /// Query, or CRUD items
+    /// CRUD items
     #[command(subcommand)]
     Items(ItemCommand),
-    /// Query, or CRUD tags
+    /// CRUD tags
     #[command(subcommand)]
     Tags(TagCommand),
     /// Review the items
@@ -41,9 +44,13 @@ pub enum ItemCommand {
     },
     // TODO add filters, for now simply list all options
     Query {
-        #[arg(short, long)]
-        filter: Option<String>,
-        #[arg(short, long, default_value_t = false)]
+        #[arg(long)]
+        // filter based on
+        pre_filter: Option<String>,
+        #[arg(long)]
+        /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        post_filter: Option<String>,
+        #[arg(long, default_value_t = false)]
         pretty: bool,
     },
 }
@@ -54,8 +61,13 @@ pub enum ReviewCommand {
     Next,
     /// Retrieve information about a review event
     Query {
-        filter: Option<String>,
-        #[arg(short, long, default_value_t = false)]
+        #[arg(long)]
+        // filter based on
+        pre_filter: Option<String>,
+        #[arg(long)]
+        /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        post_filter: Option<String>,
+        #[arg(long, default_value_t = false)]
         pretty: bool,
     },
 }
@@ -65,11 +77,46 @@ pub enum TagCommand {
     Add { name: String },
     /// Edit a tag
     Edit { old_name: String, new_name: String },
-    /// List tags
-    /// TODO: add query options
+    /// List tags. Apply 'and' filtering using the filters
     Query {
-        filter: Option<String>,
-        #[arg(short, long, default_value_t = false)]
+        #[arg(long)]
+        /// querying logic applied before handling the json result
+        pre_filter: Option<String>,
+        #[arg(long)]
+        /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        post_filter: Option<String>,
+        #[arg(long, default_value_t = false)]
         pretty: bool,
     },
+}
+
+pub mod filter_language {
+
+    pub enum FilterExprToken {}
+
+    pub enum FilterOp {
+        And,
+        Or,
+        Eq,
+        Neq,
+        Le,
+        Leq,
+        Ge,
+        Geq,
+        Add,
+        Sub,
+        Mul,
+        Div,
+    }
+
+    pub enum FilterExpr {
+        Binop {
+            lhs: Box<FilterExpr>,
+            op: FilterOp,
+            rhs: Box<FilterExpr>,
+        },
+        Integer(i32),
+        Float(f32),
+        String(String),
+    }
 }
