@@ -1,3 +1,5 @@
+use filter_language::AstNode;
+
 use super::*;
 
 /// #     _______  ___  ___   ___________
@@ -46,7 +48,7 @@ pub enum ItemCommand {
     Query {
         #[arg(long)]
         // filter based on
-        pre_filter: Option<String>,
+        pre_filter: Option<AstNode>,
         #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
         post_filter: Option<String>,
@@ -63,7 +65,7 @@ pub enum ReviewCommand {
     Query {
         #[arg(long)]
         // filter based on
-        pre_filter: Option<String>,
+        pre_filter: Option<AstNode>,
         #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
         post_filter: Option<String>,
@@ -81,13 +83,37 @@ pub enum TagCommand {
     Query {
         #[arg(long)]
         /// querying logic applied before handling the json result
-        pre_filter: Option<String>,
+        pre_filter: Option<AstNode>,
         #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
         post_filter: Option<String>,
         #[arg(long, default_value_t = false)]
         pretty: bool,
     },
+}
+
+impl clap::builder::ValueParserFactory for filter_language::AstNode {
+    type Parser = filter_language::FilterLangParser;
+    fn value_parser() -> Self::Parser {
+        filter_language::FilterLangParser
+    }
+}
+
+impl clap::builder::TypedValueParser for filter_language::FilterLangParser {
+    type Value = filter_language::AstNode;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        let str = value
+            .try_into()
+            .map_err(|_| clap::error::Error::new(clap::error::ErrorKind::InvalidValue))?;
+        filter_language::FilterLangParser::parse(str)
+            .map_err(|_| clap::error::Error::new(clap::error::ErrorKind::InvalidValue))
+    }
 }
 
 pub mod filter_language {
@@ -103,7 +129,16 @@ pub mod filter_language {
     // NOTE: not used directly.
     struct FilterLangPrimitiveParser;
 
+    #[derive(Clone, Copy)]
     pub struct FilterLangParser;
+
+    impl TryFrom<String> for AstNode {
+        type Error = anyhow::Error;
+
+        fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+            FilterLangParser::parse(&value)
+        }
+    }
 
     impl FilterLangParser {
         pub fn parse(input: &str) -> Result<AstNode> {
@@ -147,7 +182,6 @@ pub mod filter_language {
                 rule => unreachable!("expected atom but got: {:?}", rule),
             })
             .map_infix(|lhs, op, rhs| {
-                eprintln!("lhs: {:?} op: {:?} rhs: {:?}", lhs, op.as_str(), rhs);
                 use AstNode::*;
                 use Operator::*;
                 use Rule::*;
@@ -179,7 +213,7 @@ pub mod filter_language {
             .parse(pairs)
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     pub enum AstNode {
         LogicalFilter {
             lhs: Box<AstNode>,
