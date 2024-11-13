@@ -122,6 +122,7 @@ pub mod filter_language {
     use pest::pratt_parser::PrattParser;
     use pest::Parser;
     use pest_derive::Parser;
+    use std::fmt::Display;
     use std::sync::LazyLock;
 
     #[derive(Parser)]
@@ -241,6 +242,26 @@ pub mod filter_language {
         Leq,
         Ge,
         Geq,
+    }
+
+    impl Display for Operator {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            use Operator::*;
+            write!(
+                f,
+                "{}",
+                match self {
+                    And => "AND",
+                    Or => "OR",
+                    Eq => "==",
+                    Neq => "!=",
+                    Le => "<",
+                    Leq => "<=",
+                    Ge => ">",
+                    Geq => ">=",
+                }
+            )
+        }
     }
 
     impl AstNode {

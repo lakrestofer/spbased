@@ -90,6 +90,8 @@ pub mod command {
     }
 
     pub mod item {
+        use filter_language::AstNode;
+
         use super::*;
 
         pub fn handle_command(command: ItemCommand) -> Result<()> {
@@ -115,8 +117,7 @@ pub mod command {
                     pretty,
                 } => {
                     // we apply sql filtering on items
-
-                    let items = queries::item::query(&mut c)?;
+                    let items = queries::item::query(&mut c, pre_filter)?;
 
                     // we apply json filter on items
                     let items = match (post_filter, pretty) {
@@ -240,22 +241,22 @@ pub mod model {
         pub maturity: Maturity,
         pub stability: sra::model::Stability,
         pub difficulty: sra::model::Difficulty,
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "time::serde::rfc3339")]
         pub last_review_date: OffsetDateTime,
         pub model: ItemModel,
         pub data: ItemData,
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "time::serde::rfc3339")]
         pub updated_at: OffsetDateTime,
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "time::serde::rfc3339")]
         pub created_at: OffsetDateTime,
     }
     #[derive(Serialize, Deserialize)]
     pub struct Tag {
         pub id: i32,
         pub name: TagName,
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "time::serde::rfc3339")]
         pub updated_at: OffsetDateTime,
-        #[serde(with = "time::serde::iso8601")]
+        #[serde(with = "time::serde::rfc3339")]
         pub created_at: OffsetDateTime,
     }
 }

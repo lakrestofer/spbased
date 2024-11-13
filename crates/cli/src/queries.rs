@@ -15,6 +15,8 @@ pub mod template {
 
 pub mod item {
 
+    use filter_language::AstNode;
+
     use super::*;
 
     /// Add item to db
@@ -74,8 +76,16 @@ pub mod item {
             .filter_map(Result::ok);
         Ok(item.next().context("retrieving item from db")?)
     }
-    pub fn query(c: &mut Connection) -> Result<Vec<Item>> {
-        Ok(c.prepare("select * from item")?
+    pub fn query(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Vec<Item>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select * from item where {}",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select * from item".into(),
+        };
+
+        Ok(c.prepare(&query)?
             .query_map([], |r| {
                 Ok(Item {
                     id: r.get(0)?,
@@ -206,4 +216,55 @@ mod tests {
         assert_eq!(&tag.name, "edaf35");
     }
     // -------------
+}
+
+pub mod utils {
+    use super::filter_language::{AstNode, Operator};
+
+    pub fn filter_expr_to_sql(expr: &AstNode) -> String {
+        use AstNode::*;
+        match expr {
+            LogicalFilter { lhs, op, rhs } => format!(
+                "({}) {} ({})",
+                filter_expr_to_sql(lhs),
+                op,
+                filter_expr_to_sql(rhs)
+            ),
+            ComparativeFilter { column, op, value } => match column.as_str() {
+                // when dealing with fields that describe time, we require that all values
+                // constitute valid time formats
+                // <https://www.sqlite.org/lang_datefunc.html>
+                "updated_at" | "created_at" => format!(
+                    "datetime({}) {} datetime({})",
+                    column,
+                    op,
+                    filter_expr_to_sql(value)
+                ),
+                _ => format!("{} {} {}", column, op, filter_expr_to_sql(value)),
+            },
+            Identifier(i) => i.clone(),
+            String(s) => format!("'{s}'"),
+            Integer(i) => i.to_string(),
+            Float(f) => f.to_string(),
+            Bool(b) => b.to_string().to_uppercase(),
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+        #[test]
+        fn filter_expr_to_sql_test() {
+            use Operator::*;
+            let ast = AstNode::logical_filter(
+                AstNode::comparative_filter("id", Le, AstNode::integer(3)),
+                And,
+                AstNode::comparative_filter("created_at", Ge, AstNode::string("2024-11-13")),
+            );
+            assert_eq!(
+                filter_expr_to_sql(&ast),
+                "(id < 3) AND (created_at > '2024-11-13')".to_string()
+            );
+        }
+    }
 }
