@@ -1,3 +1,3 @@
 [[models]]
 name = "flashcard"
-program = "pelji"
+program = "spbased_flashcard"

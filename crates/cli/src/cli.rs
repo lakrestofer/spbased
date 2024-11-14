@@ -41,8 +41,8 @@ pub enum ItemCommand {
     },
     Edit {
         id: i32,
-        model: String,
-        data: String,
+        model: Option<String>,
+        data: Option<String>,
     },
     // TODO add filters, for now simply list all options
     Query {
@@ -104,8 +104,8 @@ impl clap::builder::TypedValueParser for filter_language::FilterLangParser {
 
     fn parse_ref(
         &self,
-        cmd: &clap::Command,
-        arg: Option<&clap::Arg>,
+        _cmd: &clap::Command,
+        _arg: Option<&clap::Arg>,
         value: &std::ffi::OsStr,
     ) -> Result<Self::Value, clap::Error> {
         let str = value

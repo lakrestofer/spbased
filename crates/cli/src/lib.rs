@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use config::Config;
 use dialoguer::Confirm;
 use include_dir::{include_dir, Dir};
 use normalize_path::NormalizePath;
@@ -16,6 +17,8 @@ use rusqlite_migration::Migrations;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
+use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::{cell::LazyCell, path::Path};
 use time::OffsetDateTime;
@@ -28,6 +31,11 @@ use cli::*;
 
 pub const SPBASED_WORK_DIR: &'static str = ".spbased";
 pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
+pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
+
+pub struct AppContext {
+    config: Config,
+}
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(command: Command) -> Result<()> {
@@ -35,7 +43,16 @@ pub fn handle_command(command: Command) -> Result<()> {
         Command::Init { directory } => {
             command::init(directory)?;
         }
-        Command::Items(c) => command::item::handle_command(c)?,
+        Command::Items(c) => {
+            let config_str = fs::read_to_string(
+                env::current_dir()?
+                    .join(SPBASED_WORK_DIR)
+                    .join(SPBASED_CONFIG_NAME),
+            )?;
+            let config: Config = toml::from_str(&config_str)?;
+            let ctx = AppContext { config };
+            command::item::handle_command(ctx, c)?
+        }
         Command::Review(_) => todo!(),
         Command::Tags(c) => command::tag::handle_command(c)?,
     };
@@ -43,6 +60,8 @@ pub fn handle_command(command: Command) -> Result<()> {
 }
 
 pub mod command {
+    use std::fs::{self};
+
     use super::*;
 
     /// Init a new .spbased directory containing a sqlite db instance
@@ -83,18 +102,23 @@ pub mod command {
         // create the directory
         std::fs::create_dir_all(&spbased_dir)?;
 
-        let db_path = spbased_dir.join(SPBASED_DB_NAME);
-        db::init(&db_path)?;
+        // init the db
+        db::init(&spbased_dir.join(SPBASED_DB_NAME))?;
+
+        // init the config file
+        fs::write(
+            spbased_dir.join(SPBASED_CONFIG_NAME),
+            toml::to_string_pretty(&config::Config::default())?,
+        )?;
 
         Ok(())
     }
 
     pub mod item {
-        use filter_language::AstNode;
 
         use super::*;
 
-        pub fn handle_command(command: ItemCommand) -> Result<()> {
+        pub fn handle_command(ctx: AppContext, command: ItemCommand) -> Result<()> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
@@ -108,8 +132,12 @@ pub mod command {
                     println!("{}", json!({ "id": id }).to_string())
                 }
                 ItemCommand::Edit { id, model, data } => {
-                    queries::item::edit_model(&mut c, id, &model)?;
-                    queries::item::edit_data(&mut c, id, &data)?;
+                    if let Some(model) = model {
+                        queries::item::edit_model(&mut c, id, &model)?;
+                    }
+                    if let Some(data) = data {
+                        queries::item::edit_data(&mut c, id, &data)?;
+                    }
                 }
                 ItemCommand::Query {
                     pre_filter,
@@ -141,6 +169,26 @@ pub mod command {
             })
         }
     }
+
+    pub mod review {
+        use super::*;
+        // use serde_json::json;
+
+        pub fn handle_command(_command: ReviewCommand) -> Result<()> {
+            /*
+            match command {
+                ReviewCommand::Next => todo!(),
+                ReviewCommand::Query {
+                    pre_filter,
+                    post_filter,
+                    pretty,
+                } => todo!(),
+            }
+            */
+            Ok(())
+        }
+    }
+
     pub mod tag {
         use serde_json::json;
 
@@ -162,11 +210,21 @@ pub mod command {
                     pre_filter,
                     post_filter,
                 } => {
-                    let items = queries::tag::query(&mut c)?;
-                    let items = if pretty {
-                        serde_json::to_string_pretty(&items)?
-                    } else {
-                        serde_json::to_string(&items)?
+                    let items = queries::tag::query(&mut c, pre_filter)?;
+                    let items = match (post_filter, pretty) {
+                        (Some(post_filter), pretty) => {
+                            let expr = jmespath::compile(&post_filter)
+                                .context("compiling jmespath filter expression")?;
+                            let json = jmespath::Variable::from_serializable(items)?;
+                            let var = expr.search(json)?;
+                            if pretty {
+                                serde_json::to_string_pretty(&var)?
+                            } else {
+                                serde_json::to_string(&var)?
+                            }
+                        }
+                        (None, true) => serde_json::to_string_pretty(&items)?,
+                        (None, false) => serde_json::to_string(&items)?,
                     };
                     println!("{items}");
                 }
@@ -263,7 +321,7 @@ pub mod model {
 
 pub mod db {
     use super::*;
-    // TODO perform build step that removes any comments and whitespace from the files
+    // TODO in future: perform build step that removes any comments and whitespace from the files
     pub const MIGRATIONS: LazyCell<Migrations> = LazyCell::new(|| {
         static DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
         Migrations::from_directory(&DIR).unwrap()

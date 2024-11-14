@@ -23,6 +23,8 @@ impl Model {
 }
 impl Default for Config {
     fn default() -> Self {
-        Self { models: Vec::new() }
+        Self {
+            models: vec![Model::new("flashcard", "spbased_flashcard")],
+        }
     }
 }

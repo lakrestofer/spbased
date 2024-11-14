@@ -105,6 +105,8 @@ pub mod item {
 }
 // tags
 pub mod tag {
+    use filter_language::AstNode;
+
     use super::*;
     pub fn add(c: &mut Connection, tag: &str) -> Result<i32> {
         let mut stmt = c
@@ -141,8 +143,15 @@ pub mod tag {
         };
         Ok(tag)
     }
-    pub fn query(c: &mut Connection) -> Result<Vec<Tag>> {
-        Ok(c.prepare("select * from tag")?
+    pub fn query(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Vec<Tag>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select * from tag where {}",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select * from tag".into(),
+        };
+        Ok(c.prepare(&query)?
             .query_map([], |r| {
                 Ok(Tag {
                     id: r.get(0)?,
