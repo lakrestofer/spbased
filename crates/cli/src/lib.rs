@@ -3,7 +3,6 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use config::Config;
 use dialoguer::Confirm;
 use include_dir::{include_dir, Dir};
 use normalize_path::NormalizePath;
@@ -17,14 +16,11 @@ use rusqlite_migration::Migrations;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
-use std::env;
-use std::fs;
 use std::path::PathBuf;
 use std::{cell::LazyCell, path::Path};
 use time::OffsetDateTime;
 
 pub mod cli;
-pub mod config;
 pub mod queries;
 
 use cli::*;
@@ -33,34 +29,18 @@ pub const SPBASED_WORK_DIR: &'static str = ".spbased";
 pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
 pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
 
-pub struct AppContext {
-    config: Config,
-}
-
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(command: Command) -> Result<()> {
     match command {
-        Command::Init { directory } => {
-            command::init(directory)?;
-        }
-        Command::Items(c) => {
-            let config_str = fs::read_to_string(
-                env::current_dir()?
-                    .join(SPBASED_WORK_DIR)
-                    .join(SPBASED_CONFIG_NAME),
-            )?;
-            let config: Config = toml::from_str(&config_str)?;
-            let ctx = AppContext { config };
-            command::item::handle_command(ctx, c)?
-        }
-        Command::Review(_) => todo!(),
+        Command::Init { directory } => command::init(directory)?,
+        Command::Items(c) => command::item::handle_command(c)?,
+        Command::Review(c) => command::review::handle_command(c)?,
         Command::Tags(c) => command::tag::handle_command(c)?,
     };
     Ok(())
 }
 
 pub mod command {
-    use std::fs::{self};
 
     use super::*;
 
@@ -105,12 +85,6 @@ pub mod command {
         // init the db
         db::init(&spbased_dir.join(SPBASED_DB_NAME))?;
 
-        // init the config file
-        fs::write(
-            spbased_dir.join(SPBASED_CONFIG_NAME),
-            toml::to_string_pretty(&config::Config::default())?,
-        )?;
-
         Ok(())
     }
 
@@ -118,7 +92,7 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(ctx: AppContext, command: ItemCommand) -> Result<()> {
+        pub fn handle_command(command: ItemCommand) -> Result<()> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
@@ -174,17 +148,106 @@ pub mod command {
         use super::*;
         // use serde_json::json;
 
-        pub fn handle_command(_command: ReviewCommand) -> Result<()> {
-            /*
+        pub fn handle_command(command: ReviewCommand) -> Result<()> {
+            let mut c: Connection = db::open(&get_db_path()?)?;
             match command {
-                ReviewCommand::Next => todo!(),
-                ReviewCommand::Query {
-                    pre_filter,
-                    post_filter,
-                    pretty,
-                } => todo!(),
+                ReviewCommand::Next(cmd) => match cmd {
+                    NextReviewCommand::New {
+                        pre_filter,
+                        post_filter,
+                        pretty,
+                    } => {
+                        // we apply sql filtering on items
+                        let items = queries::review::study_new(&mut c, pre_filter)?;
+
+                        // we apply json filter on items
+                        let items = match (post_filter, pretty) {
+                            (Some(post_filter), pretty) => {
+                                let expr = jmespath::compile(&post_filter)
+                                    .context("compiling jmespath filter expression")?;
+                                let json = jmespath::Variable::from_serializable(items)?;
+                                let var = expr.search(json)?;
+                                if pretty {
+                                    serde_json::to_string_pretty(&var)?
+                                } else {
+                                    serde_json::to_string(&var)?
+                                }
+                            }
+                            (None, true) => serde_json::to_string_pretty(&items)?,
+                            (None, false) => serde_json::to_string(&items)?,
+                        };
+
+                        println!("{items}");
+                    }
+                    NextReviewCommand::Due {
+                        pre_filter,
+                        post_filter,
+                        pretty,
+                    } => {
+                        // we apply sql filtering on items
+                        let items = queries::review::study_due(&mut c, pre_filter)?;
+
+                        // we apply json filter on items
+                        let items = match (post_filter, pretty) {
+                            (Some(post_filter), pretty) => {
+                                let expr = jmespath::compile(&post_filter)
+                                    .context("compiling jmespath filter expression")?;
+                                let json = jmespath::Variable::from_serializable(items)?;
+                                let var = expr.search(json)?;
+                                if pretty {
+                                    serde_json::to_string_pretty(&var)?
+                                } else {
+                                    serde_json::to_string(&var)?
+                                }
+                            }
+                            (None, true) => serde_json::to_string_pretty(&items)?,
+                            (None, false) => serde_json::to_string(&items)?,
+                        };
+
+                        println!("{items}");
+                    }
+                },
+                ReviewCommand::Score { id, grade } => {
+                    use sra::model::Grade::*;
+                    use Maturity::*;
+                    let item = queries::item::get(&mut c, id)?;
+
+                    let m = item.maturity;
+                    let g = grade;
+
+                    match (m, g) {
+                        (New, Ok) => {
+                            let d = sra::init::d(g);
+                            let s = sra::init::s(g);
+                        }
+
+                        (New, Easy) => todo!(),
+                        (Young, Fail) => todo!(),
+                        (Young, Hard) => todo!(),
+                        (Young, Ok) => todo!(),
+                        (Young, Easy) => todo!(),
+                        (Tenured, Fail) => todo!(),
+                        (Tenured, Hard) => todo!(),
+                        (Tenured, Ok) => todo!(),
+                        (Tenured, Easy) => todo!(),
+                        (New, Fail) => {}
+                        (New, Hard) => {}
+                    };
+                }
+                ReviewCommand::QueryCount(cmd) => {
+                    let res = match cmd {
+                        QueryCountCommand::Due { filter } => {
+                            queries::review::query_n_due(&mut c, filter)?
+                        }
+                        QueryCountCommand::New { filter } => {
+                            queries::review::query_n_new(&mut c, filter)?
+                        }
+                    };
+                    if let Some(res) = res {
+                        println!("{res}");
+                    }
+                }
             }
-            */
             Ok(())
         }
     }

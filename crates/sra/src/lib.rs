@@ -1,4 +1,5 @@
 //! This library contains a simpler implementation of the FSRS algorithm developed by Jarrett Ye.
+//! TODO update to https://expertium.github.io/Algorithm.html
 
 pub mod model {
     use serde::{Deserialize, Serialize};
@@ -87,6 +88,7 @@ pub mod update {
 
     pub mod shortterm {
         use super::*;
+        /// Stability update rule for short term reviews
         pub fn s(s: Stability, g: Grade) -> Stability {
             s * (W[17] * (g as i32 as f32 - 3.0 + W[18])).exp()
         }
@@ -96,11 +98,12 @@ pub mod update {
 pub mod init {
     use super::*;
 
+    /// Initial stability
     pub fn s(g: Grade) -> Stability {
         W[g as i32 as usize]
     }
 
-    /// the initial difficulty given a review grade
+    /// Initial difficulty
     pub fn d(g: Grade) -> Difficulty {
         W[4] - (W[5] * (g as i32 as f32 - 1.0)).exp() + 1.0
     }

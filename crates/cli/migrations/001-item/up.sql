@@ -42,9 +42,8 @@ AFTER UPDATE ON
 tag 
 WHEN OLD.name <> NEW.name
 BEGIN
-    UPDATE tag SET updated_at = datetime('now') WHERE id == old.id;
+    UPDATE item SET updated_at = datetime('now') WHERE id == old.id;
 END;
--- create mapping between item and tag
 CREATE TABLE IF NOT EXISTS tag_item_map (
     id INTEGER PRIMARY KEY,
     tag_id INTEGER NOT NULL,
@@ -58,13 +57,26 @@ CREATE TABLE IF NOT EXISTS tag_item_map (
 
 
 --- ============================ Due items ============================ 
-CREATE VIEW IF NOT EXISTS due_items AS
-SELECT
+CREATE VIEW IF NOT EXISTS due_item AS
+SELECT 
     *
-FROM
+FROM 
     item
-WHERE
+WHERE 
     date(last_review_date, '+' || stability || ' days') < date('now')
 ORDER BY 
     stability ASC;
+--- --------------------------------------------------------------------------
+
+
+--- ============================ New items ============================ 
+CREATE VIEW IF NOT EXISTS new_item AS
+SELECT 
+    *
+FROM 
+    item
+WHERE 
+    maturity == "New"
+ORDER BY 
+    created_at ASC;
 --- --------------------------------------------------------------------------

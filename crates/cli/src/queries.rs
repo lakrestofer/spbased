@@ -164,6 +164,99 @@ pub mod tag {
             .collect())
     }
 }
+
+pub mod review {
+    use filter_language::AstNode;
+
+    use super::*;
+
+    /// retrieve
+    pub fn study_new(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<Item>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select * from new_item where {} limit 1",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select * from new_item limit 1".into(),
+        };
+        let mut query = c.prepare(&query)?;
+        let mut item = query
+            .query_map([], |r| {
+                Ok(Item {
+                    id: r.get(0)?,
+                    maturity: r.get(1)?,
+                    stability: r.get(2)?,
+                    difficulty: r.get(3)?,
+                    last_review_date: r.get(4)?,
+                    model: r.get(5)?,
+                    data: r.get(6)?,
+                    updated_at: r.get(7)?,
+                    created_at: r.get(8)?,
+                })
+            })?
+            .filter_map(Result::ok);
+        Ok(item.next())
+    }
+    pub fn study_due(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<Item>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select * from due_item where {} limit 1",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select * from due_item limit 1".into(),
+        };
+        let mut query = c.prepare(&query)?;
+        let mut item = query
+            .query_map([], |r| {
+                Ok(Item {
+                    id: r.get(0)?,
+                    maturity: r.get(1)?,
+                    stability: r.get(2)?,
+                    difficulty: r.get(3)?,
+                    last_review_date: r.get(4)?,
+                    model: r.get(5)?,
+                    data: r.get(6)?,
+                    updated_at: r.get(7)?,
+                    created_at: r.get(8)?,
+                })
+            })?
+            .filter_map(Result::ok);
+        Ok(item.next())
+    }
+    pub fn query_n_due(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<i32>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select count(*) from due_item where {}",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select count(*) from due_item".into(),
+        };
+        let mut query = c.prepare(&query)?;
+        let item = query
+            .query_map([], |r| Ok(r.get(0)?))?
+            .filter_map(Result::ok)
+            .next()
+            .ok_or(anyhow!("could not retrieve due count"));
+        item
+    }
+    pub fn query_n_new(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<i32>> {
+        let query = match filter_expr {
+            Some(expr) => format!(
+                "select count(*) from new_item where {}",
+                utils::filter_expr_to_sql(&expr)
+            ),
+            None => "select count(*) from new_item".into(),
+        };
+        let mut query = c.prepare(&query)?;
+        let item = query
+            .query_map([], |r| Ok(r.get(0)?))?
+            .filter_map(Result::ok)
+            .next()
+            .ok_or(anyhow!("could not retrieve new count"));
+        item
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

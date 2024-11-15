@@ -46,7 +46,7 @@ pub enum ItemCommand {
     },
     // TODO add filters, for now simply list all options
     Query {
-        #[arg(long)]
+        #[arg(long, value_parser = parser::ast_node)]
         // filter based on
         pre_filter: Option<AstNode>,
         #[arg(long)]
@@ -60,10 +60,47 @@ pub enum ItemCommand {
 #[derive(Subcommand)]
 pub enum ReviewCommand {
     /// Review the most urgent review item that is due
-    Next,
-    /// Retrieve information about a review event
-    Query {
+    #[command(subcommand)]
+    Next(NextReviewCommand),
+    /// Return how many many items are due
+    #[command(subcommand)]
+    QueryCount(QueryCountCommand),
+    /// score how well the review of an item went
+    Score {
+        /// id of the item
+        id: i32,
+        /// "fail", "hard", "ok", "easy"
+        #[arg(value_parser = parser::grade)]
+        grade: sra::model::Grade,
+    },
+}
+#[derive(Subcommand)]
+pub enum QueryCountCommand {
+    New {
+        #[arg(long, value_parser = parser::ast_node)]
+        // filter based on
+        filter: Option<AstNode>,
+    },
+    Due {
+        #[arg(long, value_parser = parser::ast_node)]
+        // filter based on
+        filter: Option<AstNode>,
+    },
+}
+#[derive(Subcommand)]
+pub enum NextReviewCommand {
+    New {
+        #[arg(long, value_parser = parser::ast_node)]
+        // filter based on
+        pre_filter: Option<AstNode>,
         #[arg(long)]
+        /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        post_filter: Option<String>,
+        #[arg(long, default_value_t = false)]
+        pretty: bool,
+    },
+    Due {
+        #[arg(long, value_parser = parser::ast_node)]
         // filter based on
         pre_filter: Option<AstNode>,
         #[arg(long)]
@@ -73,6 +110,7 @@ pub enum ReviewCommand {
         pretty: bool,
     },
 }
+
 #[derive(Subcommand)]
 pub enum TagCommand {
     /// Add a new tag
@@ -81,7 +119,7 @@ pub enum TagCommand {
     Edit { old_name: String, new_name: String },
     /// List tags. Apply 'and' filtering using the filters
     Query {
-        #[arg(long)]
+        #[arg(long, value_parser = parser::ast_node)]
         /// querying logic applied before handling the json result
         pre_filter: Option<AstNode>,
         #[arg(long)]
@@ -92,27 +130,22 @@ pub enum TagCommand {
     },
 }
 
-impl clap::builder::ValueParserFactory for filter_language::AstNode {
-    type Parser = filter_language::FilterLangParser;
-    fn value_parser() -> Self::Parser {
-        filter_language::FilterLangParser
+pub mod parser {
+    use super::*;
+    pub fn grade(s: &str) -> Result<sra::model::Grade, String> {
+        use sra::model::Grade;
+        let lower = s.to_lowercase();
+        match lower.as_str() {
+            "fail" => Ok(Grade::Fail),
+            "hard" => Ok(Grade::Hard),
+            "ok" => Ok(Grade::Ok),
+            "easy" => Ok(Grade::Easy),
+            _ => Err("unknown grade: {s}".into()),
+        }
     }
-}
 
-impl clap::builder::TypedValueParser for filter_language::FilterLangParser {
-    type Value = filter_language::AstNode;
-
-    fn parse_ref(
-        &self,
-        _cmd: &clap::Command,
-        _arg: Option<&clap::Arg>,
-        value: &std::ffi::OsStr,
-    ) -> Result<Self::Value, clap::Error> {
-        let str = value
-            .try_into()
-            .map_err(|_| clap::error::Error::new(clap::error::ErrorKind::InvalidValue))?;
-        filter_language::FilterLangParser::parse(str)
-            .map_err(|_| clap::error::Error::new(clap::error::ErrorKind::InvalidValue))
+    pub fn ast_node(s: &str) -> Result<AstNode, String> {
+        filter_language::FilterLangParser::parse(s).map_err(|e| e.to_string())
     }
 }
 
