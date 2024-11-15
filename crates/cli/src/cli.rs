@@ -136,9 +136,9 @@ pub mod parser {
         use sra::model::Grade;
         let lower = s.to_lowercase();
         match lower.as_str() {
-            "fail" => Ok(Grade::Fail),
+            "again" => Ok(Grade::Again),
             "hard" => Ok(Grade::Hard),
-            "ok" => Ok(Grade::Ok),
+            "good" => Ok(Grade::Good),
             "easy" => Ok(Grade::Easy),
             _ => Err("unknown grade: {s}".into()),
         }

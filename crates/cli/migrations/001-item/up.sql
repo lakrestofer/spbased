@@ -3,9 +3,10 @@
 CREATE TABLE IF NOT EXISTS item (
     id INTEGER PRIMARY KEY,
     maturity TEXT NOT NULL DEFAULT "New",
-    stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter
-    difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter
-    last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter
+    stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter. The number of days since last review date until probability of recal reaches 90%
+    difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter. Number between 1 and 10. Meausure of item difficulty
+    last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter. Date in iso8601
+    n_reviews INTEGER NOT NULL DEFAULT 0,                     -- sra parameter. Number of times we've review and scored this item.
     model TEXT NOT NULL,                                      -- the model, tells us how data is to be interpreted
     data TEXT NOT NULL,                                       -- untyped text field, usually json data
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
@@ -20,6 +21,7 @@ WHEN OLD.maturity <> NEW.maturity OR
     OLD.stability <> NEW.stability OR
     OLD.difficulty <> NEW.difficulty OR
     OLD.last_review_date <> NEW.last_review_date OR
+    OLD.n_reviews <> NEW.n_reviews OR
     OLD.model <> NEW.model OR
     OLD.data <> NEW.data
 BEGIN
@@ -78,5 +80,5 @@ FROM
 WHERE 
     maturity == "New"
 ORDER BY 
-    created_at ASC;
+    n_reviews ASC, created_at ASC;
 --- --------------------------------------------------------------------------

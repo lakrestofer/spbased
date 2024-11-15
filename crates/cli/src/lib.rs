@@ -120,31 +120,40 @@ pub mod command {
                 } => {
                     // we apply sql filtering on items
                     let items = queries::item::query(&mut c, pre_filter)?;
-
                     // we apply json filter on items
-                    let items = match (post_filter, pretty) {
-                        (Some(post_filter), pretty) => {
-                            let expr = jmespath::compile(&post_filter)
-                                .context("compiling jmespath filter expression")?;
-                            let json = jmespath::Variable::from_serializable(items)?;
-                            let var = expr.search(json)?;
-                            if pretty {
-                                serde_json::to_string_pretty(&var)?
-                            } else {
-                                serde_json::to_string(&var)?
-                            }
-                        }
-                        (None, true) => serde_json::to_string_pretty(&items)?,
-                        (None, false) => serde_json::to_string(&items)?,
-                    };
-
+                    let items = jmessearch_and_prettify(items, post_filter, pretty)?;
                     println!("{items}");
                 }
             })
         }
     }
 
+    fn jmessearch_and_prettify<T: serde::ser::Serialize>(
+        value: T,
+        filter: Option<String>,
+        pretty: bool,
+    ) -> Result<String> {
+        Ok(match (filter, pretty) {
+            (Some(filter), pretty) => {
+                let expr =
+                    jmespath::compile(&filter).context("compiling jmespath filter expression")?;
+                let json = jmespath::Variable::from_serializable(value)?;
+                let var = expr.search(json)?;
+                if pretty {
+                    serde_json::to_string_pretty(&var)?
+                } else {
+                    serde_json::to_string(&var)?
+                }
+            }
+            (None, true) => serde_json::to_string_pretty(&value)?,
+            (None, false) => serde_json::to_string(&value)?,
+        })
+    }
+
     pub mod review {
+
+        use time::Duration;
+
         use super::*;
         // use serde_json::json;
 
@@ -161,22 +170,7 @@ pub mod command {
                         let items = queries::review::study_new(&mut c, pre_filter)?;
 
                         // we apply json filter on items
-                        let items = match (post_filter, pretty) {
-                            (Some(post_filter), pretty) => {
-                                let expr = jmespath::compile(&post_filter)
-                                    .context("compiling jmespath filter expression")?;
-                                let json = jmespath::Variable::from_serializable(items)?;
-                                let var = expr.search(json)?;
-                                if pretty {
-                                    serde_json::to_string_pretty(&var)?
-                                } else {
-                                    serde_json::to_string(&var)?
-                                }
-                            }
-                            (None, true) => serde_json::to_string_pretty(&items)?,
-                            (None, false) => serde_json::to_string(&items)?,
-                        };
-
+                        let items = jmessearch_and_prettify(items, post_filter, pretty)?;
                         println!("{items}");
                     }
                     NextReviewCommand::Due {
@@ -188,50 +182,43 @@ pub mod command {
                         let items = queries::review::study_due(&mut c, pre_filter)?;
 
                         // we apply json filter on items
-                        let items = match (post_filter, pretty) {
-                            (Some(post_filter), pretty) => {
-                                let expr = jmespath::compile(&post_filter)
-                                    .context("compiling jmespath filter expression")?;
-                                let json = jmespath::Variable::from_serializable(items)?;
-                                let var = expr.search(json)?;
-                                if pretty {
-                                    serde_json::to_string_pretty(&var)?
-                                } else {
-                                    serde_json::to_string(&var)?
-                                }
-                            }
-                            (None, true) => serde_json::to_string_pretty(&items)?,
-                            (None, false) => serde_json::to_string(&items)?,
-                        };
-
+                        let items = jmessearch_and_prettify(items, post_filter, pretty)?;
                         println!("{items}");
                     }
                 },
                 ReviewCommand::Score { id, grade } => {
                     use sra::model::Grade::*;
                     use Maturity::*;
+
                     let item = queries::item::get(&mut c, id)?;
 
-                    let m = item.maturity;
                     let g = grade;
+                    let today = time::OffsetDateTime::now_utc();
+                    let duration_since_last_review = today - item.last_review_date;
+                    let last_review_was_today = Duration::days(1) < duration_since_last_review;
 
-                    match (m, g) {
-                        (New, Ok) => {
-                            let d = sra::init::d(g);
-                            let s = sra::init::s(g);
+                    match (item.maturity, grade, last_review_was_today) {
+                        (New, Again | Hard, _) => {
+                            // we need to review the item again in this session
+                            queries::review::increment_n_reviews(&mut c, item.id)?;
                         }
-
-                        (New, Easy) => todo!(),
-                        (Young, Fail) => todo!(),
-                        (Young, Hard) => todo!(),
-                        (Young, Ok) => todo!(),
-                        (Young, Easy) => todo!(),
-                        (Tenured, Fail) => todo!(),
-                        (Tenured, Hard) => todo!(),
-                        (Tenured, Ok) => todo!(),
-                        (Tenured, Easy) => todo!(),
-                        (New, Fail) => {}
-                        (New, Hard) => {}
+                        (New, grade, _) => {}
+                        (Young, Again, true) => todo!(),
+                        (Young, Again, false) => todo!(),
+                        (Young, Hard, true) => todo!(),
+                        (Young, Hard, false) => todo!(),
+                        (Young, Good, true) => todo!(),
+                        (Young, Good, false) => todo!(),
+                        (Young, Easy, true) => todo!(),
+                        (Young, Easy, false) => todo!(),
+                        (Tenured, Again, true) => todo!(),
+                        (Tenured, Again, false) => todo!(),
+                        (Tenured, Hard, true) => todo!(),
+                        (Tenured, Hard, false) => todo!(),
+                        (Tenured, Good, true) => todo!(),
+                        (Tenured, Good, false) => todo!(),
+                        (Tenured, Easy, true) => todo!(),
+                        (Tenured, Easy, false) => todo!(),
                     };
                 }
                 ReviewCommand::QueryCount(cmd) => {
@@ -263,7 +250,7 @@ pub mod command {
             Ok(match command {
                 TagCommand::Add { name } => {
                     let id = queries::tag::add(&mut c, &name)?;
-                    println!("{}", json!({ "id": id }).to_string())
+                    println!("{}", json!({ "id": id }).to_string());
                 }
                 TagCommand::Edit { old_name, new_name } => {
                     queries::tag::edit(&mut c, &old_name, &new_name)?;
@@ -273,23 +260,9 @@ pub mod command {
                     pre_filter,
                     post_filter,
                 } => {
-                    let items = queries::tag::query(&mut c, pre_filter)?;
-                    let items = match (post_filter, pretty) {
-                        (Some(post_filter), pretty) => {
-                            let expr = jmespath::compile(&post_filter)
-                                .context("compiling jmespath filter expression")?;
-                            let json = jmespath::Variable::from_serializable(items)?;
-                            let var = expr.search(json)?;
-                            if pretty {
-                                serde_json::to_string_pretty(&var)?
-                            } else {
-                                serde_json::to_string(&var)?
-                            }
-                        }
-                        (None, true) => serde_json::to_string_pretty(&items)?,
-                        (None, false) => serde_json::to_string(&items)?,
-                    };
-                    println!("{items}");
+                    let tags = queries::tag::query(&mut c, pre_filter)?;
+                    let tags = jmessearch_and_prettify(tags, post_filter, pretty)?;
+                    println!("{tags}");
                 }
             })
         }
@@ -364,6 +337,7 @@ pub mod model {
         pub difficulty: sra::model::Difficulty,
         #[serde(with = "time::serde::rfc3339")]
         pub last_review_date: OffsetDateTime,
+        pub n_reviews: i32,
         pub model: ItemModel,
         pub data: ItemData,
         #[serde(with = "time::serde::rfc3339")]

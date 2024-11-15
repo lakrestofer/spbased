@@ -67,10 +67,11 @@ pub mod item {
                     stability: r.get(2)?,
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
-                    model: r.get(5)?,
-                    data: r.get(6)?,
-                    updated_at: r.get(7)?,
-                    created_at: r.get(8)?,
+                    n_reviews: r.get(5)?,
+                    model: r.get(6)?,
+                    data: r.get(7)?,
+                    updated_at: r.get(8)?,
+                    created_at: r.get(9)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -93,10 +94,11 @@ pub mod item {
                     stability: r.get(2)?,
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
-                    model: r.get(5)?,
-                    data: r.get(6)?,
-                    updated_at: r.get(7)?,
-                    created_at: r.get(8)?,
+                    n_reviews: r.get(5)?,
+                    model: r.get(6)?,
+                    data: r.get(7)?,
+                    updated_at: r.get(8)?,
+                    created_at: r.get(9)?,
                 })
             })?
             .filter_map(Result::ok)
@@ -188,10 +190,11 @@ pub mod review {
                     stability: r.get(2)?,
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
-                    model: r.get(5)?,
-                    data: r.get(6)?,
-                    updated_at: r.get(7)?,
-                    created_at: r.get(8)?,
+                    n_reviews: r.get(5)?,
+                    model: r.get(6)?,
+                    data: r.get(7)?,
+                    updated_at: r.get(8)?,
+                    created_at: r.get(9)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -214,10 +217,11 @@ pub mod review {
                     stability: r.get(2)?,
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
-                    model: r.get(5)?,
-                    data: r.get(6)?,
-                    updated_at: r.get(7)?,
-                    created_at: r.get(8)?,
+                    n_reviews: r.get(5)?,
+                    model: r.get(6)?,
+                    data: r.get(7)?,
+                    updated_at: r.get(8)?,
+                    created_at: r.get(9)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -254,6 +258,15 @@ pub mod review {
             .next()
             .ok_or(anyhow!("could not retrieve new count"));
         item
+    }
+
+    /// used when the item is new and we failed a review (or just want to see it again)
+    pub fn increment_n_reviews(c: &mut Connection, id: i32) -> Result<()> {
+        c.execute(
+            "update item set n_reviews = n_reviews + 1 where id == ?",
+            [id],
+        )?;
+        Ok(())
     }
 }
 
@@ -365,7 +378,7 @@ pub mod utils {
             );
             assert_eq!(
                 filter_expr_to_sql(&ast),
-                "(id < 3) AND (created_at > '2024-11-13')".to_string()
+                "(id < 3) AND (datetime(created_at) > datetime('2024-11-13'))".to_string()
             );
         }
     }
