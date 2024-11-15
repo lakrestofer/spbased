@@ -4,10 +4,15 @@
 pub mod model {
     use serde::{Deserialize, Serialize};
 
+    /// The stability of a memory. The number of days until the probability of recall reaches 90%
     pub type Stability = f32;
+    /// The difficulty of a memory.
     pub type Difficulty = f32;
+    /// The probability that an item will be recalled.
     pub type Retrievability = f32;
+    /// Time in number of days.
     pub type Time = f32;
+    /// Time between review events in number of days
     pub type Interval = f32;
 
     /// Each review prompt has some parameters that we use to schedule it
@@ -19,25 +24,27 @@ pub mod model {
 
     /// When reviewing an item using its associated prompt
     /// we need grade how well we could satisfy the prompt
-    /// 1 -> fail
-    /// 2 -> hard
-    /// 3 -> ok
-    /// 4 -> easy
-    #[derive(Clone, Copy, Serialize, Deserialize)]
+    /// 1 -> Again, user could not recall
+    /// 2 -> Hard, the user could recall, but with great effort
+    /// 3 -> Good, the user could recall
+    /// 4 -> Easy, the user could easily recall
+    #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
     pub enum Grade {
-        Fail = 1,
+        Again = 1,
         Hard = 2,
-        Ok = 3,
+        Good = 3,
         Easy = 4,
     }
 }
 use model::*;
 use Grade::*;
 
+pub const ALGORITHM_VERSION: usize = 5;
+
 /// Weights
 const W: [f32; 19] = [
-    0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0234, 1.616, 0.1544, 1.0824, 1.9813,
-    0.0953, 0.2975, 2.2042, 0.2407, 2.9466, 0.5034, 0.6567,
+    0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925,
+    1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621,
 ];
 
 /// factor
@@ -49,7 +56,7 @@ use model::{Difficulty, Retrievability, Stability, Time};
 
 /// retrievability - the probability after t days that prompt will be satisfied
 pub fn r(t: Time, s: Stability) -> Retrievability {
-    (1.0 + F * t / s).powf(D)
+    (1.0 + (19.0 / 81.0) * (t / s)).powf(D)
 }
 
 /// interval - the amount of days until retrievability reaches [`r`], rounded away from zero
@@ -65,25 +72,43 @@ pub mod update {
         use super::*;
 
         pub fn s(s: Stability, d: Difficulty, r: Retrievability, g: Grade) -> Stability {
-            let f = match g {
-                Hard => W[15],
-                Easy => W[16],
-                _ => 1.0,
+            assert!(g != Grade::Again); // this function should not be called for a failing grade
+            let scaling: f32 = {
+                let (w_15, w_16) = match g {
+                    Again => unreachable!(),
+                    Hard => (W[15], 1.0),
+                    Good => (1.0, 1.0),
+                    Easy => (1.0, W[16]),
+                };
+                w_15 * w_16 * W[8].exp()
             };
-
-            s * (W[8].exp() * (11.0 - d) * s.powf(-W[9]) * ((W[10] * (1.0 - r)).exp() - 1.0) * f)
+            let f_d: f32 = 11.0 - d;
+            let f_s: f32 = s.powf(-W[9]);
+            let f_r: f32 = (W[10] * (1.0 - r)).exp() - 1.0;
+            let s_inc = 1.0 + scaling * f_d * f_s * f_r;
+            s.min(s * s_inc)
         }
     }
 
     pub mod fail {
         use super::*;
         pub fn s(s: Stability, d: Difficulty, r: Retrievability) -> Stability {
-            W[11] * d.powf(-W[12]) * ((s + 1.0).powf(W[13]) - 1.0) * (W[14] * (1.0 - r)).exp()
+            s.min(
+                W[11] * d.powf(-W[12]) * ((s + 1.0).powf(W[13]) - 1.0) * (W[14] * (1.0 - r)).exp(),
+            )
         }
     }
 
+    /// Update rule for difficulty. The difficulty is updated depending on the grade as below
+    /// - Again -> increase
+    /// - Hard -> increase a little bit
+    /// - Good -> nothing
+    /// - Easy -> subtract
+    /// NOTE: does not take retrievability into account.
     pub fn d(d: Difficulty, g: Grade) -> Difficulty {
-        W[7] * init::d(Ok) + (1.0 - W[7]) * (d - W[6] * (g as i32 as f32 - 3.0))
+        let delta_d = -W[6] * (g as i32 as f32 - 3.0); // change in terms of grade
+        let mean_revision = W[7] * init::d(Hard) + (1.0 - W[7]); // bias the difficulty in the direction of a d==init:d(Hard)
+        mean_revision * (d + delta_d * (10.0 - D) / 9.0).clamp(0.0, 10.0) // approach
     }
 
     pub mod shortterm {
@@ -100,7 +125,7 @@ pub mod init {
 
     /// Initial stability
     pub fn s(g: Grade) -> Stability {
-        W[g as i32 as usize]
+        W[g as usize]
     }
 
     /// Initial difficulty
