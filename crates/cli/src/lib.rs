@@ -109,6 +109,9 @@ pub mod command {
                         queries::item::edit_data(&mut c, id, &data)?;
                     }
                 }
+                ItemCommand::Delete { id } => {
+                    queries::item::delete(&mut c, id)?;
+                }
                 ItemCommand::Query {
                     pre_filter,
                     post_filter,

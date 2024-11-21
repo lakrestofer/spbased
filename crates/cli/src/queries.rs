@@ -57,6 +57,10 @@ pub mod item {
         c.execute("update item set data = ?1 where id = ?2", (data, id))?;
         Ok(())
     }
+    pub fn delete(c: &mut Connection, id: i32) -> Result<()> {
+        c.execute("delete from item where id = ?1", (id,))?;
+        Ok(())
+    }
     pub fn get(c: &mut Connection, id: i32) -> Result<Item> {
         let mut stmt = c.prepare("select * from item where id = ?1 limit 1")?;
         let mut item = stmt
@@ -380,7 +384,7 @@ pub mod utils {
                 // when dealing with fields that describe time, we require that all values
                 // constitute valid time formats
                 // <https://www.sqlite.org/lang_datefunc.html>
-                "updated_at" | "created_at" => format!(
+                "updated_at" | "created_at" | "last_review_date" => format!(
                     "datetime({}) {} datetime({})",
                     column,
                     op,

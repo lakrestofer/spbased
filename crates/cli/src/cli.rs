@@ -6,7 +6,7 @@ use super::*;
 /// #    / __/ _ \/ _ )/ _ | / __/ __/ _ \
 /// #   _\ \/ ___/ _  / __ |_\ \/ _// // /
 /// #  /___/_/  /____/_/ |_/___/___/____/
-/// Content agnostic spaced repetition                                   
+/// Content agnostic spaced repetition
 #[derive(Parser)]
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
@@ -44,6 +44,9 @@ pub enum ItemCommand {
         model: Option<String>,
         data: Option<String>,
     },
+    Delete {
+        id: i32,
+    },
     // TODO add filters, for now simply list all options
     Query {
         #[arg(long, value_parser = parser::ast_node)]
@@ -69,7 +72,7 @@ pub enum ReviewCommand {
     Score {
         /// id of the item
         id: i32,
-        /// "fail", "hard", "ok", "easy"
+        /// "again", "hard", "good", "easy"
         #[arg(value_parser = parser::grade)]
         grade: sra::model::Grade,
     },
