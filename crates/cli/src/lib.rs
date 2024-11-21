@@ -12,6 +12,7 @@ use rusqlite::params_from_iter;
 use rusqlite::types::FromSql;
 use rusqlite::types::FromSqlError;
 use rusqlite::Connection;
+use rusqlite::ToSql;
 use rusqlite_migration::Migrations;
 use serde::Deserialize;
 use serde::Serialize;
@@ -191,34 +192,48 @@ pub mod command {
                     use Maturity::*;
 
                     let item = queries::item::get(&mut c, id)?;
+                    let id = item.id;
 
-                    let g = grade;
                     let today = time::OffsetDateTime::now_utc();
                     let duration_since_last_review = today - item.last_review_date;
-                    let last_review_was_today = Duration::days(1) < duration_since_last_review;
+                    let n_days_since_last_review = duration_since_last_review.as_seconds_f32()
+                        / Duration::DAY.as_seconds_f32();
+                    let last_review_was_today = Duration::DAY < duration_since_last_review;
 
                     match (item.maturity, grade, last_review_was_today) {
+                        // we need to review the item again in this session
                         (New, Again | Hard, _) => {
-                            // we need to review the item again in this session
-                            queries::review::increment_n_reviews(&mut c, item.id)?;
+                            queries::review::increment_n_reviews(&mut c, id)?;
                         }
-                        (New, grade, _) => {}
-                        (Young, Again, true) => todo!(),
-                        (Young, Again, false) => todo!(),
-                        (Young, Hard, true) => todo!(),
-                        (Young, Hard, false) => todo!(),
-                        (Young, Good, true) => todo!(),
-                        (Young, Good, false) => todo!(),
-                        (Young, Easy, true) => todo!(),
-                        (Young, Easy, false) => todo!(),
-                        (Tenured, Again, true) => todo!(),
-                        (Tenured, Again, false) => todo!(),
-                        (Tenured, Hard, true) => todo!(),
-                        (Tenured, Hard, false) => todo!(),
-                        (Tenured, Good, true) => todo!(),
-                        (Tenured, Good, false) => todo!(),
-                        (Tenured, Easy, true) => todo!(),
-                        (Tenured, Easy, false) => todo!(),
+                        // promote item from young to new
+                        (New, g, _) => {
+                            let s = sra::init::s(g);
+                            let d = sra::init::d(g);
+                            queries::review::set_maturity(&mut c, id, Young)?;
+                            queries::review::increment_n_reviews(&mut c, id)?;
+                            queries::review::set_sra_params(&mut c, id, s, d, today)?;
+                        }
+                        (Young | Tenured, Again, true) => todo!(),
+                        (Young | Tenured, Again, false) => todo!(),
+                        (Young | Tenured, g, true) => {
+                            let s = sra::update::shortterm::s(item.stability, g);
+                            let d = sra::update::d(item.difficulty, g);
+                            if s > 100.0 {
+                                queries::review::set_maturity(&mut c, id, Tenured)?;
+                            }
+                            queries::review::increment_n_reviews(&mut c, id)?;
+                            queries::review::set_sra_params(&mut c, id, s, d, today)?;
+                        }
+                        (Young | Tenured, g, false) => {
+                            let r = sra::r(n_days_since_last_review, 0.9);
+                            let s = sra::update::success::s(item.stability, item.difficulty, r, g);
+                            let d = sra::update::d(item.difficulty, g);
+                            if s > 100.0 {
+                                queries::review::set_maturity(&mut c, id, Tenured)?;
+                            }
+                            queries::review::increment_n_reviews(&mut c, id)?;
+                            queries::review::set_sra_params(&mut c, id, s, d, today)?;
+                        }
                     };
                 }
                 ReviewCommand::QueryCount(cmd) => {
@@ -309,6 +324,16 @@ impl FromSql for Maturity {
             "Tenured" => Ok(Maturity::Tenured),
             _ => Err(FromSqlError::InvalidType),
         }
+    }
+}
+
+impl ToSql for Maturity {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(match self {
+            Maturity::New => "New".into(),
+            Maturity::Young => "Young".into(),
+            Maturity::Tenured => "Tenured".into(),
+        })
     }
 }
 

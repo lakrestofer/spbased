@@ -169,6 +169,7 @@ pub mod tag {
 
 pub mod review {
     use filter_language::AstNode;
+    use sra::model::Grade;
 
     use super::*;
 
@@ -265,6 +266,25 @@ pub mod review {
         c.execute(
             "update item set n_reviews = n_reviews + 1 where id == ?",
             [id],
+        )?;
+        Ok(())
+    }
+    /// update sra parameters
+    pub fn set_maturity(c: &mut Connection, id: i32, maturity: Maturity) -> Result<()> {
+        c.execute("update item set maturity = ? where id == ?", (maturity, id))?;
+        Ok(())
+    }
+    /// update sra parameters
+    pub fn set_sra_params(
+        c: &mut Connection,
+        id: i32,
+        stability: f32,
+        difficulty: f32,
+        review_date: OffsetDateTime,
+    ) -> Result<()> {
+        c.execute(
+            "update item set stability = ?, difficulty = ?, last_review_date = ?  where id == ?",
+            (stability, difficulty, review_date, id),
         )?;
         Ok(())
     }

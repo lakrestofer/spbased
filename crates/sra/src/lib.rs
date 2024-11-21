@@ -28,7 +28,7 @@ pub mod model {
     /// 2 -> Hard, the user could recall, but with great effort
     /// 3 -> Good, the user could recall
     /// 4 -> Easy, the user could easily recall
-    #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+    #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
     pub enum Grade {
         Again = 1,
         Hard = 2,
