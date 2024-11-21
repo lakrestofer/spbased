@@ -4,7 +4,7 @@ members = [
     "crates/cli/scripts/new_migration",
     "crates/sra",
     "clients/consume/src-tauri",
-    "crates/model",
+    "crates/model", "crates/flashcard",
 ]
 
 resolver = "2"
