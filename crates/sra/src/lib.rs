@@ -41,7 +41,7 @@ use Grade::*;
 
 pub const ALGORITHM_VERSION: usize = 5;
 
-/// Weights
+/// Weights. Current best weights for the FSRS algorithm
 const W: [f32; 19] = [
     0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925,
     1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621,
@@ -56,7 +56,7 @@ use model::{Difficulty, Retrievability, Stability, Time};
 
 /// retrievability - the probability after t days that prompt will be satisfied
 pub fn r(t: Time, s: Stability) -> Retrievability {
-    (1.0 + (19.0 / 81.0) * (t / s)).powf(D)
+    (1.0 + F * (t / s)).powf(D)
 }
 
 /// interval - the amount of days until retrievability reaches [`r`], rounded away from zero

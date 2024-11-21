@@ -6,6 +6,7 @@ build = "build.rs"
 
 [dependencies]
 sra = { workspace = true }
+model = { workspace = true }
 clap = { workspace = true }
 rusqlite = { workspace = true }
 rusqlite_migration = { workspace = true }

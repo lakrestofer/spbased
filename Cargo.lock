@@ -2221,6 +2221,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "model"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
+ "serde",
+ "sra",
+ "time",
+]
+
+[[package]]
 name = "muda"
 version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3745,6 +3755,7 @@ dependencies = [
  "dirs 5.0.1",
  "include_dir",
  "jmespath",
+ "model",
  "normalize-path",
  "pest",
  "pest_ascii_tree",

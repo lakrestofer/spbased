@@ -68,10 +68,11 @@ pub mod item {
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
                     n_reviews: r.get(5)?,
-                    model: r.get(6)?,
-                    data: r.get(7)?,
-                    updated_at: r.get(8)?,
-                    created_at: r.get(9)?,
+                    n_lapses: r.get(6)?,
+                    model: r.get(7)?,
+                    data: r.get(8)?,
+                    updated_at: r.get(9)?,
+                    created_at: r.get(10)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -95,10 +96,11 @@ pub mod item {
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
                     n_reviews: r.get(5)?,
-                    model: r.get(6)?,
-                    data: r.get(7)?,
-                    updated_at: r.get(8)?,
-                    created_at: r.get(9)?,
+                    n_lapses: r.get(6)?,
+                    model: r.get(7)?,
+                    data: r.get(8)?,
+                    updated_at: r.get(9)?,
+                    created_at: r.get(10)?,
                 })
             })?
             .filter_map(Result::ok)
@@ -169,7 +171,6 @@ pub mod tag {
 
 pub mod review {
     use filter_language::AstNode;
-    use sra::model::Grade;
 
     use super::*;
 
@@ -192,10 +193,11 @@ pub mod review {
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
                     n_reviews: r.get(5)?,
-                    model: r.get(6)?,
-                    data: r.get(7)?,
-                    updated_at: r.get(8)?,
-                    created_at: r.get(9)?,
+                    n_lapses: r.get(6)?,
+                    model: r.get(7)?,
+                    data: r.get(8)?,
+                    updated_at: r.get(9)?,
+                    created_at: r.get(10)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -219,10 +221,11 @@ pub mod review {
                     difficulty: r.get(3)?,
                     last_review_date: r.get(4)?,
                     n_reviews: r.get(5)?,
-                    model: r.get(6)?,
-                    data: r.get(7)?,
-                    updated_at: r.get(8)?,
-                    created_at: r.get(9)?,
+                    n_lapses: r.get(6)?,
+                    model: r.get(7)?,
+                    data: r.get(8)?,
+                    updated_at: r.get(9)?,
+                    created_at: r.get(10)?,
                 })
             })?
             .filter_map(Result::ok);
@@ -265,6 +268,14 @@ pub mod review {
     pub fn increment_n_reviews(c: &mut Connection, id: i32) -> Result<()> {
         c.execute(
             "update item set n_reviews = n_reviews + 1 where id == ?",
+            [id],
+        )?;
+        Ok(())
+    }
+
+    pub fn increment_n_lapses(c: &mut Connection, id: i32) -> Result<()> {
+        c.execute(
+            "update item set n_lapses = n_lapses + 1 where id == ?",
             [id],
         )?;
         Ok(())
@@ -354,7 +365,7 @@ mod tests {
 }
 
 pub mod utils {
-    use super::filter_language::{AstNode, Operator};
+    use super::filter_language::AstNode;
 
     pub fn filter_expr_to_sql(expr: &AstNode) -> String {
         use AstNode::*;
@@ -390,7 +401,7 @@ pub mod utils {
         use super::*;
         #[test]
         fn filter_expr_to_sql_test() {
-            use Operator::*;
+            use crate::filter_language::Operator::*;
             let ast = AstNode::logical_filter(
                 AstNode::comparative_filter("id", Le, AstNode::integer(3)),
                 And,

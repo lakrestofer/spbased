@@ -9,13 +9,8 @@ use normalize_path::NormalizePath;
 use resolve_path::PathResolveExt;
 use rusqlite::params;
 use rusqlite::params_from_iter;
-use rusqlite::types::FromSql;
-use rusqlite::types::FromSqlError;
 use rusqlite::Connection;
-use rusqlite::ToSql;
 use rusqlite_migration::Migrations;
-use serde::Deserialize;
-use serde::Serialize;
 use serde_json::json;
 use std::path::PathBuf;
 use std::{cell::LazyCell, path::Path};
@@ -153,6 +148,7 @@ pub mod command {
 
     pub mod review {
 
+        use model::Maturity;
         use time::Duration;
 
         use super::*;
@@ -213,8 +209,18 @@ pub mod command {
                             queries::review::increment_n_reviews(&mut c, id)?;
                             queries::review::set_sra_params(&mut c, id, s, d, today)?;
                         }
-                        (Young | Tenured, Again, true) => todo!(),
-                        (Young | Tenured, Again, false) => todo!(),
+                        (Young | Tenured, Again, true) => {
+                            // the item was already reviewed today, but somehow we are reviewing it again
+                            // with a failing grade. This could be because the user is cramming review items
+                        }
+                        (Young | Tenured, Again, false) => {
+                            let r = sra::r(n_days_since_last_review, item.stability);
+                            let s = sra::update::fail::s(item.stability, item.difficulty, r);
+                            let d = sra::update::d(item.difficulty, Again);
+                            queries::review::increment_n_reviews(&mut c, id)?;
+                            queries::review::increment_n_lapses(&mut c, id)?;
+                            queries::review::set_sra_params(&mut c, id, s, d, today)?;
+                        }
                         (Young | Tenured, g, true) => {
                             let s = sra::update::shortterm::s(item.stability, g);
                             let d = sra::update::d(item.difficulty, g);
@@ -225,7 +231,7 @@ pub mod command {
                             queries::review::set_sra_params(&mut c, id, s, d, today)?;
                         }
                         (Young | Tenured, g, false) => {
-                            let r = sra::r(n_days_since_last_review, 0.9);
+                            let r = sra::r(n_days_since_last_review, item.stability);
                             let s = sra::update::success::s(item.stability, item.difficulty, r, g);
                             let d = sra::update::d(item.difficulty, g);
                             if s > 100.0 {
@@ -303,83 +309,6 @@ pub fn get_db_path() -> Result<PathBuf> {
 }
 
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======
-
-/// A measure of how well we've 'learnt' an item.
-#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Maturity {
-    /// This item has not yet been reviewed
-    #[default]
-    New,
-    /// This item has been reviewed but has a stability less than 1 year.
-    Young,
-    /// This items has been reviewed many times and can probably be considered fully 'learnt'
-    Tenured,
-}
-impl FromSql for Maturity {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        let s = value.as_str()?;
-        match s {
-            "New" => Ok(Maturity::New),
-            "Young" => Ok(Maturity::Young),
-            "Tenured" => Ok(Maturity::Tenured),
-            _ => Err(FromSqlError::InvalidType),
-        }
-    }
-}
-
-impl ToSql for Maturity {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        Ok(match self {
-            Maturity::New => "New".into(),
-            Maturity::Young => "Young".into(),
-            Maturity::Tenured => "Tenured".into(),
-        })
-    }
-}
-
-impl std::fmt::Display for Maturity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Maturity::New => write!(f, "New"),
-            Maturity::Young => write!(f, "Young"),
-            Maturity::Tenured => write!(f, "Tenured"),
-        }
-    }
-}
-
-pub mod model {
-    use super::*;
-
-    pub type ItemModel = String;
-    pub type ItemData = String;
-    pub type TagName = String;
-
-    #[derive(Serialize, Deserialize)]
-    pub struct Item {
-        pub id: i32,
-        pub maturity: Maturity,
-        pub stability: sra::model::Stability,
-        pub difficulty: sra::model::Difficulty,
-        #[serde(with = "time::serde::rfc3339")]
-        pub last_review_date: OffsetDateTime,
-        pub n_reviews: i32,
-        pub model: ItemModel,
-        pub data: ItemData,
-        #[serde(with = "time::serde::rfc3339")]
-        pub updated_at: OffsetDateTime,
-        #[serde(with = "time::serde::rfc3339")]
-        pub created_at: OffsetDateTime,
-    }
-    #[derive(Serialize, Deserialize)]
-    pub struct Tag {
-        pub id: i32,
-        pub name: TagName,
-        #[serde(with = "time::serde::rfc3339")]
-        pub updated_at: OffsetDateTime,
-        #[serde(with = "time::serde::rfc3339")]
-        pub created_at: OffsetDateTime,
-    }
-}
 
 pub mod db {
     use super::*;
