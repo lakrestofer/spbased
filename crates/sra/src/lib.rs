@@ -2,6 +2,8 @@
 //! TODO update to https://expertium.github.io/Algorithm.html
 
 pub mod model {
+    pub(crate) mod grade_ops;
+
     use serde::{Deserialize, Serialize};
 
     /// The stability of a memory. The number of days until the probability of recall reaches 90%
@@ -106,7 +108,7 @@ pub mod update {
     /// - Easy -> subtract
     /// NOTE: does not take retrievability into account.
     pub fn d(d: Difficulty, g: Grade) -> Difficulty {
-        let delta_d = -W[6] * (g as i32 as f32 - 3.0); // change in terms of grade
+        let delta_d = -W[6] * (g - 3.0); // change in terms of grade
         let mean_revision = W[7] * init::d(Hard) + (1.0 - W[7]); // bias the difficulty in the direction of a d==init:d(Hard)
         mean_revision * (d + delta_d * (10.0 - D) / 9.0).clamp(0.0, 10.0) // approach
     }
@@ -115,7 +117,7 @@ pub mod update {
         use super::*;
         /// Stability update rule for short term reviews
         pub fn s(s: Stability, g: Grade) -> Stability {
-            s * (W[17] * (g as i32 as f32 - 3.0 + W[18])).exp()
+            s * (W[17] * (g - 3.0 + W[18])).exp()
         }
     }
 }
@@ -125,11 +127,11 @@ pub mod init {
 
     /// Initial stability
     pub fn s(g: Grade) -> Stability {
-        W[g as usize]
+        W[g - 1]
     }
 
     /// Initial difficulty
     pub fn d(g: Grade) -> Difficulty {
-        W[4] - (W[5] * (g as i32 as f32 - 1.0)).exp() + 1.0
+        W[4] - (W[5] * (g - 1.0)).exp() + 1.0
     }
 }
