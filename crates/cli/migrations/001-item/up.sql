@@ -66,6 +66,7 @@ SELECT
 FROM
     item
 WHERE
+    maturity != "New" and
     date(last_review_date, '+' || stability || ' days') < date('now')
 ORDER BY
     stability ASC;

@@ -26,14 +26,16 @@ pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
 pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
-pub fn handle_command(command: Command) -> Result<()> {
-    match command {
-        Command::Init { directory } => command::init(directory)?,
+pub fn handle_command(command: Command) -> Result<Option<String>> {
+    Ok(match command {
+        Command::Init { directory } => {
+            command::init(directory)?;
+            None
+        }
         Command::Items(c) => command::item::handle_command(c)?,
         Command::Review(c) => command::review::handle_command(c)?,
         Command::Tags(c) => command::tag::handle_command(c)?,
-    };
-    Ok(())
+    })
 }
 
 pub mod command {
@@ -88,7 +90,18 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(command: ItemCommand) -> Result<()> {
+        /// The user is required to either input a string directly or a path to a file,
+        /// in case of file, read string from file.
+        fn item_data_string(data: ItemInputData) -> Result<String> {
+            let str_data = match (data.data, data.file) {
+                (Some(data), None) => data,
+                (None, Some(path)) => std::fs::read_to_string(path)?,
+                _ => unreachable!("--data and --file flags where input at the same time"), // clap should handle such that this can never happen
+            };
+            Ok(str_data)
+        }
+
+        pub fn handle_command(command: ItemCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
@@ -96,21 +109,23 @@ pub mod command {
                     let id = queries::item::add(
                         &mut c,
                         &model,
-                        &data,
+                        &item_data_string(data)?,
                         &(tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
                     )?;
-                    println!("{}", json!({ "id": id }).to_string())
+                    Some(format!("{}", json!({ "id": id }).to_string()))
                 }
                 ItemCommand::Edit { id, model, data } => {
                     if let Some(model) = model {
                         queries::item::edit_model(&mut c, id, &model)?;
                     }
                     if let Some(data) = data {
-                        queries::item::edit_data(&mut c, id, &data)?;
+                        queries::item::edit_data(&mut c, id, &item_data_string(data)?)?;
                     }
+                    None
                 }
                 ItemCommand::Delete { id } => {
                     queries::item::delete(&mut c, id)?;
+                    None
                 }
                 ItemCommand::Query {
                     pre_filter,
@@ -121,7 +136,7 @@ pub mod command {
                     let items = queries::item::query(&mut c, pre_filter)?;
                     // we apply json filter on items
                     let items = jmessearch_and_prettify(items, post_filter, pretty)?;
-                    println!("{items}");
+                    Some(format!("{items}"))
                 }
             })
         }
@@ -157,9 +172,9 @@ pub mod command {
         use super::*;
         // use serde_json::json;
 
-        pub fn handle_command(command: ReviewCommand) -> Result<()> {
+        pub fn handle_command(command: ReviewCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path()?)?;
-            match command {
+            let res: Option<String> = match command {
                 ReviewCommand::Next(cmd) => match cmd {
                     NextReviewCommand::New {
                         pre_filter,
@@ -171,7 +186,7 @@ pub mod command {
 
                         // we apply json filter on items
                         let items = jmessearch_and_prettify(items, post_filter, pretty)?;
-                        println!("{items}");
+                        Some(format!("{items}"))
                     }
                     NextReviewCommand::Due {
                         pre_filter,
@@ -183,7 +198,7 @@ pub mod command {
 
                         // we apply json filter on items
                         let items = jmessearch_and_prettify(items, post_filter, pretty)?;
-                        println!("{items}");
+                        Some(format!("{items}"))
                     }
                 },
                 ReviewCommand::Score { id, grade } => {
@@ -244,6 +259,7 @@ pub mod command {
                             queries::review::set_sra_params(&mut c, id, s, d, today)?;
                         }
                     };
+                    None
                 }
                 ReviewCommand::QueryCount(cmd) => {
                     let res = match cmd {
@@ -254,12 +270,10 @@ pub mod command {
                             queries::review::query_n_new(&mut c, filter)?
                         }
                     };
-                    if let Some(res) = res {
-                        println!("{res}");
-                    }
+                    Some(format!("{res}"))
                 }
-            }
-            Ok(())
+            };
+            Ok(res)
         }
     }
 
@@ -268,16 +282,17 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(command: TagCommand) -> Result<()> {
+        pub fn handle_command(command: TagCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
                 TagCommand::Add { name } => {
                     let id = queries::tag::add(&mut c, &name)?;
-                    println!("{}", json!({ "id": id }).to_string());
+                    Some(format!("{}", json!({ "id": id }).to_string()))
                 }
                 TagCommand::Edit { old_name, new_name } => {
                     queries::tag::edit(&mut c, &old_name, &new_name)?;
+                    None
                 }
                 TagCommand::Query {
                     pretty,
@@ -286,7 +301,7 @@ pub mod command {
                 } => {
                     let tags = queries::tag::query(&mut c, pre_filter)?;
                     let tags = jmessearch_and_prettify(tags, post_filter, pretty)?;
-                    println!("{tags}");
+                    Some(format!("{tags}"))
                 }
             })
         }

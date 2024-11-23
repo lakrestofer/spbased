@@ -15,6 +15,10 @@ pub struct Cli {
     pub debug: u8,
     #[command(subcommand)]
     pub command: Command,
+
+    #[arg(short, long, global = true)]
+    /// optional output file
+    pub output: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
@@ -35,14 +39,18 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum ItemCommand {
     Add {
+        #[clap(short, long)]
         model: String,
-        data: String,
+        #[clap(flatten)]
+        data: ItemInputData,
+        #[clap(short, long)]
         tags: Vec<String>,
     },
     Edit {
         id: i32,
         model: Option<String>,
-        data: Option<String>,
+        #[clap(flatten)]
+        data: Option<ItemInputData>,
     },
     Delete {
         id: i32,
@@ -58,6 +66,16 @@ pub enum ItemCommand {
         #[arg(long, default_value_t = false)]
         pretty: bool,
     },
+}
+
+#[derive(clap::Args)]
+#[group(required = true, multiple = false)]
+/// arguments that can be used to input data
+pub struct ItemInputData {
+    #[clap(short, long)]
+    pub data: Option<String>,
+    #[clap(short, long)]
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

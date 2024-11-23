@@ -235,7 +235,7 @@ pub mod review {
             .filter_map(Result::ok);
         Ok(item.next())
     }
-    pub fn query_n_due(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<i32>> {
+    pub fn query_n_due(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<i32> {
         let query = match filter_expr {
             Some(expr) => format!(
                 "select count(*) from due_item where {}",
@@ -248,10 +248,11 @@ pub mod review {
             .query_map([], |r| Ok(r.get(0)?))?
             .filter_map(Result::ok)
             .next()
+            .map(|x: Option<i32>| x.unwrap_or(0))
             .ok_or(anyhow!("could not retrieve due count"));
         item
     }
-    pub fn query_n_new(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Option<i32>> {
+    pub fn query_n_new(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<i32> {
         let query = match filter_expr {
             Some(expr) => format!(
                 "select count(*) from new_item where {}",
@@ -264,6 +265,7 @@ pub mod review {
             .query_map([], |r| Ok(r.get(0)?))?
             .filter_map(Result::ok)
             .next()
+            .map(|x: Option<i32>| x.unwrap_or(0))
             .ok_or(anyhow!("could not retrieve new count"));
         item
     }
