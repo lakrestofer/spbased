@@ -101,26 +101,15 @@ pub mod command {
             Ok(str_data)
         }
 
-        fn model_data_string(model: ModelData) -> Result<String> {
-            let str_data = match (model.model, model.model_flag) {
-                (Some(d), None) => d,
-                (None, Some(f)) => std::fs::read_to_string(f)?,
-                _ => return Err(anyhow!("model was unset")),
-            };
-            Ok(str_data)
-        }
-
         pub fn handle_command(command: ItemCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
-                    let model = model_data_string(model)?;
-
                     let id = queries::item::add(
                         &mut c,
                         &model,
-                        &item_data_string(data)?,
+                        &item_data_string(data.into())?,
                         &(tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
                     )?;
                     Some(format!("{}", json!({ "id": id }).to_string()))

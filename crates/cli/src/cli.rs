@@ -39,24 +39,23 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum ItemCommand {
     Add {
+        #[clap(short, long)]
+        model: String,
         #[clap(flatten)]
-        model: ModelData,
-        #[clap(flatten)]
-        data: ItemInputData,
+        data: ItemInputDataRequired,
         #[clap(short, long)]
         tags: Vec<String>,
     },
     Edit {
         id: i32,
         #[clap(flatten)]
-        model: Option<ModelData>,
-        #[clap(flatten)]
         data: Option<ItemInputData>,
+        #[clap(short, long)]
+        model: Option<String>,
     },
     Delete {
         id: i32,
     },
-    // TODO add filters, for now simply list all options
     Query {
         #[arg(long, value_parser = parser::ast_node)]
         // filter based on
@@ -68,19 +67,30 @@ pub enum ItemCommand {
         pretty: bool,
     },
 }
-
-#[derive(clap::Args)]
-#[group(required = true, multiple = false)]
-pub struct ModelData {
-    pub model: Option<String>,
-    #[clap(short = 'm', long = "model")]
-    pub model_flag: Option<String>,
-}
-
 #[derive(clap::Args)]
 #[group(required = true, multiple = false)]
 /// arguments that can be used to input data
+pub struct ItemInputDataRequired {
+    #[clap(short, long)]
+    pub data: Option<String>,
+    #[clap(short, long)]
+    pub file: Option<PathBuf>,
+}
+
+impl From<ItemInputDataRequired> for ItemInputData {
+    fn from(value: ItemInputDataRequired) -> Self {
+        Self {
+            data: value.data,
+            file: value.file,
+        }
+    }
+}
+
+#[derive(clap::Args)]
+#[group(multiple = false)]
+/// arguments that can be used to input data
 pub struct ItemInputData {
+    #[clap(short, long)]
     pub data: Option<String>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use dialoguer::{Editor, Input};
+use dialoguer::Input;
 
 pub fn handle_command(command: cli::Command) -> Result<Option<String>> {
     Ok(match command {
@@ -22,25 +22,23 @@ pub fn handle_command(command: cli::Command) -> Result<Option<String>> {
             Some(format!("{}", output))
         }
         cli::Command::Edit { pretty, flashcard } => {
-            let question = Editor::new()
-                .extension(".md")
-                .edit(&flashcard.question)
-                .unwrap();
-            let answer = Editor::new()
-                .extension(".md")
-                .edit(&flashcard.answer)
-                .unwrap();
-            if let (Some(question), Some(answer)) = (question, answer) {
-                let flashcard = model::FlashCard { question, answer };
-                let output = if pretty {
-                    serde_json::to_string_pretty(&flashcard)?
-                } else {
-                    serde_json::to_string(&flashcard)?
-                };
-                Some(format!("{}", output))
+            let question: String = Input::new()
+                .with_prompt("Question")
+                .default(flashcard.question)
+                .interact_text()
+                .map_err(|e| anyhow!("could not prompt for question: {:?}", e))?;
+            let answer: String = Input::new()
+                .with_prompt("Answer")
+                .default(flashcard.answer)
+                .interact_text()
+                .map_err(|e| anyhow!("could not prompt for question: {:?}", e))?;
+            let flashcard = model::FlashCard { question, answer };
+            let output = if pretty {
+                serde_json::to_string_pretty(&flashcard)?
             } else {
-                None
-            }
+                serde_json::to_string(&flashcard)?
+            };
+            Some(format!("{}", output))
         }
         cli::Command::ReadQuestion { flashcard } => Some(format!("{}", flashcard.question)),
         cli::Command::ReadAnswer { flashcard } => Some(format!("{}", flashcard.answer)),
