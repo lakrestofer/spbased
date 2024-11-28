@@ -5,6 +5,7 @@ members = [
     "crates/sra",
     "crates/model",
     "crates/flashcard",
+    "crates/reading",
 ]
 
 resolver = "2"
