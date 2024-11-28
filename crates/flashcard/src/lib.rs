@@ -1,24 +1,25 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
-use dialoguer::Editor;
+use dialoguer::{Editor, Input};
 
-pub fn handle_command(command: cli::Command) -> Result<()> {
-    match command {
+pub fn handle_command(command: cli::Command) -> Result<Option<String>> {
+    Ok(match command {
         cli::Command::Create { pretty } => {
-            let question = Editor::new()
-                .extension(".md")
-                .edit("# Question\n\n")
-                .unwrap();
-            let answer = Editor::new().extension(".md").edit("# Answer\n\n").unwrap();
-            if let (Some(question), Some(answer)) = (question, answer) {
-                let flashcard = model::FlashCard { question, answer };
-                let output = if pretty {
-                    serde_json::to_string_pretty(&flashcard)?
-                } else {
-                    serde_json::to_string(&flashcard)?
-                };
-                println!("{}", output);
-            }
+            let question: String = Input::new()
+                .with_prompt("Question")
+                .interact_text()
+                .map_err(|e| anyhow!("could not prompt for question: {:?}", e))?;
+            let answer: String = Input::new()
+                .with_prompt("Answer")
+                .interact_text()
+                .map_err(|e| anyhow!("could not prompt for question: {:?}", e))?;
+            let flashcard = model::FlashCard { question, answer };
+            let output = if pretty {
+                serde_json::to_string_pretty(&flashcard)?
+            } else {
+                serde_json::to_string(&flashcard)?
+            };
+            Some(format!("{}", output))
         }
         cli::Command::Edit { pretty, flashcard } => {
             let question = Editor::new()
@@ -36,27 +37,35 @@ pub fn handle_command(command: cli::Command) -> Result<()> {
                 } else {
                     serde_json::to_string(&flashcard)?
                 };
-                println!("{}", output);
+                Some(format!("{}", output))
+            } else {
+                None
             }
         }
-        cli::Command::ReadQuestion { flashcard } => println!("{}", flashcard.question),
-        cli::Command::ReadAnswer { flashcard } => println!("{}", flashcard.answer),
-    }
-    Ok(())
+        cli::Command::ReadQuestion { flashcard } => Some(format!("{}", flashcard.question)),
+        cli::Command::ReadAnswer { flashcard } => Some(format!("{}", flashcard.answer)),
+    })
 }
 
 pub mod cli {
+    use std::path::PathBuf;
+
     use super::*;
 
     use crate::model::FlashCard;
 
     #[derive(Debug, Parser)]
+    /// cli to create and manage flashcards. Provides a way to create, edit and read flashcards
+    ///
     pub struct Cli {
         /// Turn debugging information on
         #[arg(short, long, action = clap::ArgAction::Count)]
         pub debug: u8,
         #[command(subcommand)]
         pub command: Command,
+        #[arg(short, long, global = true)]
+        /// optional output file
+        pub output: Option<PathBuf>,
     }
 
     #[derive(Subcommand, Debug)]
