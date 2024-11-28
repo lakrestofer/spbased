@@ -39,8 +39,8 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum ItemCommand {
     Add {
-        #[clap(short, long)]
-        model: String,
+        #[clap(flatten)]
+        model: ModelData,
         #[clap(flatten)]
         data: ItemInputData,
         #[clap(short, long)]
@@ -48,7 +48,8 @@ pub enum ItemCommand {
     },
     Edit {
         id: i32,
-        model: Option<String>,
+        #[clap(flatten)]
+        model: Option<ModelData>,
         #[clap(flatten)]
         data: Option<ItemInputData>,
     },
@@ -70,9 +71,16 @@ pub enum ItemCommand {
 
 #[derive(clap::Args)]
 #[group(required = true, multiple = false)]
+pub struct ModelData {
+    pub model: Option<String>,
+    #[clap(short = 'm', long = "model")]
+    pub model_flag: Option<String>,
+}
+
+#[derive(clap::Args)]
+#[group(required = true, multiple = false)]
 /// arguments that can be used to input data
 pub struct ItemInputData {
-    #[clap(short, long)]
     pub data: Option<String>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,

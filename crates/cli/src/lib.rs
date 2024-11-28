@@ -94,9 +94,18 @@ pub mod command {
         /// in case of file, read string from file.
         fn item_data_string(data: ItemInputData) -> Result<String> {
             let str_data = match (data.data, data.file) {
-                (Some(data), None) => data,
-                (None, Some(path)) => std::fs::read_to_string(path)?,
-                _ => unreachable!("--data and --file flags where input at the same time"), // clap should handle such that this can never happen
+                (Some(d), None) => d,
+                (None, Some(f)) => std::fs::read_to_string(f)?,
+                _ => return Err(anyhow!("data was unset")),
+            };
+            Ok(str_data)
+        }
+
+        fn model_data_string(model: ModelData) -> Result<String> {
+            let str_data = match (model.model, model.model_flag) {
+                (Some(d), None) => d,
+                (None, Some(f)) => std::fs::read_to_string(f)?,
+                _ => return Err(anyhow!("model was unset")),
             };
             Ok(str_data)
         }
@@ -106,6 +115,8 @@ pub mod command {
 
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
+                    let model = model_data_string(model)?;
+
                     let id = queries::item::add(
                         &mut c,
                         &model,
