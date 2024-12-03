@@ -90,17 +90,6 @@ pub mod command {
 
         use super::*;
 
-        /// The user is required to either input a string directly or a path to a file,
-        /// in case of file, read string from file.
-        fn item_data_string(data: ItemInputData) -> Result<String> {
-            let str_data = match (data.data, data.file) {
-                (Some(d), None) => d,
-                (None, Some(f)) => std::fs::read_to_string(f)?,
-                _ => return Err(anyhow!("data was unset")),
-            };
-            Ok(str_data)
-        }
-
         pub fn handle_command(command: ItemCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path()?)?;
 
@@ -109,7 +98,7 @@ pub mod command {
                     let id = queries::item::add(
                         &mut c,
                         &model,
-                        &item_data_string(data.into())?,
+                        &extract_json_data(data.into())?.to_string(),
                         &(tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
                     )?;
                     Some(format!("{}", json!({ "id": id }).to_string()))
@@ -119,7 +108,11 @@ pub mod command {
                         queries::item::edit_model(&mut c, id, &model)?;
                     }
                     if let Some(data) = data {
-                        queries::item::edit_data(&mut c, id, &item_data_string(data)?)?;
+                        queries::item::edit_data(
+                            &mut c,
+                            id,
+                            &extract_json_data(data)?.to_string(),
+                        )?;
                     }
                     None
                 }
@@ -140,6 +133,17 @@ pub mod command {
                 }
             })
         }
+    }
+
+    /// The user is required to either input a string directly or a path to a file,
+    /// in case of file, read string from file. Validate that it as a valid json string
+    fn extract_json_data(data: ItemInputData) -> Result<serde_json::Value> {
+        let str_data = match (data.data, data.file) {
+            (Some(d), None) => d,
+            (None, Some(f)) => serde_json::from_reader(std::fs::File::open(f)?)?,
+            _ => return Err(anyhow!("data was unset")),
+        };
+        Ok(str_data)
     }
 
     fn jmessearch_and_prettify<T: serde::ser::Serialize>(
@@ -186,7 +190,7 @@ pub mod command {
 
                         // we apply json filter on items
                         let items = jmessearch_and_prettify(items, post_filter, pretty)?;
-                        Some(format!("{items}"))
+                        Some(format!("{}", items))
                     }
                     NextReviewCommand::Due {
                         pre_filter,

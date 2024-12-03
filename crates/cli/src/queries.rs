@@ -14,10 +14,8 @@ pub mod template {
 }
 
 pub mod item {
-
-    use filter_language::AstNode;
-
     use super::*;
+    use filter_language::AstNode;
 
     /// Add item to db
     pub fn add(c: &mut Connection, model: &str, data: &str, tags: &[&str]) -> Result<i32> {
@@ -348,7 +346,11 @@ mod tests {
         item::edit_model(&mut c, id, "reading").unwrap();
         let item = item::get(&mut c, id).unwrap();
         assert_eq!(item.model, "reading");
-        assert_eq!(item.data, r#"{"front":"foobar","back":"barbaz"}"#);
+        assert_eq!(
+            item.data.0,
+            serde_json::from_str::<serde_json::Value>(r#"{"front":"foobar","back":"barbaz"}"#)
+                .unwrap()
+        );
     }
     // -------------
     // ==== items ====

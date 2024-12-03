@@ -72,7 +72,7 @@ pub enum ItemCommand {
 /// arguments that can be used to input data
 pub struct ItemInputDataRequired {
     #[clap(short, long)]
-    pub data: Option<String>,
+    pub data: Option<serde_json::Value>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,
 }
@@ -91,7 +91,7 @@ impl From<ItemInputDataRequired> for ItemInputData {
 /// arguments that can be used to input data
 pub struct ItemInputData {
     #[clap(short, long)]
-    pub data: Option<String>,
+    pub data: Option<serde_json::Value>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,
 }
