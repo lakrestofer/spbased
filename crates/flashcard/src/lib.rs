@@ -91,6 +91,8 @@ pub mod cli {
     pub mod parser {
         use super::*;
         pub fn flashcard(s: &str) -> Result<crate::model::FlashCard> {
+            // if s is wrapped in quotes, remove them
+            let s = s.trim_matches('\"');
             Ok(serde_json::from_str(s)?)
         }
     }

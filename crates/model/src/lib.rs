@@ -6,8 +6,27 @@ use serde::Deserialize;
 use serde::Serialize;
 use time::OffsetDateTime;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonData(pub serde_json::Value);
+
+impl FromSql for JsonData {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        let s = value.as_str()?;
+        match serde_json::from_str(s) {
+            Ok(v) => Ok(JsonData(v)),
+            Err(_) => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
+impl ToSql for JsonData {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        Ok(self.0.to_string().into())
+    }
+}
+
 pub type ItemModel = String;
-pub type ItemData = String;
+pub type ItemData = JsonData;
 pub type TagName = String;
 
 /// A measure of how well we've 'learnt' an item.
