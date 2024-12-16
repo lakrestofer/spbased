@@ -21,6 +21,7 @@ pub mod queries;
 
 use cli::*;
 
+pub const SPBASED_DATA_DIR: &'static str = "spbased";
 pub const SPBASED_WORK_DIR: &'static str = ".spbased";
 pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
 pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
@@ -44,8 +45,20 @@ pub mod command {
 
     /// Init a new .spbased directory containing a sqlite db instance
     /// and a config file
-    pub fn init(directory: PathBuf) -> Result<()> {
-        let full_path: PathBuf = directory.try_resolve()?.into_owned().normalize();
+    pub fn init(directory: Option<PathBuf>) -> Result<()> {
+        let (full_path, spbased_dir) = match directory {
+            Some(d) => {
+                let full_path: PathBuf = d.try_resolve()?.into_owned().normalize();
+                let spbased_dir = full_path.join(SPBASED_WORK_DIR);
+                (full_path, spbased_dir)
+            }
+            None => {
+                let full_path = dirs::data_local_dir()
+                    .ok_or(anyhow!("could not find a local data directory"))?;
+                let spbased_dir = full_path.join(SPBASED_DATA_DIR);
+                (full_path, spbased_dir)
+            }
+        };
 
         if !Confirm::new()
             .with_prompt(format!(
@@ -59,15 +72,12 @@ pub mod command {
             return Ok(());
         }
 
-        let spbased_dir = full_path.join(SPBASED_WORK_DIR);
-
         // confirm that user wants to overwrite dir
         if spbased_dir.exists() {
             let res = Confirm::new()
         .with_prompt(format!(
-            "A directory called {} already exists at {:?}. Are you sure that you want to (re)init spased here?",
-            SPBASED_WORK_DIR,
-            full_path
+            "A directory already exists at {:?}. Are you sure that you want to (re)init spbased here?",
+            spbased_dir
         ))
         .interact()
         .context("tried to retrieve an answer from the user")?;
@@ -91,7 +101,8 @@ pub mod command {
         use super::*;
 
         pub fn handle_command(command: ItemCommand) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path()?)?;
+            let spbased_dir = get_spbased_dir()?;
+            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
 
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
@@ -177,7 +188,8 @@ pub mod command {
         // use serde_json::json;
 
         pub fn handle_command(command: ReviewCommand) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path()?)?;
+            let spbased_dir = get_spbased_dir()?;
+            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
             let res: Option<String> = match command {
                 ReviewCommand::Next(cmd) => match cmd {
                     NextReviewCommand::New {
@@ -287,7 +299,8 @@ pub mod command {
         use super::*;
 
         pub fn handle_command(command: TagCommand) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path()?)?;
+            let spbased_dir = get_spbased_dir()?;
+            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
 
             Ok(match command {
                 TagCommand::Add { name } => {
@@ -312,22 +325,48 @@ pub mod command {
     }
 }
 
-pub fn get_db_path() -> Result<PathBuf> {
+pub fn get_spbased_dir_cwd() -> Result<PathBuf> {
     let cwd = std::env::current_dir()?;
     let spbased_dir = cwd.join(SPBASED_WORK_DIR);
-    if !spbased_dir.is_dir() {
-        return Err(anyhow!(
-            "directory .spbased could not be found in current working directory"
-        ));
+    if spbased_dir.is_dir() {
+        Ok(spbased_dir)
+    } else {
+        Err(anyhow!(
+            "Could not find .spbased directory in current working directory"
+        ))
     }
-    let spbased_db = spbased_dir.join(SPBASED_DB_NAME);
-    if !spbased_db.is_file() {
-        return Err(anyhow!(
-            "{} could not be found in .spbased",
-            SPBASED_DB_NAME
-        ));
+}
+
+pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
+    let user_data_dir =
+        dirs::data_local_dir().ok_or(anyhow!("Could not find user data directory"))?;
+    let spbased_dir = user_data_dir.join(SPBASED_DATA_DIR);
+    if spbased_dir.is_dir() {
+        Ok(spbased_dir)
+    } else {
+        Err(anyhow!(
+            "Could not find spbased directory in {:?}",
+            user_data_dir
+        ))
     }
-    return Ok(spbased_db);
+}
+
+pub fn get_spbased_dir() -> Result<PathBuf> {
+    match get_spbased_dir_cwd() {
+        Ok(dir) => Ok(dir),
+        Err(cwd_e) => match get_spbased_dir_user_data() {
+            Ok(dir) => Ok(dir),
+            Err(user_data_e) => Err(anyhow!(
+                "Could not find spbased directory: {:?} {:?}",
+                cwd_e,
+                user_data_e
+            )),
+        },
+    }
+}
+
+pub fn get_db_path(spbased_dir: PathBuf) -> PathBuf {
+    spbased_dir.join(SPBASED_DB_NAME)
 }
 
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======

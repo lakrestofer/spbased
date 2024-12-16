@@ -32,7 +32,7 @@ pub fn handle_command(command: cli::Command) -> Result<()> {
             let fragment = SourceFragment {
                 path,
                 task_description: task,
-                page: page.parse()?,
+                page,
             };
             println!("{}", serde_json::to_string(&fragment)?);
         }
@@ -115,7 +115,7 @@ pub mod cli {
     pub enum Command {
         Create {
             path: String,
-            page: String,
+            page: i32,
             task_description: Option<String>,
         },
         Edit {

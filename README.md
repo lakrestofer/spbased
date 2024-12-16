@@ -5,30 +5,21 @@
 - [ ] finish user commands to interact with cli
 
 ## Description
-
-
 Spbased is a content agnostic spased repetition tool. It only knows about the notion of a
 generic "review item", an object with an id, parameters for the spased repetition algorithm,
-a specific "item type", and a "data" field. That's it. 
+a specific "item type", and a "data" field. That's it.
 
 - review item
   - id
   - review parameters (difficulty, stability, date of last review etc)
   - review item type
-    - foreign id to 
-  - generic data field (string. can store json, some id, whatever)
-    - The data field is just a string. It is up to the user to interpret the data.
+    - foreign id to
+  - generic json data field
   - other metadata (updated at, created at etc)
   - tags
 
 - For a review item to be useful, it needs an associated item type.
 
-- register one or several items types
-  - item type
-    - name
-    - program that is used for "reviewing" a specific review item.
-      - expects the contents of the data field
-      - returns 
 
 - each review item may have one or more tags associated with it as well
 
@@ -45,15 +36,15 @@ a specific "item type", and a "data" field. That's it.
 
 - "review item" - the flashcard,prompt,task etc. being scheduled in a spased maner.
 - "review" - (in the context of spbased) given a review item that is due, launch the program that can interpret it, review it and return a measure of how well it went.
-- "review item model" - or just 'model', the specific type of review item, and 
+- "review item model" - or just 'model', the specific type of review item, and
 
 ## Example use
 
 **Add review item (flashcard)**
-```
+```zsh
 >> spbasedctl item add \
   "flashcard" \
-  "{"front":"what is the capital of sweden","back":"stockholm","tags":["geography"]}"
+  '{"front":"what is the capital of sweden","back":"stockholm","tags":["geography"]}'
 ```
 
 **review item (flashcard)**

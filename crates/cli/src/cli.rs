@@ -24,7 +24,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
-    Init { directory: PathBuf },
+    Init { directory: Option<PathBuf> },
     /// CRUD items
     #[command(subcommand)]
     Items(ItemCommand),
@@ -71,7 +71,7 @@ pub enum ItemCommand {
 #[group(required = true, multiple = false)]
 /// arguments that can be used to input data
 pub struct ItemInputDataRequired {
-    #[clap(short, long)]
+    #[clap(short, long, value_parser = parser::json_value)]
     pub data: Option<serde_json::Value>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,
@@ -90,7 +90,7 @@ impl From<ItemInputDataRequired> for ItemInputData {
 #[group(multiple = false)]
 /// arguments that can be used to input data
 pub struct ItemInputData {
-    #[clap(short, long)]
+    #[clap(short, long, value_parser = parser::json_value)]
     pub data: Option<serde_json::Value>,
     #[clap(short, long)]
     pub file: Option<PathBuf>,
@@ -185,6 +185,10 @@ pub mod parser {
 
     pub fn ast_node(s: &str) -> Result<AstNode, String> {
         filter_language::FilterLangParser::parse(s).map_err(|e| e.to_string())
+    }
+
+    pub fn json_value(s: &str) -> Result<serde_json::Value, String> {
+        serde_json::from_str(s).map_err(|e| e.to_string())
     }
 }
 
