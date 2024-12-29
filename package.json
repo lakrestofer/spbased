@@ -1,8 +1,0 @@
-{
-  "name": "spbased",
-  "version": "0.0.1",
-  "workspaces": [
-    "clients/*"
-  ],
-  "private": true
-}
