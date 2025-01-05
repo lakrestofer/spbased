@@ -15,6 +15,7 @@
     };
 
     flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-root.url = "github:srid/flake-root";
   };
 
   # Flake outputs that other flakes can use
@@ -27,61 +28,52 @@
       flake-parts,
       ...
     }@inputs:
-    let
-      # Nixpkgs overlays
-      overlays = [
-        rust-overlay.overlays.default
-        (final: prev: {
-          rustToolchain = final.rust-bin.nightly.latest.default.override { extensions = [ "rust-src" ]; };
-        })
+    flake-parts.lib.mkFlake { inherit inputs self; } {
+      imports = [
+        inputs.flake-root.flakeModule
       ];
-
-      # Helpers for producing system-specific outputs
-      supportedSystems = [ "x86_64-linux" ];
-      forEachSupportedSystem =
-        f:
-        nixpkgs.lib.genAttrs supportedSystems (
-          system:
-          f {
-            pkgs = import nixpkgs { inherit overlays system; };
-          }
-        );
-    in
-    flake-parts.lib.mkFlake { inherit inputs; } {
       flake = {
         # Schemas tell Nix about the structure of your flake's outputs
         schemas = flake-schemas.schemas;
-
-        # Development environments
-        devShells = forEachSupportedSystem (
-          { pkgs }:
-          {
-            default = pkgs.mkShell {
-              # Pinned packages available in the environment
-              packages = with pkgs; [
-                rustToolchain
-                cargo-bloat
-                cargo-edit
-                rust-analyzer
-              ];
-
-              # Environment variables
-              env = {
-                RUST_BACKTRACE = "1";
-                RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
-                SPBASEDCTL_BIN = "./target/release/spbasedctl";
-              };
-            };
-          }
-        );
-
       };
       systems = [
         "x86_64-linux"
       ];
       perSystem =
-        { config, ... }:
         {
+          pkgs,
+          system,
+          config,
+          ...
+        }:
+        {
+          _module.args.pkgs = import inputs.nixpkgs {
+            inherit system;
+            overlays = [
+              rust-overlay.overlays.default
+              (final: prev: {
+                rustToolchain = final.rust-bin.nightly.latest.default.override { extensions = [ "rust-src" ]; };
+              })
+            ];
+            config = { };
+          };
+          flake-root.projectRootFile = "flake.nix"; # Not necessary, as flake.nix is the default
+          devShells.default = pkgs.mkShell {
+            inputsFrom = [ config.flake-root.devShell ]; # Provides $FLAKE_ROOT in dev shell
+            packages = with pkgs; [
+              gum
+              jq
+              rustToolchain
+              cargo-bloat
+              cargo-edit
+              rust-analyzer
+            ];
+            env = {
+              RUST_BACKTRACE = "1";
+              RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+              SPBASEDCTL_BIN = "/target/release/spbasedctl";
+            };
+          };
         };
     };
 }
