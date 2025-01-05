@@ -41,15 +41,15 @@ pub enum ItemCommand {
     Add {
         #[clap(short, long)]
         model: String,
-        #[clap(flatten)]
-        data: ItemInputDataRequired,
+        #[clap(short, long, value_parser = parser::json_value)]
+        data: serde_json::Value,
         #[clap(short, long)]
         tags: Vec<String>,
     },
     Edit {
         id: i32,
-        #[clap(flatten)]
-        data: Option<ItemInputData>,
+        #[clap(short, long, value_parser = parser::json_value)]
+        data: Option<serde_json::Value>,
         #[clap(short, long)]
         model: Option<String>,
     },

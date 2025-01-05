@@ -106,10 +106,12 @@ pub mod command {
 
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
+                    println!("{:?}", &data);
+
                     let id = queries::item::add(
                         &mut c,
                         &model,
-                        &extract_json_data(data.into())?.to_string(),
+                        &data.to_string(),
                         &(tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
                     )?;
                     Some(format!("{}", json!({ "id": id }).to_string()))
@@ -119,11 +121,7 @@ pub mod command {
                         queries::item::edit_model(&mut c, id, &model)?;
                     }
                     if let Some(data) = data {
-                        queries::item::edit_data(
-                            &mut c,
-                            id,
-                            &extract_json_data(data)?.to_string(),
-                        )?;
+                        queries::item::edit_data(&mut c, id, &data.to_string())?;
                     }
                     None
                 }

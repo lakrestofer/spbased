@@ -61,6 +61,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = [ config.flake-root.devShell ]; # Provides $FLAKE_ROOT in dev shell
             packages = with pkgs; [
+              nodejs
               gum
               jq
               rustToolchain

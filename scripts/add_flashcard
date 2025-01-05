@@ -1,15 +1,33 @@
 #!/usr/bin/env zsh
 
-SPBASEDCTL_BIN_=${$SPBASEDCTL_BIN:-spbasedctl}
+# optionally read in spbasedctl path from environment
+if [[ -z $SPBASEDCTL_BIN ]]; then
+  # check that spbasedctl exist globally
+  if which spbasedctl>/dev/null 2>&1; then
+    SPBASEDCTL_BIN_="spbasedctl"
+  else
+    echo "SPBASEDCTL_BIN was unset and spbasedctl not found on PATH! exiting..."
+    exit 1
+  fi
+else
+  # TODO make this more bulletproof (design wise, not necessarily by adding my branches)
+  if [[ -z $FLAKE_ROOT ]]; then
+    SPBASEDCTL_BIN_="$SPBASEDCTL_BIN" # assume path is
+  else
+    SPBASEDCTL_BIN_="$FLAKE_ROOT$SPBASEDCTL_BIN"
+  fi
+fi
 
+## prompt the user for their question answer pair
 QUESTION=$(gum write --placeholder="question")
 ANSWER=$(gum write --placeholder="answer")
 
+## Both question and answer must be set
 if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
   echo "must provide non empty input"
   exit 1
 fi
 
-FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer | tojson')
+FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer')
 
 "$SPBASEDCTL_BIN_" items add --model "flashcard" --data "$FLASHCARD"
