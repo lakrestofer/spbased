@@ -13,6 +13,8 @@
       url = "https://flakehub.com/f/oxalica/rust-overlay/0.1.*";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
   # Flake outputs that other flakes can use
@@ -22,7 +24,9 @@
       flake-schemas,
       nixpkgs,
       rust-overlay,
-    }:
+      flake-parts,
+      ...
+    }@inputs:
     let
       # Nixpkgs overlays
       overlays = [
@@ -43,30 +47,41 @@
           }
         );
     in
-    {
-      # Schemas tell Nix about the structure of your flake's outputs
-      schemas = flake-schemas.schemas;
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      flake = {
+        # Schemas tell Nix about the structure of your flake's outputs
+        schemas = flake-schemas.schemas;
 
-      # Development environments
-      devShells = forEachSupportedSystem (
-        { pkgs }:
-        {
-          default = pkgs.mkShell {
-            # Pinned packages available in the environment
-            packages = with pkgs; [
-              rustToolchain
-              cargo-bloat
-              cargo-edit
-              rust-analyzer
-            ];
+        # Development environments
+        devShells = forEachSupportedSystem (
+          { pkgs }:
+          {
+            default = pkgs.mkShell {
+              # Pinned packages available in the environment
+              packages = with pkgs; [
+                rustToolchain
+                cargo-bloat
+                cargo-edit
+                rust-analyzer
+              ];
 
-            # Environment variables
-            env = {
-              RUST_BACKTRACE = "1";
-              RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+              # Environment variables
+              env = {
+                RUST_BACKTRACE = "1";
+                RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+                SPBASEDCTL_BIN = "./target/release/spbasedctl";
+              };
             };
-          };
-        }
-      );
+          }
+        );
+
+      };
+      systems = [
+        "x86_64-linux"
+      ];
+      perSystem =
+        { config, ... }:
+        {
+        };
     };
 }

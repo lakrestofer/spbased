@@ -1,0 +1,15 @@
+#!/usr/bin/env zsh
+
+SPBASEDCTL_BIN_=${$SPBASEDCTL_BIN:-spbasedctl}
+
+QUESTION=$(gum write --placeholder="question")
+ANSWER=$(gum write --placeholder="answer")
+
+if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
+  echo "must provide non empty input"
+  exit 1
+fi
+
+FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer | tojson')
+
+"$SPBASEDCTL_BIN_" items add --model "flashcard" --data "$FLASHCARD"
