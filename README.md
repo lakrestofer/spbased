@@ -38,10 +38,41 @@ for more advanced or streamlined usecases.
 
 ## Command line usage
 
-### Filter expression language
+### Pre filter expression language
 
 The commandline query commands (review command included) can be passed
-a `--pre-filter` flag
+a `--pre-filter` flag which then takes a small domainspecific language
+as an argument.
+
+The language allows for a simple combination of comparison and logical
+operations. Comparisons between some `review_item` field and value
+which may then be combined with logical operations.
+
+- `--pre-filter 'id==3'`
+- `--pre-filter "maturity=='Young'"`
+
+Supported values include strings, integers, floats and booleans.
+
+Some special handling is taken on fields which represent time. Here
+care is taken such that the value is a valid point in time. Here we
+may add semantic descriptions of time in the future (e.g "three days
+ago")
+
+### Post filter
+
+Most commands that return a json result can also be passed a
+`--post-filter` flag which takes a [jmespath](https://jmespath.org/)
+expression. This can be done to further extract any wanted data.
+
+```shell
+> spbasedctl items query --pre-filter "maturity='Young'" --post-filter "[*].id"
+```
+
+whose output may be
+
+```
+[1, 2, 42, 4]
+```
 
 ## Examples
 

@@ -20,11 +20,10 @@ filter = _{ SOI ~ logical_filter ~ EOI }
                     ge = {">"}
                     geq = {">="}
                 value = _{ string | integer | float | boolean }
-                    string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" }
+                    string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" } // TODO I don't remember if the `"''"` portion in ` ~ ( "''"` is a bug or not
                     sign = @{ "-" | "+" }
                     integer = @{ sign? ~ ASCII_DIGIT+ }
                     float = @{ sign? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT }
                     boolean = @{ ^"true" | ^"false" }
-
 
 WHITESPACE = _{ " "|"\t"|"\n"|"\r" }
