@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = { workspace = true }
 clap = { workspace = true }
 dialoguer = { workspace = true }
+normalize-path = { workspace = true }
+resolve-path = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-anyhow = { workspace = true }
-resolve-path = { workspace = true }
-normalize-path = { workspace = true }

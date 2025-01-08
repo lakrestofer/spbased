@@ -1,28 +1,28 @@
 [package]
 name = "spbasedctl"
 version = "0.1.0"
-edition = "2021"
 build = "build.rs"
+edition = "2021"
 
 [dependencies]
-sra = { workspace = true }
-model = { workspace = true }
+anyhow = { workspace = true }
 clap = { workspace = true }
+config = { workspace = true }
+dialoguer = { workspace = true }
+dirs = { workspace = true }
+include_dir = { workspace = true }
+jmespath = { workspace = true }
+model = { workspace = true }
+normalize-path = { workspace = true }
+pest = { workspace = true }
+pest_ascii_tree = { workspace = true }
+pest_derive = { workspace = true }
+resolve-path = { workspace = true }
 rusqlite = { workspace = true }
 rusqlite_migration = { workspace = true }
-dirs = { workspace = true }
-serde_json = { workspace = true }
-toml = { workspace = true }
 serde = { workspace = true }
-anyhow = { workspace = true }
-dialoguer = { workspace = true }
-include_dir = { workspace = true }
-resolve-path = { workspace = true }
-normalize-path = { workspace = true }
+serde_json = { workspace = true }
+sra = { workspace = true }
 time = { workspace = true }
+toml = { workspace = true }
 uuid = { workspace = true }
-config = { workspace = true }
-jmespath = { workspace = true }
-pest = { workspace = true }
-pest_derive = { workspace = true }
-pest_ascii_tree = { workspace = true }

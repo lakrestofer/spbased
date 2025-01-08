@@ -1,55 +1,37 @@
 [workspace]
 members = [
-    "crates/cli",
-    "crates/cli/scripts/new_migration",
-    "crates/sra",
-    "crates/model",
-    "crates/flashcard",
-    "crates/reading",
+  "crates/cli",
+  "crates/cli/scripts/new_migration",
+  "crates/flashcard",
+  "crates/model",
+  "crates/reading",
+  "crates/sra",
 ]
 
 resolver = "2"
 
 [workspace.dependencies]
 # internal dependencies
-sra = { path = "./crates/sra" }
+anyhow = "1.0.86"
+clap = { version = "4.5", features = ["derive", "cargo", "wrap_help", "unicode", "string", "unstable-styles"] }
+config = "0.14.0"
+dialoguer = "0.11.0"
+dirs = "5.0.1"
+include_dir = "0.7.4"
+jmespath = { version = "0.3", features = ["specialized"] }
 model = { path = "./crates/model" }
-# external dependencies
-tokio = { version = "1", features = ["full"] }
+normalize-path = "0.2.1"
+pest = { version = "2.7" }
+pest_ascii_tree = "0.1.0"
+pest_derive = { version = "2.7" }
+resolve-path = "0.1.0"
+rusqlite = { version = "0.31.0", features = ["bundled", "time", "uuid", "rusqlite-macros"] }
+rusqlite_migration = { version = "1.2", features = ["from-directory"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sra = { path = "./crates/sra" }
+time = { version = "0.3.36", features = ["parsing", "formatting", "macros", "serde", "default"] }
+# external dependencies
+tokio = { version = "1", features = ["full"] }
 toml = "0.8"
-clap = { version = "4.5", features = [
-    "derive",
-    "cargo",
-    "wrap_help",
-    "unicode",
-    "string",
-    "unstable-styles",
-] }
-rusqlite = { version = "0.31.0", features = [
-    "bundled",
-    "time",
-    "uuid",
-    "rusqlite-macros",
-] }
-rusqlite_migration = { version = "1.2", features = ["from-directory"] }
-dirs = "5.0.1"
-anyhow = "1.0.86"
-dialoguer = "0.11.0"
-include_dir = "0.7.4"
-time = { version = "0.3.36", features = [
-    "parsing",
-    "formatting",
-    "macros",
-    "serde",
-    "default",
-] }
-resolve-path = "0.1.0"
-normalize-path = "0.2.1"
 uuid = { version = "1.10.0", features = ["v4"] }
-config = "0.14.0"
-jmespath = { version = "0.3", features = ["specialized"] }
-pest = { version = "2.7" }
-pest_derive = { version = "2.7" }
-pest_ascii_tree = "0.1.0"

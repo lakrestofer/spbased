@@ -10,4 +10,3 @@ args = ["run", "--package", "new_migration", "--release", "--", "migrations"]
 [tasks.setup_dev_db]
 command = "cargo"
 args = ["run", "--package", "spbased-cli", "--", "init", ".tmp"]
-

@@ -1,50 +1,49 @@
 # Spbased
 
-## Current TODO
-
-- [ ] finish user commands to interact with cli
-
 ## Description
-Spbased is a content agnostic spased repetition tool. It only knows about the notion of a
-generic "review item", an object with an id, parameters for the spased repetition algorithm,
-a specific "item type", and a "data" field. That's it.
 
-- review item
-  - id
-  - review parameters (difficulty, stability, date of last review etc)
-  - review item type
-    - foreign id to
-  - generic json data field
-  - other metadata (updated at, created at etc)
-  - tags
+Spbased is a content agnostic spased repetition tool. It only knows
+about the notion of a generic "review item", an object with an id,
+parameters for the spased repetition algorithm, and some json data.
+The full schema can be seen below.
 
-- For a review item to be useful, it needs an associated item type.
+```sql
+CREATE TABLE IF NOT EXISTS item (
+    id INTEGER PRIMARY KEY,
+    maturity TEXT NOT NULL DEFAULT "New",
+    stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter. The number of days since last review date until probability of recal reaches 90%
+    difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter. Number between 1 and 10. Meausure of item difficulty
+    last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter. Date in iso8601
+    n_reviews INTEGER NOT NULL DEFAULT 0,                     -- sra parameter. Number of times we've review and given the review a score.
+    n_lapses INTEGER NOT NULL DEFAULT 0,                      -- sra parameter. Number of times we've failed to recall the item.
+    model TEXT NOT NULL,                                      -- the model, tells us how data is to be interpreted
+    data TEXT NOT NULL,                                       -- json data
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP        -- metadata
+);
+```
 
-
-- each review item may have one or more tags associated with it as well
-
-- spbased is supposed to be adapted to your usecase using scripts
-  - many things can be scheduled in a spased maner.
-    - flashcards - for "question -> answer" prompts
-    - some specific leetcode question
-    - some blog post that can be refined over time.
-
-- a review can be narrowed to only include review items with a specific tag, review item type
-
+It is built as a command line tool, to be wrapped in custom scripts
+for more advanced or streamlined usecases.
 
 ## Quick rundown of vocabulary
 
-- "review item" - the flashcard,prompt,task etc. being scheduled in a spased maner.
-- "review" - (in the context of spbased) given a review item that is due, launch the program that can interpret it, review it and return a measure of how well it went.
-- "review item model" - or just 'model', the specific type of review item, and
+- "review item" - the flashcard,prompt,task etc. being scheduled in a
+  spased maner.
+- "review" - (in the context of spbased) given a review item that is
+  due, launch the program that can interpret it, review it and return
+  a measure of how well it went.
+- "review item model" - or just 'model', the specific type of review
+  item, and
 
-## Example use
+## Command line usage
 
-**Add review item (flashcard)**
-```zsh
->> spbasedctl item add \
-  "flashcard" \
-  '{"front":"what is the capital of sweden","back":"stockholm","tags":["geography"]}'
-```
+### Filter expression language
 
-**review item (flashcard)**
+The commandline query commands (review command included) can be passed
+a `--pre-filter` flag
+
+## Examples
+
+This repo also contains a few example scripts that showcase how the
+tool can be used.

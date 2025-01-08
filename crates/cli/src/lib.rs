@@ -349,6 +349,8 @@ pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
     }
 }
 
+/// Retrieve the spbased directory containing the config file and sqlite db.
+/// If an .spbased folder does not exist, check in user data directory.
 pub fn get_spbased_dir() -> Result<PathBuf> {
     match get_spbased_dir_cwd() {
         Ok(dir) => Ok(dir),
