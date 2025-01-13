@@ -39,18 +39,18 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum ItemCommand {
     Add {
-        #[clap(short, long)]
+        #[clap(long)]
         model: String,
-        #[clap(short, long, value_parser = parser::json_value)]
+        #[clap(long, value_parser = parser::json_value)]
         data: serde_json::Value,
-        #[clap(short, long)]
+        #[clap(long)]
         tags: Vec<String>,
     },
     Edit {
         id: i32,
-        #[clap(short, long, value_parser = parser::json_value)]
+        #[clap(long, value_parser = parser::json_value)]
         data: Option<serde_json::Value>,
-        #[clap(short, long)]
+        #[clap(long)]
         model: Option<String>,
     },
     Delete {
@@ -66,34 +66,6 @@ pub enum ItemCommand {
         #[arg(long, default_value_t = false)]
         pretty: bool,
     },
-}
-#[derive(clap::Args)]
-#[group(required = true, multiple = false)]
-/// arguments that can be used to input data
-pub struct ItemInputDataRequired {
-    #[clap(short, long, value_parser = parser::json_value)]
-    pub data: Option<serde_json::Value>,
-    #[clap(short, long)]
-    pub file: Option<PathBuf>,
-}
-
-impl From<ItemInputDataRequired> for ItemInputData {
-    fn from(value: ItemInputDataRequired) -> Self {
-        Self {
-            data: value.data,
-            file: value.file,
-        }
-    }
-}
-
-#[derive(clap::Args)]
-#[group(multiple = false)]
-/// arguments that can be used to input data
-pub struct ItemInputData {
-    #[clap(short, long, value_parser = parser::json_value)]
-    pub data: Option<serde_json::Value>,
-    #[clap(short, long)]
-    pub file: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

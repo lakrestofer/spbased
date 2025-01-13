@@ -144,17 +144,6 @@ pub mod command {
         }
     }
 
-    /// The user is required to either input a string directly or a path to a file,
-    /// in case of file, read string from file. Validate that it as a valid json string
-    fn extract_json_data(data: ItemInputData) -> Result<serde_json::Value> {
-        let str_data = match (data.data, data.file) {
-            (Some(d), None) => d,
-            (None, Some(f)) => serde_json::from_reader(std::fs::File::open(f)?)?,
-            _ => return Err(anyhow!("data was unset")),
-        };
-        Ok(str_data)
-    }
-
     fn jmessearch_and_prettify<T: serde::ser::Serialize>(
         value: T,
         filter: Option<String>,

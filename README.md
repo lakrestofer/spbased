@@ -1,6 +1,7 @@
 # Spbased
 
-## Description
+> **NOTE!** This project is still a work in progress. There are some
+> features still left on the table before a 1.0 release.
 
 Spbased is a content agnostic spased repetition tool. It only knows
 about the notion of a generic "review item", an object with an id,
@@ -78,3 +79,31 @@ whose output may be
 
 This repo also contains a few example scripts that showcase how the
 tool can be used.
+
+**TODO:**
+
+- [ ] some way to filter on tags needs to be implemented
+  - the `--pre-filter` expression syntax could be extended to include
+    a 'has tags expression'.
+    - `#tag and maturity=='Young'`
+  - easy to just add separate flags
+    - maybe even separate tag lang
+- [ ] add more scripts
+  - [ ] add_flashcard
+  - [ ] edit_flashcard
+  - [ ] delete_flashcard
+  - [ ] review_flashcard
+- [ ] start using the application!
+
+**Wish list:**
+
+- spbased 'open this program with this metadata'
+  - This would allow the content agnostic core to become really
+    powerful
+  - json content of an item could include a program fielda
+  - thought really just what I'm doing currently
+
+- spased reading
+  - add a list of pdfs, webpages
+
+## Description
