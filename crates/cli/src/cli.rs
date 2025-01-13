@@ -11,14 +11,10 @@ use super::*;
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
     /// Turn debugging information on
-    #[arg(short, long, action = clap::ArgAction::Count)]
+    #[arg(long, action = clap::ArgAction::Count)]
     pub debug: u8,
     #[command(subcommand)]
     pub command: Command,
-
-    #[arg(short, long, global = true)]
-    /// optional output file
-    pub output: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

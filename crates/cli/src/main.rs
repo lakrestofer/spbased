@@ -10,10 +10,7 @@ fn main() -> Result<()> {
     let res = handle_command(cli.command)?;
 
     if let Some(res) = res {
-        match cli.output {
-            Some(path) => std::fs::write(path, res)?,
-            None => println!("{}", res),
-        }
+        println!("{}", res);
     }
     Ok(())
 }

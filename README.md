@@ -35,7 +35,7 @@ for more advanced or streamlined usecases.
   due, launch the program that can interpret it, review it and return
   a measure of how well it went.
 - "review item model" - or just 'model', the specific type of review
-  item, and
+  item, and the format of its data
 
 ## Command line usage
 
@@ -100,7 +100,7 @@ tool can be used.
 - spbased 'open this program with this metadata'
   - This would allow the content agnostic core to become really
     powerful
-  - json content of an item could include a program fielda
+  - json content of an item could include a program field
   - thought really just what I'm doing currently
 
 - spased reading
