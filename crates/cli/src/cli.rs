@@ -48,17 +48,28 @@ pub enum ItemCommand {
         data: Option<serde_json::Value>,
         #[clap(long)]
         model: Option<String>,
+        #[clap(long)]
+        add_tags: Vec<String>,
+        #[clap(long)]
+        remove_tags: Vec<String>,
     },
     Delete {
         id: i32,
     },
     Query {
-        #[arg(long, value_parser = parser::ast_node)]
         // filter based on
+        #[arg(long, value_parser = parser::ast_node)]
         pre_filter: Option<AstNode>,
-        #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        #[arg(long)]
         post_filter: Option<String>,
+        /// Filter items that contain tags
+        #[arg(long)]
+        include_tags: Vec<String>,
+        /// Filter items that do not contain tags
+        #[arg(long)]
+        exclude_tags: Vec<String>,
+        /// Whether to pretty print output
         #[arg(long, default_value_t = false)]
         pretty: bool,
     },

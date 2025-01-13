@@ -116,13 +116,20 @@ pub mod command {
                     )?;
                     Some(format!("{}", json!({ "id": id }).to_string()))
                 }
-                ItemCommand::Edit { id, model, data } => {
+                ItemCommand::Edit {
+                    id,
+                    model,
+                    data,
+                    add_tags,
+                    remove_tags,
+                } => {
                     if let Some(model) = model {
                         queries::item::edit_model(&mut c, id, &model)?;
                     }
                     if let Some(data) = data {
                         queries::item::edit_data(&mut c, id, &data.to_string())?;
                     }
+                    // TODO check README TODO for what to do here
                     None
                 }
                 ItemCommand::Delete { id } => {
@@ -132,12 +139,15 @@ pub mod command {
                 ItemCommand::Query {
                     pre_filter,
                     post_filter,
+                    include_tags,
+                    exclude_tags,
                     pretty,
                 } => {
                     // we apply sql filtering on items
                     let items = queries::item::query(&mut c, pre_filter)?;
                     // we apply json filter on items
                     let items = jmessearch_and_prettify(items, post_filter, pretty)?;
+                    // TODO check README TODO for what to do here
                     Some(format!("{items}"))
                 }
             })

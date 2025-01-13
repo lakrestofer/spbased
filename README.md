@@ -82,12 +82,15 @@ tool can be used.
 
 **TODO:**
 
+- [ ] edit tags on item
+  - simple `add_tags` and `remove_tags` (if exists)
+    - [ ] create query that adds tags to item
+    - [ ] create query that removes tags from item
+    - [ ] add docstring to flags
 - [ ] some way to filter on tags needs to be implemented
-  - the `--pre-filter` expression syntax could be extended to include
-    a 'has tags expression'.
-    - `#tag and maturity=='Young'`
-  - easy to just add separate flags
-    - maybe even separate tag lang
+  - simple `include_tags` and `excludes_tags` NO domainspecific
+    language just for the sake of it
+    - [ ] map `include tags` and `exclude tags` to sql
 - [ ] add more scripts
   - [ ] add_flashcard
   - [ ] edit_flashcard
