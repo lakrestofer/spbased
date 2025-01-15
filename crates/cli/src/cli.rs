@@ -2,17 +2,17 @@ use filter_language::AstNode;
 
 use super::*;
 
-/// #     _______  ___  ___   ___________
-/// #    / __/ _ \/ _ )/ _ | / __/ __/ _ \
-/// #   _\ \/ ___/ _  / __ |_\ \/ _// // /
-/// #  /___/_/  /____/_/ |_/___/___/____/
-/// Content agnostic spaced repetition
+///       _______  ___  ___   ___________
+///      / __/ _ \/ _ )/ _ | / __/ __/ _ \
+///     _\ \/ ___/ _  / __ |_\ \/ _// // /
+///    /___/_/  /____/_/ |_/___/___/____/
+///    Content agnostic spaced repetition
 #[derive(Parser)]
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
-    /// Turn debugging information on
-    #[arg(long, action = clap::ArgAction::Count)]
-    pub debug: u8,
+    // /// Turn debugging information on
+    // #[arg(long, action = clap::ArgAction::Count)]
+    // pub debug: u8,
     #[command(subcommand)]
     pub command: Command,
 }
@@ -34,29 +34,43 @@ pub enum Command {
 
 #[derive(Subcommand)]
 pub enum ItemCommand {
+    /// Add a new new review item
     Add {
+        /// The item model, which describes the format of this item.
         #[clap(long)]
         model: String,
+        /// Data in json format.
         #[clap(long, value_parser = parser::json_value)]
         data: serde_json::Value,
-        #[clap(long)]
+        /// A list of tags delimited by ' ' that should be associated with the item.
+        #[clap(long,value_delimiter=' ', num_args=1..)]
         tags: Vec<String>,
     },
+    /// Edit a review item
     Edit {
+        /// The id of the item that is to be edited.
         id: i32,
         #[clap(long, value_parser = parser::json_value)]
-        data: Option<serde_json::Value>,
+        /// The new item model, describing the new format for this item.
         #[clap(long)]
         model: Option<String>,
-        #[clap(long)]
+        /// New data in json format.
+        data: Option<serde_json::Value>,
+        /// A list of tags delimited by ' ' that should be associated with the item.
+        #[clap(long,value_delimiter=' ', num_args=1..)]
         add_tags: Vec<String>,
+        /// A list of tags delimited by ' ' that should no longer be associated with the item.
         #[clap(long)]
         remove_tags: Vec<String>,
     },
+    /// Delete a review item
     Delete {
+        /// The id of the item that is to be edited.
         id: i32,
     },
+    /// Retrieve tags associated with review item.
     GetTags {
+        /// The id of the item whose tags we want to retrieve.
         id: i32,
         #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
@@ -65,6 +79,7 @@ pub enum ItemCommand {
         #[arg(long, default_value_t = false)]
         pretty: bool,
     },
+    /// Retrieve all review items that match some combination of filters and tag lists.
     Query {
         // filter based on
         #[arg(long, value_parser = parser::ast_node)]
@@ -176,7 +191,9 @@ pub mod parser {
     }
 
     pub fn json_value(s: &str) -> Result<serde_json::Value, String> {
-        serde_json::from_str(s).map_err(|e| e.to_string())
+        serde_json::from_str(s)
+            .context("could not parse data as json")
+            .map_err(|e| e.to_string())
     }
 }
 

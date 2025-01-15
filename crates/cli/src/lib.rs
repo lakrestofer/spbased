@@ -106,8 +106,6 @@ pub mod command {
 
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
-                    println!("{:?}", &data);
-
                     let id = queries::item::add(
                         &mut c,
                         &model,

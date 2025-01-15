@@ -84,8 +84,8 @@ tool can be used.
 
 - [ ] edit tags on item
   - simple `add_tags` and `remove_tags` (if exists)
-    - [ ] create query that adds tags to item
-    - [ ] create query that removes tags from item
+    - [x] create query that adds tags to item
+    - [x] create query that removes tags from item
     - [ ] add docstring to flags
 - [ ] some way to filter on tags needs to be implemented
   - simple `include_tags` and `excludes_tags` NO domainspecific
