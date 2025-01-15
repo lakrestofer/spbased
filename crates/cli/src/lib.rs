@@ -129,12 +129,37 @@ pub mod command {
                     if let Some(data) = data {
                         queries::item::edit_data(&mut c, id, &data.to_string())?;
                     }
-                    // TODO check README TODO for what to do here
+                    if add_tags.len() > 0 {
+                        queries::item::add_tags(
+                            &mut c,
+                            id,
+                            &(add_tags.iter().map(|s| s.as_str()).collect::<Vec<&str>>()),
+                        )?;
+                    }
+                    if remove_tags.len() > 0 {
+                        queries::item::remove_tags(
+                            &mut c,
+                            id,
+                            &(remove_tags
+                                .iter()
+                                .map(|s| s.as_str())
+                                .collect::<Vec<&str>>()),
+                        )?;
+                    }
                     None
                 }
                 ItemCommand::Delete { id } => {
                     queries::item::delete(&mut c, id)?;
                     None
+                }
+                ItemCommand::GetTags {
+                    id,
+                    post_filter,
+                    pretty,
+                } => {
+                    let tags = queries::item::get_tags(&mut c, id)?;
+                    let tags = jmessearch_and_prettify(tags, post_filter, pretty)?;
+                    Some(format!("{tags}"))
                 }
                 ItemCommand::Query {
                     pre_filter,

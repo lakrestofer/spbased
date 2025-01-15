@@ -11,6 +11,11 @@ pub mod template {
         t.pop();
         t
     }
+    pub fn vars(n: usize) -> String {
+        let mut vars = "?,".repeat(n);
+        vars.pop();
+        vars
+    }
 }
 
 pub mod item {
@@ -53,6 +58,61 @@ pub mod item {
     }
     pub fn edit_data(c: &mut Connection, id: i32, data: &str) -> Result<()> {
         c.execute("update item set data = ?1 where id = ?2", (data, id))?;
+        Ok(())
+    }
+    pub fn get_tags(c: &mut Connection, id: i32) -> Result<Vec<Tag>> {
+        let mut stmt = c.prepare(&format!(
+            "select * from tag where id in (select tag_id from tag_item_map where item_id = ?1)"
+        ))?;
+        let tags: Vec<Tag> = stmt
+            .query_map((id,), |r| {
+                Ok(Tag {
+                    id: r.get(0)?,
+                    name: r.get(1)?,
+                    updated_at: r.get(2)?,
+                    created_at: r.get(3)?,
+                })
+            })?
+            .filter_map(Result::ok)
+            .collect();
+        Ok(tags)
+    }
+    pub fn add_tags(c: &mut Connection, id: i32, tags: &[&str]) -> Result<()> {
+        let tag_ids: Vec<i32> = c
+            .prepare(&format!(
+                "insert or replace into tag (name) values {} returning id",
+                template::values(1, tags.len())
+            ))?
+            .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
+            .filter_map(Result::ok)
+            .collect();
+        c.execute(
+            &format!(
+                "insert or replace into tag_item_map (tag_id, item_id) values {}",
+                template::values(2, tags.len())
+            ),
+            params_from_iter(tag_ids.iter().flat_map(|tag_id| [*tag_id, id])),
+        )?;
+        Ok(())
+    }
+    pub fn remove_tags(c: &mut Connection, id: i32, tags: &[&str]) -> Result<()> {
+        // first retrieve the tag ids
+        let tag_ids: Vec<i32> = c
+            .prepare(&format!(
+                "select id from tag where name in ({})",
+                template::vars(tags.len())
+            ))?
+            .query_map(params_from_iter(tags), |r| Ok(r.get(0)?))?
+            .filter_map(Result::ok)
+            .collect();
+        c.execute(
+            &format!(
+                "delete from tag_item_map where (item_id = {}) and (tag_id in ({}))",
+                id,
+                template::vars(tag_ids.len())
+            ),
+            params_from_iter(tag_ids),
+        )?;
         Ok(())
     }
     pub fn delete(c: &mut Connection, id: i32) -> Result<()> {
@@ -352,8 +412,29 @@ mod tests {
                 .unwrap()
         );
     }
+    #[test]
+    fn test_edit_tags_on_item() {
+        let mut c = init();
+        let id = item::add(&mut c, "flashcard", r#"{"front":"foo","back":"bar"}"#, &[]).unwrap();
+
+        let tags_to_add = vec!["test", "test2"];
+        item::add_tags(&mut c, id, &tags_to_add).unwrap();
+        let tags = item::get_tags(&mut c, id).unwrap();
+        let tags: Vec<String> = tags.into_iter().map(|t| t.name).collect();
+        assert_eq!(tags_to_add, tags);
+
+        item::remove_tags(&mut c, id, &tags_to_add).unwrap();
+        let tags = item::get_tags(&mut c, id).unwrap();
+        assert!(tags.is_empty());
+
+        let item = item::get(&mut c, id).unwrap();
+        assert_eq!(
+            item.data.0,
+            serde_json::from_str::<serde_json::Value>(r#"{"front":"foo","back":"bar"}"#).unwrap()
+        );
+    }
     // -------------
-    // ==== items ====
+    // ==== tags ====
     #[test]
     fn test_add_tag() {
         let mut c = init();

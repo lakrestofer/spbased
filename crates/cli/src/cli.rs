@@ -56,6 +56,15 @@ pub enum ItemCommand {
     Delete {
         id: i32,
     },
+    GetTags {
+        id: i32,
+        #[arg(long)]
+        /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        post_filter: Option<String>,
+        /// Whether to pretty print output
+        #[arg(long, default_value_t = false)]
+        pretty: bool,
+    },
     Query {
         // filter based on
         #[arg(long, value_parser = parser::ast_node)]
