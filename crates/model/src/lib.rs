@@ -72,7 +72,7 @@ impl std::fmt::Display for Maturity {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Item {
     pub id: i32,
     pub maturity: Maturity,
@@ -89,7 +89,7 @@ pub struct Item {
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Tag {
     pub id: i32,
     pub name: TagName,

@@ -167,7 +167,18 @@ pub mod command {
                     pretty,
                 } => {
                     // we apply sql filtering on items
-                    let items = queries::item::query(&mut c, pre_filter)?;
+                    let items = queries::item::query(
+                        &mut c,
+                        pre_filter,
+                        &(include_tags
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<&str>>()),
+                        &(exclude_tags
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<&str>>()),
+                    )?;
                     // we apply json filter on items
                     let items = jmessearch_and_prettify(items, post_filter, pretty)?;
                     // TODO check README TODO for what to do here

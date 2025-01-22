@@ -34,17 +34,24 @@ pub mod item {
 
         // insert tags if any
         if !tags.is_empty() {
+            c.execute(
+                &format!(
+                    "insert or ignore into tag (name) values {}",
+                    template::values(1, tags.len())
+                ),
+                params_from_iter(tags),
+            )?;
             let tag_ids: Vec<i32> = c
                 .prepare(&format!(
-                    "insert or replace into tag (name) values {} returning id",
-                    template::values(1, tags.len())
+                    "select id from tag where name in ({})",
+                    template::vars(tags.len())
                 ))?
                 .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
                 .filter_map(Result::ok)
                 .collect();
             c.execute(
                 &format!(
-                    "insert or replace into tag_item_map (tag_id, item_id) values {}",
+                    "insert or ignore into tag_item_map (tag_id, item_id) values {}",
                     template::values(2, tags.len())
                 ),
                 params_from_iter(tag_ids.iter().flat_map(|tag_id| [*tag_id, item_id])),
@@ -78,17 +85,25 @@ pub mod item {
         Ok(tags)
     }
     pub fn add_tags(c: &mut Connection, id: i32, tags: &[&str]) -> Result<()> {
+        c.execute(
+            &format!(
+                "insert or ignore into tag (name) values {}",
+                template::values(1, tags.len())
+            ),
+            params_from_iter(tags),
+        )?;
         let tag_ids: Vec<i32> = c
             .prepare(&format!(
-                "insert or replace into tag (name) values {} returning id",
-                template::values(1, tags.len())
+                "select id from tag where name in ({})",
+                template::vars(tags.len())
             ))?
             .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
             .filter_map(Result::ok)
             .collect();
+        eprintln!("tag_ids: {:?}", tag_ids);
         c.execute(
             &format!(
-                "insert or replace into tag_item_map (tag_id, item_id) values {}",
+                "insert or ignore into tag_item_map (tag_id, item_id) values {}",
                 template::values(2, tags.len())
             ),
             params_from_iter(tag_ids.iter().flat_map(|tag_id| [*tag_id, id])),
@@ -140,16 +155,47 @@ pub mod item {
             .filter_map(Result::ok);
         Ok(item.next().context("retrieving item from db")?)
     }
-    pub fn query(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<Vec<Item>> {
+    pub fn query(
+        c: &mut Connection,
+        filter_expr: Option<AstNode>,
+        include_tags: &[&str],
+        exclude_tags: &[&str],
+    ) -> Result<Vec<Item>> {
+        let filter_expr = filter_expr.map(|e| utils::filter_expr_to_sql(&e));
+        let include_ids = if include_tags.is_empty() {
+            None
+        } else {
+            Some(
+                c.prepare(&format!(
+                    "select item_id from tag_item_map where tag_id in (select id from tag where name in ({}))",
+                    template::vars(include_tags.len())
+                ))?
+                .query_map(params_from_iter(include_tags), |r| Ok(r.get(0)?))?
+                .filter_map(Result::ok)
+                .collect::<Vec<i32>>(),
+            )
+        };
+        eprintln!("include: {:?}", include_ids);
+        let exclude_ids = if exclude_tags.is_empty() {
+            None
+        } else {
+            Some(
+                c.prepare(&format!(
+                    "select item_id from tag_item_map where tag_id in (select id from tag where name in ({}))",
+                    template::vars(exclude_tags.len())
+                ))?
+                .query_map(params_from_iter(exclude_tags), |r| Ok(r.get(0)?))?
+                .filter_map(Result::ok)
+                .collect::<Vec<i32>>(),
+            )
+        };
+        eprintln!("exclude: {:?}", exclude_ids);
         let query = match filter_expr {
-            Some(expr) => format!(
-                "select * from item where {}",
-                utils::filter_expr_to_sql(&expr)
-            ),
+            Some(expr) => format!("select * from item where {}", expr),
             None => "select * from item".into(),
         };
-
-        Ok(c.prepare(&query)?
+        let mut items: Vec<Item> = c
+            .prepare(&query)?
             .query_map([], |r| {
                 Ok(Item {
                     id: r.get(0)?,
@@ -166,7 +212,20 @@ pub mod item {
                 })
             })?
             .filter_map(Result::ok)
-            .collect())
+            .collect();
+        if let Some(include_ids) = include_ids {
+            items = items
+                .into_iter()
+                .filter(|item| include_ids.contains(&item.id))
+                .collect()
+        }
+        if let Some(exclude_ids) = exclude_ids {
+            items = items
+                .into_iter()
+                .filter(|item| !exclude_ids.contains(&item.id))
+                .collect()
+        }
+        Ok(items)
     }
 }
 // tags
@@ -419,6 +478,7 @@ mod tests {
 
         let tags_to_add = vec!["test", "test2"];
         item::add_tags(&mut c, id, &tags_to_add).unwrap();
+        item::add_tags(&mut c, id, &tags_to_add).unwrap();
         let tags = item::get_tags(&mut c, id).unwrap();
         let tags: Vec<String> = tags.into_iter().map(|t| t.name).collect();
         assert_eq!(tags_to_add, tags);
@@ -432,6 +492,55 @@ mod tests {
             item.data.0,
             serde_json::from_str::<serde_json::Value>(r#"{"front":"foo","back":"bar"}"#).unwrap()
         );
+    }
+    #[test]
+    fn test_query_item_based_on_tags() {
+        let mut c = init();
+        let item_1_tags = vec!["test1", "test2"];
+        let id1 = item::add(
+            &mut c,
+            "flashcard",
+            r#"{"front":"foo","back":"bar"}"#,
+            &item_1_tags,
+        )
+        .unwrap();
+        let item_2_tags = vec!["test2", "test3"];
+        let id2 = item::add(
+            &mut c,
+            "flashcard",
+            r#"{"front":"foo","back":"bar"}"#,
+            &item_2_tags,
+        )
+        .unwrap();
+
+        let item_tags: Vec<String> = item::get_tags(&mut c, id1)
+            .unwrap()
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        assert_eq!(item_1_tags, item_tags);
+
+        let item_tags: Vec<String> = item::get_tags(&mut c, id2)
+            .unwrap()
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        assert_eq!(item_2_tags, item_tags);
+
+        let tags = tag::query(&mut c, None).unwrap();
+        eprintln!("tags: {:?}", tags);
+
+        let items = item::query(&mut c, None, &["test1"], &[]).unwrap();
+        assert_eq!(items[0].id, id1);
+
+        let items = item::query(&mut c, None, &["test3"], &[]).unwrap();
+        assert_eq!(items[0].id, id2);
+
+        let items = item::query(&mut c, None, &[], &["test2"]).unwrap();
+        let item_tags = item::get_tags(&mut c, id1).unwrap();
+        eprintln!("items: {:?}", items);
+        eprintln!("item tags: {:?}", item_tags);
+        assert!(items.is_empty());
     }
     // -------------
     // ==== tags ====
