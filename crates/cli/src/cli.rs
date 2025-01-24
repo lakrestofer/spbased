@@ -73,8 +73,8 @@ pub enum ItemCommand {
     GetTags {
         /// The id of the item whose tags we want to retrieve.
         id: i32,
-        #[arg(long)]
         /// Fine grained json based filtering. Uses <https://jmespath.org/>
+        #[arg(long)]
         post_filter: Option<String>,
         /// Whether to pretty print output
         #[arg(long, default_value_t = false)]
