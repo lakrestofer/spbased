@@ -160,7 +160,6 @@ pub mod item {
         include_tags: &[&str],
         exclude_tags: &[&str],
     ) -> Result<Vec<Item>> {
-        eprintln!("sql expr: {:?}", filter_expr);
         let filter_expr = filter_expr.map(|e| utils::filter_expr_to_sql(&e));
         let include_ids = if include_tags.is_empty() {
             None
@@ -525,9 +524,6 @@ mod tests {
             .collect();
         assert_eq!(item_2_tags, item_tags);
 
-        let tags = tag::query(&mut c, None).unwrap();
-        eprintln!("tags: {:?}", tags);
-
         let items = item::query(&mut c, None, &["test1"], &[]).unwrap();
         assert_eq!(items[0].id, id1);
 
@@ -535,9 +531,6 @@ mod tests {
         assert_eq!(items[0].id, id2);
 
         let items = item::query(&mut c, None, &[], &["test2"]).unwrap();
-        let item_tags = item::get_tags(&mut c, id1).unwrap();
-        eprintln!("items: {:?}", items);
-        eprintln!("item tags: {:?}", item_tags);
         assert!(items.is_empty());
     }
     // -------------

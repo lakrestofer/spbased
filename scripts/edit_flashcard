@@ -20,7 +20,7 @@ else
   SPBASEDCTL_BIN_="$FLAKE_ROOT/target/debug/spbasedctl"
 fi
 
-FLASHCARD=$("$SPBASEDCTL_BIN_" items query --pre-filter="id==$ID and model=='flashcard'" --post-filter="[0].{id:id,data:data}")
+FLASHCARD=$("$SPBASEDCTL_BIN_" items query --pre-filter="id==$ID && model=='flashcard'" --post-filter="[0].{id:id,data:data}")
 FLASHCARD_ID=$(echo $FLASHCARD | jq ".id")
 FLASHCARD_DATA=$(echo $FLASHCARD | jq ".data")
 

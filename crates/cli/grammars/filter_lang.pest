@@ -1,29 +1,23 @@
 
 // A filter is a expression that combines at least one column
 // filter using and or logic.
-filter = _{ SOI ~ logical_filter ~ EOI }
-    // column filters combined with and or logic
-    logical_filter = _{  logical_filter_primary ~ (logical_filter_infix ~ logical_filter_primary)* }
-        logical_filter_infix = _{ and | or }
+filter = _{ SOI ~ filter_expr ~ EOI }
+    filter_expr = {  primary ~ operator ~ primary ~ (operator ~ primary )* }
+        operator = _{ and | or | eq | neq | le | leq | ge | geq }
             and = {"&&"}
             or = {"||"}
-        logical_filter_primary = _{ comparison_filter_primary | "(" ~ logical_filter ~ ")" }
-            // A column filter describes some relation on a column.
-            // is the column equal to, larger than etc than some value?
-            comparison_filter_primary = { column_identifier ~ comparison_infix ~ value }
-                column_identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHA | "_")* }
-                comparison_infix = _{ eq | neq | le | leq | ge | geq }
-                    eq = {"=="}
-                    neq = {"!="}
-                    le = {"<"}
-                    leq = {"<="}
-                    ge = {">"}
-                    geq = {">="}
-                value = _{ string | integer | float | boolean }
-                    string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" } // TODO I don't remember if the `"''"` portion in ` ~ ( "''"` is a bug or not
-                    sign = @{ "-" | "+" }
-                    integer = @{ sign? ~ ASCII_DIGIT+ }
-                    float = @{ sign? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT }
-                    boolean = @{ ^"true" | ^"false" }
+            eq = {"=="}
+            neq = {"!="}
+            le = {"<"}
+            leq = {"<="}
+            ge = {">"}
+            geq = {">="}
+        primary = _{ string | integer | float | boolean | identifier }
+            identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHA | "_")* }
+            string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" } // TODO I don't remember if the `"''"` portion in ` ~ ( "''"` is a bug or not
+            sign = @{ "-" | "+" }
+            integer = @{ sign? ~ ASCII_DIGIT+ }
+            float = @{ sign? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT }
+            boolean = @{ ^"true" | ^"false" }
 
 WHITESPACE = _{ " "|"\t"|"\n"|"\r" }
