@@ -55,6 +55,7 @@ pub enum ItemCommand {
         #[clap(long)]
         model: Option<String>,
         /// New data in json format.
+        #[clap(long)]
         data: Option<serde_json::Value>,
         /// A list of tags delimited by ' ' that should be associated with the item.
         #[clap(long,value_delimiter=' ', num_args=1..)]

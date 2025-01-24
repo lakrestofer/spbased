@@ -24,12 +24,18 @@ FLASHCARD=$("$SPBASEDCTL_BIN_" items query --pre-filter="id==$ID && model=='flas
 FLASHCARD_ID=$(echo $FLASHCARD | jq ".id")
 FLASHCARD_DATA=$(echo $FLASHCARD | jq ".data")
 
-
 QUESTION=$(echo $FLASHCARD_DATA | jq ".question")
 ANSWER=$(echo $FLASHCARD_DATA | jq ".answer")
 
-echo $FLASHCARD
-echo $FLASHCARD_ID
-echo $QUESTION
-echo $ANSWER
+QUESTION=$(gum write --placeholder="question" --value="$QUESTION")
+ANSWER=$(gum write --placeholder="answer" --value="$ANSWER")
 
+## Both question and answer must be set
+if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
+  echo "must provide non empty input"
+  exit 1
+fi
+
+FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer')
+
+"$SPBASEDCTL_BIN_" items edit  --data "$FLASHCARD" "$ID"
