@@ -82,15 +82,16 @@ tool can be used.
 
 **TODO:**
 
-- [ ] edit tags on item
+- [x] edit tags on item
   - simple `add_tags` and `remove_tags` (if exists)
     - [x] create query that adds tags to item
     - [x] create query that removes tags from item
     - [ ] add docstring to flags
-- [ ] some way to filter on tags needs to be implemented
+- [x] some way to filter on tags needs to be implemented
   - simple `include_tags` and `excludes_tags` NO domainspecific
     language just for the sake of it
     - [ ] map `include tags` and `exclude tags` to sql
+- [x] way more tests!
 - [ ] add more scripts
   - [ ] add_flashcard
   - [ ] edit_flashcard

@@ -70,9 +70,8 @@
               rust-analyzer
             ];
             env = {
-              RUST_BACKTRACE = "1";
+              # RUST_BACKTRACE = "1";
               RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
-              SPBASEDCTL_BIN = "/target/release/spbasedctl";
             };
           };
         };

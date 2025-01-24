@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 # optionally read in spbasedctl path from environment
-if [[ -z $SPBASEDCTL_BIN ]]; then
+if [[ -z $FLAKE_ROOT ]]; then
   # check that spbasedctl exist globally
   if which spbasedctl>/dev/null 2>&1; then
     SPBASEDCTL_BIN_="spbasedctl"
@@ -10,12 +10,7 @@ if [[ -z $SPBASEDCTL_BIN ]]; then
     exit 1
   fi
 else
-  # TODO make this more bulletproof (design wise, not necessarily by adding my branches)
-  if [[ -z $FLAKE_ROOT ]]; then
-    SPBASEDCTL_BIN_="$SPBASEDCTL_BIN" # assume path is
-  else
-    SPBASEDCTL_BIN_="$FLAKE_ROOT$SPBASEDCTL_BIN"
-  fi
+  SPBASEDCTL_BIN_="$FLAKE_ROOT/target/debug/spbasedctl"
 fi
 
 ## prompt the user for their question answer pair

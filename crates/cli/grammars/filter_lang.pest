@@ -5,8 +5,8 @@ filter = _{ SOI ~ logical_filter ~ EOI }
     // column filters combined with and or logic
     logical_filter = _{  logical_filter_primary ~ (logical_filter_infix ~ logical_filter_primary)* }
         logical_filter_infix = _{ and | or }
-            and = {"&&" | ^"and"}
-            or = {"||" | ^"or"}
+            and = {"&&"}
+            or = {"||"}
         logical_filter_primary = _{ comparison_filter_primary | "(" ~ logical_filter ~ ")" }
             // A column filter describes some relation on a column.
             // is the column equal to, larger than etc than some value?

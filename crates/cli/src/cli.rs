@@ -197,6 +197,191 @@ pub mod parser {
     }
 }
 
+pub mod filter_language_2 {
+    use super::*;
+
+    pub struct Lexer<'a> {
+        input: &'a str,
+        pos: usize,
+    }
+
+    pub struct Token {
+        kind: TokenKind,
+        start: usize,
+        end: usize,
+    }
+
+    impl Token {
+        pub fn new(kind: TokenKind, start: usize, end: usize) -> Self {
+            Self { kind, start, end }
+        }
+        pub fn invalid(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Invalid,
+                start,
+                end,
+            }
+        }
+        pub fn eof(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::EOF,
+                start,
+                end,
+            }
+        }
+        pub fn openparen(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::OpenParen,
+                start,
+                end,
+            }
+        }
+        pub fn closeparen(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::CloseParen,
+                start,
+                end,
+            }
+        }
+        pub fn and(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::And,
+                start,
+                end,
+            }
+        }
+        pub fn or(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Or,
+                start,
+                end,
+            }
+        }
+        pub fn eq(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Eq,
+                start,
+                end,
+            }
+        }
+        pub fn neq(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Neq,
+                start,
+                end,
+            }
+        }
+        pub fn le(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Le,
+                start,
+                end,
+            }
+        }
+        pub fn leq(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Leq,
+                start,
+                end,
+            }
+        }
+        pub fn ge(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Ge,
+                start,
+                end,
+            }
+        }
+        pub fn geq(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Geq,
+                start,
+                end,
+            }
+        }
+        pub fn string(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::String,
+                start,
+                end,
+            }
+        }
+        pub fn integer(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Integer,
+                start,
+                end,
+            }
+        }
+        pub fn float(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Float,
+                start,
+                end,
+            }
+        }
+        pub fn boolean(start: usize, end: usize) -> Self {
+            Self {
+                kind: TokenKind::Boolean,
+                start,
+                end,
+            }
+        }
+    }
+
+    pub enum TokenKind {
+        Invalid,
+        EOF,
+        OpenParen,
+        CloseParen,
+        And,
+        Or,
+        Eq,
+        Neq,
+        Le,
+        Leq,
+        Ge,
+        Geq,
+        String,
+        Integer,
+        Float,
+        Boolean,
+    }
+
+    impl<'a> Lexer<'a> {
+        pub fn init(input: &'a str) -> Self {
+            Self { input, pos: 0 }
+        }
+    }
+
+    impl<'a> Iterator for Lexer<'a> {
+        type Item = Token;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            _ = self.intertoken_space();
+
+            if self.pos >= self.input.len() {
+                return None;
+            }
+
+            let start = self.pos;
+
+            self.pos += 1; // consume at least on char such that we do not get stuck in an infinite loop
+
+            Some(Token::invalid(start, self.pos))
+        }
+    }
+
+    impl<'a> Lexer<'a> {
+        pub fn intertoken_space(&mut self) -> bool {
+            return true;
+        }
+    }
+
+    #[cfg(test)]
+    mod test {}
+}
+
 pub mod filter_language {
     use super::*;
     use pest::iterators::Pairs;
@@ -241,14 +426,14 @@ pub mod filter_language {
             use pest::pratt_parser::{Assoc::*, Op};
             use Rule::*;
             let parser = PrattParser::new()
-                .op(Op::infix(or, Left))
-                .op(Op::infix(and, Left))
                 .op(Op::infix(eq, Left)
                     | Op::infix(neq, Left)
                     | Op::infix(le, Left)
                     | Op::infix(leq, Left)
                     | Op::infix(ge, Left)
-                    | Op::infix(geq, Left));
+                    | Op::infix(geq, Left))
+                .op(Op::infix(or, Left))
+                .op(Op::infix(and, Left));
             parser
         });
         FILTER_PARSER
@@ -385,15 +570,29 @@ pub mod filter_language {
     mod test {
         use super::*;
         use Operator::*;
+
+        fn test_ast_node_parser(expr: &str, expected: AstNode) {
+            let actual = FilterLangParser::parse(expr).unwrap();
+            assert_eq!(actual, expected);
+        }
+
         #[test]
         fn test_parser() {
-            assert_eq!(
-                FilterLangParser::parse("id == 3").unwrap(),
-                AstNode::comparative_filter("id", Eq, AstNode::integer(3))
+            test_ast_node_parser(
+                "id == 3",
+                AstNode::comparative_filter("id", Eq, AstNode::integer(3)),
             );
-            assert_eq!(
-                FilterLangParser::parse("data != 'hello'").unwrap(),
-                AstNode::comparative_filter("data", Neq, AstNode::string("hello"))
+            test_ast_node_parser(
+                "data != 'hello'",
+                AstNode::comparative_filter("data", Neq, AstNode::string("hello")),
+            );
+            test_ast_node_parser(
+                "id == 1 && model == 'flashcard'",
+                AstNode::logical_filter(
+                    AstNode::comparative_filter("id", Eq, AstNode::integer(1)),
+                    And,
+                    AstNode::comparative_filter("model", Eq, AstNode::string("flashcard")),
+                ),
             );
         }
     }

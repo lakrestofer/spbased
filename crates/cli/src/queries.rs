@@ -100,7 +100,6 @@ pub mod item {
             .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
             .filter_map(Result::ok)
             .collect();
-        eprintln!("tag_ids: {:?}", tag_ids);
         c.execute(
             &format!(
                 "insert or ignore into tag_item_map (tag_id, item_id) values {}",
@@ -161,6 +160,7 @@ pub mod item {
         include_tags: &[&str],
         exclude_tags: &[&str],
     ) -> Result<Vec<Item>> {
+        eprintln!("sql expr: {:?}", filter_expr);
         let filter_expr = filter_expr.map(|e| utils::filter_expr_to_sql(&e));
         let include_ids = if include_tags.is_empty() {
             None
@@ -175,7 +175,6 @@ pub mod item {
                 .collect::<Vec<i32>>(),
             )
         };
-        eprintln!("include: {:?}", include_ids);
         let exclude_ids = if exclude_tags.is_empty() {
             None
         } else {
@@ -189,7 +188,6 @@ pub mod item {
                 .collect::<Vec<i32>>(),
             )
         };
-        eprintln!("exclude: {:?}", exclude_ids);
         let query = match filter_expr {
             Some(expr) => format!("select * from item where {}", expr),
             None => "select * from item".into(),
@@ -608,6 +606,19 @@ pub mod utils {
             assert_eq!(
                 filter_expr_to_sql(&ast),
                 "(id < 3) AND (datetime(created_at) > datetime('2024-11-13'))".to_string()
+            );
+        }
+        #[test]
+        fn filter_expr_to_sql_test2() {
+            use crate::filter_language::Operator::*;
+            let ast = AstNode::logical_filter(
+                AstNode::comparative_filter("id", Eq, AstNode::integer(1)),
+                And,
+                AstNode::comparative_filter("model", Eq, AstNode::string("flashcard")),
+            );
+            assert_eq!(
+                filter_expr_to_sql(&ast),
+                "(id == 1) AND (model == 'flashcard')".to_string()
             );
         }
     }
