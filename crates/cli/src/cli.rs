@@ -50,12 +50,11 @@ pub enum ItemCommand {
     Edit {
         /// The id of the item that is to be edited.
         id: i32,
-        #[clap(long, value_parser = parser::json_value)]
         /// The new item model, describing the new format for this item.
         #[clap(long)]
         model: Option<String>,
         /// New data in json format.
-        #[clap(long)]
+        #[clap(long, value_parser = parser::json_value)]
         data: Option<serde_json::Value>,
         /// A list of tags delimited by ' ' that should be associated with the item.
         #[clap(long,value_delimiter=' ', num_args=1..)]
