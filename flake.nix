@@ -42,10 +42,18 @@
       perSystem =
         {
           pkgs,
+          self',
           system,
           config,
           ...
         }:
+        let
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
+            rustc = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
+          };
+          cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+        in
         {
           _module.args.pkgs = import inputs.nixpkgs {
             inherit system;
@@ -78,6 +86,16 @@
             env = {
               # RUST_BACKTRACE = "1";
               RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+            };
+          };
+          packages = {
+            default = self'.packages.spbasedctl;
+            spbasedctl = rustPlatform.buildRustPackage {
+              inherit (cargoToml) version;
+              name = "spbasedctl";
+              src = ./.;
+              cargoLock.lockFile = ./Cargo.lock;
+              cargoBuildFlags = "--package spbasedctl";
             };
           };
         };

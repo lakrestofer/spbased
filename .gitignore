@@ -21,3 +21,4 @@ Cargo.lock
 db.sqlite
 node_modules
 .direnv
+result
