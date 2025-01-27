@@ -2,9 +2,7 @@
 members = [
   "crates/cli",
   "crates/cli/scripts/new_migration",
-  "crates/flashcard",
   "crates/model",
-  "crates/reading",
   "crates/sra",
 ]
 
