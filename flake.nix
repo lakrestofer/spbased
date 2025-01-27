@@ -88,16 +88,49 @@
               RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
             };
           };
-          packages = {
-            default = self'.packages.spbasedctl;
-            spbasedctl = rustPlatform.buildRustPackage {
-              inherit (cargoToml) version;
-              name = "spbasedctl";
-              src = ./.;
-              cargoLock.lockFile = ./Cargo.lock;
-              cargoBuildFlags = "--package spbasedctl";
+          packages =
+            let
+              script_dependencies = with pkgs; [
+                glow
+                gum
+                jq
+              ];
+              create_script =
+                { name, src }:
+                let
+                  script = (pkgs.writeScriptBin name src).overrideAttrs (old: {
+                    buildCommand = "${old.buildCommand}\n patchShebangs $out";
+                  });
+                in
+                pkgs.symlinkJoin {
+                  inherit name;
+                  paths = [ script ] ++ script_dependencies;
+                  postBuild = "wrapProgram $out/bin/${name} --prefix PATH : $out/bin";
+                  buildInputs = [ pkgs.makeWrapper ];
+                };
+            in
+            {
+              default = self'.packages.spbasedctl;
+              spbasedctl = rustPlatform.buildRustPackage {
+                inherit (cargoToml) version;
+                name = "spbasedctl";
+                src = ./.;
+                cargoLock.lockFile = ./Cargo.lock;
+                cargoBuildFlags = "--package spbasedctl";
+              };
+              add_flashcard = create_script {
+                name = "add_flashcard";
+                src = builtins.readFile ./scripts/add_flashcard;
+              };
+              edit_flashcard = create_script {
+                name = "edit_flashcard";
+                src = builtins.readFile ./scripts/edit_flashcard;
+              };
+              review_flashcard = create_script {
+                name = "review_flashcard";
+                src = builtins.readFile ./scripts/review_flashcard;
+              };
             };
-          };
         };
     };
 }
