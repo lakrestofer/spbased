@@ -1,0 +1,71 @@
+#!/usr/bin/env zsh
+
+# optionally read in spbasedctl path from environment
+if [[ -z $FLAKE_ROOT ]]; then
+  # check that spbasedctl exist globally
+  if which spbasedctl>/dev/null 2>&1; then
+    SPBASEDCTL_BIN="spbasedctl"
+  else
+    gum log --level error "SPBASEDCTL_BINwas unset and spbasedctl not found on PATH! Exiting..."
+    exit 0
+  fi
+else
+  SPBASEDCTL_BIN="$FLAKE_ROOT/target/debug/spbasedctl"
+fi
+
+N_NEW=$("$SPBASEDCTL_BIN" review query-count new)
+N_DUE=$("$SPBASEDCTL_BIN" review query-count due)
+gum log --level info "You have $N_DUE flashcards that are due and $N_NEW that are new"
+
+if [[ $N_NEW == "0" || $N_DUE == "0" ]]; then
+  gum log --level info "No flashcards are new or due. Exiting..."
+  exit 0
+fi
+
+
+REVIEW_CHOICE=$(gum choose --header="I want to study a flashcard that is..." "new" "due")
+
+if [[ -z $REVIEW_CHOICE ]]; then
+  gum log --level error "Must choose either new or due. Exiting..."
+  exit 0
+fi
+
+
+if [[ $REVIEW_CHOICE == "new" ]]; then
+  FLASHCARD=$("$SPBASEDCTL_BIN" review next new --pre-filter="model=='flashcard'")
+else
+  FLASHCARD=$("$SPBASEDCTL_BIN" review next due --pre-filter="model=='flashcard'")  
+fi
+
+if [[ -z $FLASHCARD || $FLASHCARD == "null" ]]; then
+  gum log --level error "could not find any $REVIEW_CHOICE item"
+  exit 0
+fi
+
+FLASHCARD_ID=$(echo $FLASHCARD | jq ".id")
+FLASHCARD_CREATED_AT=$(echo $FLASHCARD | jq ".created_at" | cut -c2-11)
+FLASHCARD_DATA=$(echo $FLASHCARD | jq ".data")
+
+QUESTION=$(echo $FLASHCARD_DATA | jq -r ".question")
+ANSWER=$(echo $FLASHCARD_DATA | jq -r ".answer")
+
+# show the question
+gum style  --underline --align center --width 50 "Item ? - Question" 
+echo "$QUESTION" | glow
+
+# await response to continue
+gum confirm "Show answer" --affirmative="Heck yeah!" --negative="No I'm scared, exit plz" || exit 0
+
+# show the answer
+gum style  --underline --align center --width 50 "Item $FLASHCARD_ID ($FLASHCARD_CREATED_AT) - Answer" 
+echo "$ANSWER" | glow
+
+# prompt for how well it went
+AGAIN="again (could not answer)"
+HARD="hard (could answer with difficulty)"
+GOOD="good (could answer)"
+EASY="easy (could answer easily)"
+
+RESULT=$(gum choose --header "How easy was it to answer the prompt?" --selected="$GOOD" "$AGAIN" "$HARD" "$GOOD" "$EASY" | cut -d " " -f1)
+
+"$SPBASEDCTL_BIN" review score "$FLASHCARD_ID" "$RESULT"

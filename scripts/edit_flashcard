@@ -33,7 +33,7 @@ ANSWER=$(gum write --placeholder="answer" --value="$ANSWER")
 ## Both question and answer must be set
 if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
   echo "must provide non empty input"
-  exit 1
+  exit 0
 fi
 
 FLASHCARD=$(jq --compact-output --null-input --arg question $QUESTION --arg answer "$ANSWER" '.question = $question | .answer = $answer')

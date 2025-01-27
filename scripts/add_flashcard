@@ -6,7 +6,7 @@ if [[ -z $FLAKE_ROOT ]]; then
   if which spbasedctl>/dev/null 2>&1; then
     SPBASEDCTL_BIN_="spbasedctl"
   else
-    echo "SPBASEDCTL_BIN was unset and spbasedctl not found on PATH! exiting..."
+    gum log --level error "SPBASEDCTL_BIN was unset and spbasedctl not found on PATH! exiting..."
     exit 1
   fi
 else
@@ -19,7 +19,7 @@ ANSWER=$(gum write --placeholder="answer")
 
 ## Both question and answer must be set
 if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
-  echo "must provide non empty input"
+  gum log --level error "must provide non empty input"
   exit 1
 fi
 

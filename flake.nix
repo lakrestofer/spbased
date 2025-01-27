@@ -30,6 +30,7 @@
     flake-parts.lib.mkFlake { inherit inputs self; } {
       imports = [
         inputs.flake-root.flakeModule
+        inputs.flake-parts.flakeModules.easyOverlay
       ];
       flake = {
         # Schemas tell Nix about the structure of your flake's outputs
@@ -51,7 +52,12 @@
             overlays = [
               rust-overlay.overlays.default
               (final: prev: {
-                rustToolchain = final.rust-bin.nightly.latest.default.override { extensions = [ "rust-src" ]; };
+                rustToolchain = final.rust-bin.selectLatestNightlyWith (
+                  toolchain:
+                  toolchain.default.override {
+                    extensions = [ "rust-src" ];
+                  }
+                );
               })
             ];
             config = { };
@@ -60,6 +66,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = [ config.flake-root.devShell ]; # Provides $FLAKE_ROOT in dev shell
             packages = with pkgs; [
+              glow
               nodejs
               gum
               jq
