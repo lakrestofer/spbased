@@ -1,8 +1,12 @@
 #!/usr/bin/env zsh
-zmodload zsh/zutil
+  
+set -e # exit if any step has a nonzero exit code
+set -o pipefail # including in the middle of a pipe
 
 command="${1:=help}"
 id="$2"
+
+ITEM_MODEL="flashcard" # the name of this review item format
 
 if [[ $command == "help" ]]; then
   echo "usage: flashcard command [argument]"
@@ -13,7 +17,6 @@ if [[ $command == "help" ]]; then
   echo "       flashcard review # review a due or new flashcard"
   exit 0
 fi
-
 
 # optionally read in spbasedctl path from environment
 if [[ -z $FLAKE_ROOT ]]; then
@@ -38,7 +41,6 @@ add() {
     gum log --level error "must provide non empty input"
     exit 1
   fi
-
 
   FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer')
 
@@ -81,9 +83,10 @@ review() {
     exit 0
   fi
 
-  if [[ $N_DUE != "0" ]]; then REVIEW_CHOICE="due"
+  if [[ $N_DUE != "0" ]]; then
+    REVIEW_CHOICE="due"
   else
-   REVIEW_CHOICE="new"
+    REVIEW_CHOICE="new"
   fi
 
   if [[ $REVIEW_CHOICE == "new" ]]; then

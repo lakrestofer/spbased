@@ -1,0 +1,139 @@
+#!/usr/bin/env zsh
+
+set -e # exit if any step has a nonzero exit code
+set -o pipefail # including in the middle of a pipe
+
+COMMAND="${1:=help}"
+ID="$2"
+
+ITEM_MODEL="read_prompt" # the name of this review item format
+
+if [[ $COMMAND == "help" ]]; then
+  echo "usage: reading command [argument]"
+  echo ""
+  echo "examples:"
+  echo "       reading add    # add a new 'to read prompt' interactively"
+  echo "       reading edit 3 # edit a 'to read prompt' interactively"
+  echo "       reading review # review a due or new 'to read prompt'"
+  exit 0
+fi
+
+# optionally read in spbasedctl path from environment
+if [[ -z $FLAKE_ROOT ]]; then
+  # check that spbasedctl exist globally
+  if which spbasedctl>/dev/null 2>&1; then
+    SPBASEDCTL_BIN="spbasedctl"
+  else
+    gum log --level error "SPBASEDCTL_BIN was unset and spbasedctl not found on PATH! exiting..."
+    exit 1
+  fi
+else
+  SPBASEDCTL_BIN="$FLAKE_ROOT/target/debug/spbasedctl"
+fi
+
+add() {
+  ## prompt the user for their question answer pair
+  DOCUMENT=$(ls $SPBASED_LIBRARY | fzf --height 10)
+  PAGE=$(gum input --placeholder "document page")
+  PROMPT=$(gum input --placeholder "prompt (what should be read)")
+
+  if [[ -z "$DOCUMENT" || -z "$PAGE" ]]; then
+    gum log --level error "must provide both document and page"
+    exit 1
+  fi
+
+  READ_PROMPT=$(jq --compact-output --null-input --arg document "$DOCUMENT" --arg page "$PAGE" --arg prompt "$PROMPT" '.document = $document | .page = $page | .prompt = $prompt')
+
+  "$SPBASEDCTL_BIN" items add --model "$ITEM_MODEL" --data "$READ_PROMPT"
+}
+edit() {
+  if [[ -z $ID ]]; then
+    echo "usage: reading edit <item_id>"
+    exit 1
+  fi
+
+  # fetch
+  READ_PROMPT=$("$SPBASEDCTL_BIN" items query --pre-filter="id==$ID && model=='$ITEM_MODEL'" --post-filter="[0].{id:id,data:data}")
+  READ_PROMPT_ID=$(echo $READ_PROMPT | jq ".id")
+  READ_PROMPT_DATA=$(echo $READ_PROMPT | jq ".data")
+
+  # extract
+  DOCUMENT=$(echo $READ_PROMPT_DATA | jq -r ".document")
+  PAGE=$(echo $READ_PROMPT_DATA | jq -r ".page")
+  PROMPT=$(echo $READ_PROMPT_DATA | jq -r ".prompt")
+
+  # edit
+  DOCUMENT=$(ls $SPBASED_LIBRARY | fzf --height 10 --header "Old document name: $DOCUMENT" --color 16)
+  PAGE=$(gum write --placeholder="page" --value="$PAGE")
+  PROMPT=$(gum write --placeholder="prompt (what should be read)" --value="$PROMPT")
+
+  # validate
+  if [[ -z "$DOCUMENT" || -z "$PAGE" ]]; then
+    echo "must provide document name and page number"
+    exit 0
+  fi
+
+  # serialize
+  READ_PROMPT=$(jq --compact-output --null-input --arg document "$DOCUMENT" --arg page "$PAGE" --arg prompt "$PROMPT" '.document = $document | .page = $page | .prompt = $prompt')
+
+  # update
+  "$SPBASEDCTL_BIN" items edit  --data "$READ_PROMPT" "$ID"
+}
+review() {
+  # fetch data
+  N_NEW=$("$SPBASEDCTL_BIN" review query-count new)
+  N_DUE=$("$SPBASEDCTL_BIN" review query-count due)
+  gum log --level info "You have $N_DUE flashcards that are due and $N_NEW that are new"
+
+  if [[ $N_NEW == "0" && $N_DUE == "0" ]]; then
+    gum log --level info "No flashcards are new or due. Exiting..."
+    exit 0
+  fi
+
+  if [[ $N_DUE != "0" ]]; then
+    REVIEW_CHOICE="due"
+  else
+    REVIEW_CHOICE="new"
+  fi
+
+  if [[ $REVIEW_CHOICE == "new" ]]; then
+    READ_PROMPT=$("$SPBASEDCTL_BIN" review next new --pre-filter="model=='$ITEM_MODEL'")
+  else
+    READ_PROMPT=$("$SPBASEDCTL_BIN" review next due --pre-filter="model=='$ITEM_MODEL'")  
+  fi
+
+  if [[ -z $READ_PROMPT|| $READ_PROMPT == "null" ]]; then
+    gum log --level error "could not find any $REVIEW_CHOICE item"
+    exit 0
+  fi
+
+  READ_PROMPT_ID=$(echo $READ_PROMPT | jq ".id")
+  READ_PROMPT_DATA=$(echo $READ_PROMPT | jq ".data")
+
+  DOCUMENT=$(echo $READ_PROMPT_DATA | jq -r ".document")
+  PAGE=$(echo $READ_PROMPT_DATA | jq -r ".page")
+  PROMPT=$(echo $READ_PROMPT_DATA | jq -r ".prompt")
+
+  DOCUMENT_PATH="$SPBASED_LIBRARY"/"$DOCUMENT"  
+  gum log --level info "Document path: $DOCUMENT_PATH"
+  gum log --level info "Prompt: $PROMPT"
+
+  # open the document
+  zathura "$DOCUMENT_PATH" --page "$PAGE" 2>/dev/null # open th pdf
+
+  # prompt the user to answer how difficult it was to digest
+  AGAIN="again (needs to see the document again)"
+  HARD="hard (I need to see this more often)"
+  GOOD="good (reschedule as normal)"
+  EASY="easy (I need to see this less often)"
+
+  RESULT=$(gum choose --header "How easy/hard was it to digest the information?" --selected="$GOOD" "$AGAIN" "$HARD" "$GOOD" "$EASY" | cut -d " " -f1)
+
+  "$SPBASEDCTL_BIN" review score "$FLASHCARD_ID" "$RESULT"
+}
+
+case "$COMMAND" in
+  "add") add;;
+  "edit") edit;;
+  "review") review;;
+esac
