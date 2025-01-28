@@ -118,17 +118,9 @@
                 cargoLock.lockFile = ./Cargo.lock;
                 cargoBuildFlags = "--package spbasedctl";
               };
-              add_flashcard = create_script {
-                name = "add_flashcard";
-                src = builtins.readFile ./scripts/add_flashcard;
-              };
-              edit_flashcard = create_script {
-                name = "edit_flashcard";
-                src = builtins.readFile ./scripts/edit_flashcard;
-              };
-              review_flashcard = create_script {
-                name = "review_flashcard";
-                src = builtins.readFile ./scripts/review_flashcard;
+              flashcard = create_script {
+                name = "flashcard";
+                src = builtins.readFile ./scripts/flashcard;
               };
             };
         };
