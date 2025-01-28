@@ -124,6 +124,10 @@
                 name = "flashcard";
                 src = builtins.readFile ./scripts/flashcard;
               };
+              reading = create_script {
+                name = "reading";
+                src = builtins.readFile ./scripts/reading;
+              };
             };
         };
     };
