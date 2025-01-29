@@ -6,15 +6,14 @@
   # Flake inputs
   inputs = {
     flake-schemas.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/*";
-
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-root.url = "github:srid/flake-root";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-root.url = "github:srid/flake-root";
   };
 
   # Flake outputs that other flakes can use
@@ -74,6 +73,14 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = [ config.flake-root.devShell ]; # Provides $FLAKE_ROOT in dev shell
             packages = with pkgs; [
+              (python3.withPackages (python-pkgs: [
+                python-pkgs.click
+                python-pkgs.typer
+                python-pkgs.prompt-toolkit
+              ]))
+              python312Packages.jedi-language-server
+              python312Packages.ruff
+              self'.packages.spbasedctl
               bash-language-server
               fzf
               glow
