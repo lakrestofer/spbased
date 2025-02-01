@@ -32,7 +32,7 @@ else
 fi
 
 add() {
-  ## prompt the user for their question answer pair
+  # prompt the user for their question answer pair
   QUESTION=$(gum write --placeholder="question")
   ANSWER=$(gum write --placeholder="answer")
 
@@ -42,8 +42,13 @@ add() {
     exit 1
   fi
 
-  FLASHCARD=$(jq --compact-output --null-input --arg question "$QUESTION" --arg answer "$ANSWER" '.question = $question | .answer = $answer')
+  # build stringified json object
+  FLASHCARD=$(jq --compact-output --null-input \
+    --arg question "$QUESTION" \
+    --arg answer "$ANSWER" \
+    '.question = $question | .answer = $answer')
 
+  # save json data as review item
   "$SPBASEDCTL_BIN" items add --model "flashcard" --data "$FLASHCARD"
 }
 edit() {
@@ -52,16 +57,24 @@ edit() {
     exit 1
   fi
 
+  # retrieve data
+  FLASHCARD=$("$SPBASEDCTL_BIN" items query \
+    --pre-filter="id==$id && model=='flashcard'" \
+    --post-filter="[0].{id:id,data:data}")
 
-  FLASHCARD=$("$SPBASEDCTL_BIN" items query --pre-filter="id==$id && model=='flashcard'" --post-filter="[0].{id:id,data:data}")
-  FLASHCARD_ID=$(echo $FLASHCARD | jq ".id")
-  FLASHCARD_DATA=$(echo $FLASHCARD | jq ".data")
+  # extract data
+  FLASHCARD_ID=$(jq ".id" <<< "$FLASHCARD")
+  FLASHCARD_DATA=$(jq ".data" <<< "$FLASHCARD")
+  QUESTION=$(jq -r ".question" <<< $FLASHCARD_DATA)
+  ANSWER=$(jq -r ".answer" <<< $FLASHCARD_DATA)
 
-  QUESTION=$(echo $FLASHCARD_DATA | jq -r ".question")
-  ANSWER=$(echo $FLASHCARD_DATA | jq -r ".answer")
-
-  QUESTION=$(gum write --placeholder="question" --value="$QUESTION")
-  ANSWER=$(gum write --placeholder="answer" --value="$ANSWER")
+  # promt the user for edits
+  QUESTION=$(gum write \
+    --placeholder="question" \
+    --value="$QUESTION")
+  ANSWER=$(gum write \
+    --placeholder="answer" \
+    --value="$ANSWER")
 
   ## Both question and answer must be set
   if [[ -z "$QUESTION" || -z "$ANSWER" ]]; then
@@ -69,8 +82,13 @@ edit() {
     exit 0
   fi
 
-  FLASHCARD=$(jq --compact-output --null-input --arg question $QUESTION --arg answer "$ANSWER" '.question = $question | .answer = $answer')
+  # build json object
+  FLASHCARD=$(jq --compact-output --null-input \
+    --arg question $QUESTION \
+    --arg answer "$ANSWER" \
+    '.question = $question | .answer = $answer')
 
+  # save json object
   "$SPBASEDCTL_BIN" items edit  --data "$FLASHCARD" "$id"
 }
 review() {
@@ -89,34 +107,36 @@ review() {
     REVIEW_CHOICE="new"
   fi
 
-  if [[ $REVIEW_CHOICE == "new" ]]; then
-    FLASHCARD=$("$SPBASEDCTL_BIN" review next new --pre-filter="model=='flashcard'")
-  else
-    FLASHCARD=$("$SPBASEDCTL_BIN" review next due --pre-filter="model=='flashcard'")  
-  fi
+  FLASHCARD=$("$SPBASEDCTL_BIN" review next "$REVIEW_CHOICE" \
+    --pre-filter="model=='flashcard'" \
+    --post-filter="{data:data,id:id,created_at:created_at}")
 
   if [[ -z $FLASHCARD || $FLASHCARD == "null" ]]; then
     gum log --level error "could not find any $REVIEW_CHOICE item"
     exit 0
   fi
 
-  FLASHCARD_ID=$(echo $FLASHCARD | jq ".id")
-  FLASHCARD_CREATED_AT=$(echo $FLASHCARD | jq ".created_at" | cut -c2-11)
-  FLASHCARD_DATA=$(echo $FLASHCARD | jq ".data")
+  FLASHCARD_ID=$(jq ".id" <<< "$FLASHCARD")
+  FLASHCARD_CREATED_AT=$(jq ".created_at" <<< "$FLASHCARD" | cut -c2-11 )
+  FLASHCARD_DATA=$(jq ".data" <<< "$FLASHCARD")
 
-  QUESTION=$(echo $FLASHCARD_DATA | jq -r ".question")
-  ANSWER=$(echo $FLASHCARD_DATA | jq -r ".answer")
+  QUESTION=$(jq -r ".question" <<< "$FLASHCARD_DATA")
+  ANSWER=$(jq -r ".answer" <<< "$FLASHCARD_DATA")
 
   # show the question
-  gum style  --underline --align center --width 50 "Item ? - Question" 
-  echo "$QUESTION" | glow
+  if [[ $QUESTION != \#* ]]; then 
+    glow <<< "# Question"
+  fi
+  glow <<< "$QUESTION"
 
   # await response to continue
-  gum confirm "Show answer" --affirmative="Heck yeah!" --negative="No I'm scared, exit plz" || exit 0
+  gum input --placeholder="Press enter to view answer" --no-show-help
 
   # show the answer
-  gum style  --underline --align center --width 50 "Item $FLASHCARD_ID ($FLASHCARD_CREATED_AT) - Answer" 
-  echo "$ANSWER" | glow
+  if [[ $ANSWER != \#* ]];  then
+    glow <<< "# Answer"
+  fi
+  glow <<< "$ANSWER"
 
   # prompt for how well it went
   AGAIN="again (could not answer)"
@@ -124,7 +144,14 @@ review() {
   GOOD="good (could answer)"
   EASY="easy (could answer easily)"
 
-  RESULT=$(gum choose --header "How easy was it to answer the prompt?" --selected="$GOOD" "$AGAIN" "$HARD" "$GOOD" "$EASY" | cut -d " " -f1)
+  RESULT=$(gum choose \
+    --header "How easy was it to answer the prompt?" \
+    --selected="$GOOD" "$AGAIN" "$HARD" "$GOOD" "$EASY" \
+    | cut -d " " -f1) # cut out the first word (again,hard,good,easy) as expected by `spbased review score`
+
+  if [[ -z "$RESULT" ]]; then
+    exit 0
+  fi
 
   "$SPBASEDCTL_BIN" review score "$FLASHCARD_ID" "$RESULT"
 }
