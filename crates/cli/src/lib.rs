@@ -27,15 +27,21 @@ pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
 pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
-pub fn handle_command(command: Command) -> Result<Option<String>> {
+pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<String>> {
     Ok(match command {
         Command::Init { directory } => {
             command::init(directory)?;
             None
         }
-        Command::Items(c) => command::item::handle_command(c)?,
-        Command::Review(c) => command::review::handle_command(c)?,
-        Command::Tags(c) => command::tag::handle_command(c)?,
+        c => {
+            let spbased_dir = get_spbased_dir(root)?;
+            match c {
+                Command::Items(c) => command::item::handle_command(spbased_dir, c)?,
+                Command::Review(c) => command::review::handle_command(spbased_dir, c)?,
+                Command::Tags(c) => command::tag::handle_command(spbased_dir, c)?,
+                _ => unreachable!(),
+            }
+        }
     })
 }
 
@@ -100,8 +106,10 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(command: ItemCommand) -> Result<Option<String>> {
-            let spbased_dir = get_spbased_dir()?;
+        pub fn handle_command(
+            spbased_dir: PathBuf,
+            command: ItemCommand,
+        ) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
 
             Ok(match command {
@@ -218,8 +226,10 @@ pub mod command {
         use super::*;
         // use serde_json::json;
 
-        pub fn handle_command(command: ReviewCommand) -> Result<Option<String>> {
-            let spbased_dir = get_spbased_dir()?;
+        pub fn handle_command(
+            spbased_dir: PathBuf,
+            command: ReviewCommand,
+        ) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
             let res: Option<String> = match command {
                 ReviewCommand::Next(cmd) => match cmd {
@@ -329,8 +339,7 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(command: TagCommand) -> Result<Option<String>> {
-            let spbased_dir = get_spbased_dir()?;
+        pub fn handle_command(spbased_dir: PathBuf, command: TagCommand) -> Result<Option<String>> {
             let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
 
             Ok(match command {
@@ -384,8 +393,21 @@ pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
 
 /// Retrieve the spbased directory containing the config file and sqlite db.
 /// If an .spbased folder does not exist, check in user data directory.
-pub fn get_spbased_dir() -> Result<PathBuf> {
-    match get_spbased_dir_cwd() {
+pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
+    let spbased_dir: Result<PathBuf> = match root {
+        Some(path) => {
+            let spbased_dir = path.join(SPBASED_WORK_DIR);
+            if spbased_dir.is_dir() {
+                Ok(spbased_dir)
+            } else {
+                Err(anyhow!(
+                    "Could not find .spbased directory in current working directory"
+                ))
+            }
+        }
+        None => get_spbased_dir_cwd(),
+    };
+    match spbased_dir {
         Ok(dir) => Ok(dir),
         Err(cwd_e) => match get_spbased_dir_user_data() {
             Ok(dir) => Ok(dir),

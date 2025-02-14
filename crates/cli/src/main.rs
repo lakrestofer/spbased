@@ -7,7 +7,9 @@ use spbasedctl::handle_command;
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let res = handle_command(cli.command)?;
+    let root = cli.root;
+
+    let res = handle_command(root, cli.command)?;
 
     if let Some(res) = res {
         println!("{}", res);

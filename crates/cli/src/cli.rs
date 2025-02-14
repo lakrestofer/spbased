@@ -12,9 +12,10 @@ use super::*;
 #[derive(Parser)]
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
-    // /// Turn debugging information on
-    // #[arg(long, action = clap::ArgAction::Count)]
-    // pub debug: u8,
+    /// Tell spbased to look for a .spbased directory in `root`.
+    /// If no such directory could be found, spbased with look in user data
+    #[arg(long)]
+    pub root: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
 }
