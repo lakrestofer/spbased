@@ -5,6 +5,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use dialoguer::Confirm;
 use include_dir::{include_dir, Dir};
+use log::info;
 use normalize_path::NormalizePath;
 use resolve_path::PathResolveExt;
 use rusqlite::params;
@@ -21,6 +22,7 @@ pub mod queries;
 
 use cli::*;
 
+pub const SPBASED_ROOT_ENV_VAR_NAME: &'static str = "SPBASED_ROOT";
 pub const SPBASED_DATA_DIR: &'static str = "spbased";
 pub const SPBASED_WORK_DIR: &'static str = ".spbased";
 pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
@@ -28,17 +30,22 @@ pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<String>> {
+    info!("handling command: {:?}", command);
     Ok(match command {
         Command::Init { directory } => {
             command::init(directory)?;
             None
         }
-        c => {
+        command => {
             let spbased_dir = get_spbased_dir(root)?;
-            match c {
-                Command::Items(c) => command::item::handle_command(spbased_dir, c)?,
-                Command::Review(c) => command::review::handle_command(spbased_dir, c)?,
-                Command::Tags(c) => command::tag::handle_command(spbased_dir, c)?,
+            info!("spbased_working_dir set to {:?}", &spbased_dir);
+            let db_dir = get_db_path(spbased_dir);
+            info!("spbased_db_dir set to {:?}", &db_dir);
+            let connection: Connection = db::open(&db_dir)?;
+            match command {
+                Command::Items(command) => command::item::handle_command(connection, command)?,
+                Command::Review(command) => command::review::handle_command(connection, command)?,
+                Command::Tags(command) => command::tag::handle_command(connection, command)?,
                 _ => unreachable!(),
             }
         }
@@ -106,12 +113,7 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(
-            spbased_dir: PathBuf,
-            command: ItemCommand,
-        ) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
-
+        pub fn handle_command(mut c: Connection, command: ItemCommand) -> Result<Option<String>> {
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
                     let id = queries::item::add(
@@ -226,11 +228,7 @@ pub mod command {
         use super::*;
         // use serde_json::json;
 
-        pub fn handle_command(
-            spbased_dir: PathBuf,
-            command: ReviewCommand,
-        ) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
+        pub fn handle_command(mut c: Connection, command: ReviewCommand) -> Result<Option<String>> {
             let res: Option<String> = match command {
                 ReviewCommand::Next(cmd) => match cmd {
                     NextReviewCommand::New {
@@ -339,9 +337,7 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(spbased_dir: PathBuf, command: TagCommand) -> Result<Option<String>> {
-            let mut c: Connection = db::open(&get_db_path(spbased_dir))?;
-
+        pub fn handle_command(mut c: Connection, command: TagCommand) -> Result<Option<String>> {
             Ok(match command {
                 TagCommand::Add { name } => {
                     let id = queries::tag::add(&mut c, &name)?;
@@ -392,31 +388,46 @@ pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
 }
 
 /// Retrieve the spbased directory containing the config file and sqlite db.
-/// If an .spbased folder does not exist, check in user data directory.
+/// Checked in this order: --root flag, environment variable, current directory,
+/// xdg user data directory
 pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
-    let spbased_dir: Result<PathBuf> = match root {
-        Some(path) => {
-            let spbased_dir = path.join(SPBASED_WORK_DIR);
-            if spbased_dir.is_dir() {
-                Ok(spbased_dir)
-            } else {
-                Err(anyhow!(
-                    "Could not find .spbased directory in current working directory"
-                ))
-            }
-        }
-        None => get_spbased_dir_cwd(),
-    };
-    match spbased_dir {
-        Ok(dir) => Ok(dir),
-        Err(cwd_e) => match get_spbased_dir_user_data() {
-            Ok(dir) => Ok(dir),
-            Err(user_data_e) => Err(anyhow!(
-                "Could not find spbased directory: {:?} {:?}",
-                cwd_e,
-                user_data_e
-            )),
-        },
+    if let Some(path) = root {
+        // if --root flag is supplied it must be valid, otherwise return
+        return get_spbased_dir_flag(path);
+    }
+    // if no flag is supplied, we check environment variable, cwd or
+    // xdg user data dir
+    get_spbased_dir_env_var()
+        .or_else(|_| get_spbased_dir_cwd())
+        .or_else(|_| get_spbased_dir_user_data())
+        .map_err(|_| anyhow!("Could not find spbased directory"))
+}
+
+pub fn get_spbased_dir_env_var() -> Result<PathBuf> {
+    info!("retriving spbased directory from SPBASED_ROOT");
+    match std::env::var(SPBASED_ROOT_ENV_VAR_NAME) {
+        Ok(path) => validate_spbased_root_dir(path.into()),
+        Err(e) => Err(anyhow!("Could not find spbased dir: {:?}", e)),
+    }
+}
+
+pub fn get_spbased_dir_flag(root: PathBuf) -> Result<PathBuf> {
+    info!(
+        "retriving spbased directory from current working directory: {:?}",
+        root
+    );
+    validate_spbased_root_dir(root)
+}
+
+pub fn validate_spbased_root_dir(path: PathBuf) -> Result<PathBuf> {
+    info!("checking if {:?} contains {:?}", path, SPBASED_WORK_DIR);
+    let spbased_dir = path.join(SPBASED_WORK_DIR);
+    if spbased_dir.is_dir() {
+        Ok(spbased_dir)
+    } else {
+        Err(anyhow!(
+            "Could not find .spbased directory in current working directory"
+        ))
     }
 }
 

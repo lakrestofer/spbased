@@ -2,6 +2,14 @@ use filter_language::AstNode;
 
 use super::*;
 
+pub enum DebugLevel {
+    TRACE,
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR
+}
+
 ///       _____       __                        __
 ///      / ___/____  / /_  ____ _________  ____/ /
 ///      \__ \/ __ \/ __ \/ __ `/ ___/ _ \/ __  / 
@@ -12,15 +20,17 @@ use super::*;
 #[derive(Parser)]
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
+    #[arg(long, action = clap::ArgAction::Count)]
+    pub debug: u8,
     /// Tell spbased to look for a .spbased directory in `root`.
-    /// If no such directory could be found, spbased with look in user data
+    /// If no such directory could be found, spbased will look in user data
     #[arg(long)]
     pub root: Option<PathBuf>,
     #[command(subcommand)]
     pub command: Command,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
     Init { directory: Option<PathBuf> },
@@ -35,7 +45,7 @@ pub enum Command {
     Review(ReviewCommand),
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum ItemCommand {
     /// Add a new new review item
     Add {
@@ -102,7 +112,7 @@ pub enum ItemCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum ReviewCommand {
     /// Review the most urgent review item that is due
     #[command(subcommand)]
@@ -119,7 +129,7 @@ pub enum ReviewCommand {
         grade: sra::model::Grade,
     },
 }
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum QueryCountCommand {
     New {
         #[arg(long, value_parser = parser::ast_node)]
@@ -132,7 +142,7 @@ pub enum QueryCountCommand {
         filter: Option<AstNode>,
     },
 }
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum NextReviewCommand {
     New {
         #[arg(long, value_parser = parser::ast_node)]
@@ -156,7 +166,7 @@ pub enum NextReviewCommand {
     },
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum TagCommand {
     /// Add a new tag
     Add { name: String },

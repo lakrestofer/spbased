@@ -119,7 +119,7 @@ review() {
   gum log --level info "Prompt: $PROMPT"
 
   # open the document
-  zathura "$DOCUMENT_PATH" --page "$PAGE" 2>/dev/null # open th pdf
+  zathura "$DOCUMENT_PATH" --page "$PAGE" 2>/dev/null # open the pdf
 
   # prompt the user to answer how difficult it was to digest
   AGAIN="again (needs to see the document again)"

@@ -6,6 +6,7 @@ use spbasedctl::handle_command;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    env_logger::init();
 
     let root = cli.root;
 

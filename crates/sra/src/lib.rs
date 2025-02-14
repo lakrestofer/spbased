@@ -18,7 +18,7 @@ pub mod model {
     pub type Interval = f32;
 
     /// Each review prompt has some parameters that we use to schedule it
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Debug)]
     pub struct ModelData {
         pub s: Stability,
         pub d: Difficulty,
@@ -30,7 +30,7 @@ pub mod model {
     /// 2 -> Hard, the user could recall, but with great effort
     /// 3 -> Good, the user could recall
     /// 4 -> Easy, the user could easily recall
-    #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Debug)]
     pub enum Grade {
         Again = 1,
         Hard = 2,
