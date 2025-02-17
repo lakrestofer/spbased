@@ -123,6 +123,8 @@ review() {
   QUESTION=$(jq -r ".question" <<< "$FLASHCARD_DATA")
   ANSWER=$(jq -r ".answer" <<< "$FLASHCARD_DATA")
 
+  gum log --level info "Card id: $FLASHCARD_ID"
+
   # show the question
   if [[ $QUESTION != \#* ]]; then 
     glow <<< "# Question"
