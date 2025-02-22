@@ -31,6 +31,12 @@ else
   SPBASEDCTL_BIN="$FLAKE_ROOT/target/debug/spbasedctl"
 fi
 
+fatal() {
+  local message="$1"
+  printf "Error: %s\n" $message
+  exit 1
+}
+
 add() {
   # prompt the user for their question answer pair
   QUESTION=$(gum write --placeholder="question")
@@ -159,7 +165,8 @@ review() {
 }
 
 case "$command" in
-  "add") add;;
-  "edit") edit;;
-  "review") review;;
+  ("add") add;;
+  ("edit") edit;;
+  ("review") review;;
+  (*) fatal "Unknown command '$command'"
 esac
