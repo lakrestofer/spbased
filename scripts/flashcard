@@ -168,5 +168,5 @@ case "$command" in
   ("add") add;;
   ("edit") edit;;
   ("review") review;;
-  (*) fatal "Unknown command '$command'"
+  (*) fatal "Unknown command '$command'";;
 esac
