@@ -2,14 +2,6 @@ use filter_language::AstNode;
 
 use super::*;
 
-pub enum DebugLevel {
-    TRACE,
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR
-}
-
 ///       _____       __                        __
 ///      / ___/____  / /_  ____ _________  ____/ /
 ///      \__ \/ __ \/ __ \/ __ `/ ___/ _ \/ __  / 
@@ -20,8 +12,6 @@ pub enum DebugLevel {
 #[derive(Parser)]
 #[command(version, about, long_about, verbatim_doc_comment)]
 pub struct Cli {
-    #[arg(long, action = clap::ArgAction::Count)]
-    pub debug: u8,
     /// Tell spbased to look for a .spbased directory in `root`.
     /// If no such directory could be found, spbased will look in user data
     #[arg(long)]
