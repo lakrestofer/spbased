@@ -395,11 +395,9 @@ pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
         // if --root flag is supplied it must be valid, otherwise return
         return get_spbased_dir_flag(path);
     }
-    // if no flag is supplied, we check environment variable, cwd or
-    // xdg user data dir
-    get_spbased_dir_env_var()
-        .or_else(|_| get_spbased_dir_cwd())
-        .or_else(|_| get_spbased_dir_user_data())
+    get_spbased_dir_cwd() // first check in current dir
+        .or_else(|_| get_spbased_dir_env_var()) // then in $SPBASED_DIR
+        .or_else(|_| get_spbased_dir_user_data()) // then in xdg user data dir
         .map_err(|_| anyhow!("Could not find spbased directory"))
 }
 
