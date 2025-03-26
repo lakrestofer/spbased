@@ -424,8 +424,10 @@ pub mod db {
 
     pub const DB_OPEN: &str = load_sql!("sql/db_open.sql");
     pub const DB_CLOSE: &str = load_sql!("sql/db_close.sql");
-    pub const MIGRATIONS: LazyCell<Migrations> =
-        LazyCell::new(|| Migrations::new(vec![M::up(load_sql!("sql/001_init.sql"))]));
+    pub const MIGRATIONS: LazyCell<Migrations> = LazyCell::new(|| {
+        // Migrations::new(vec![M::up(include_str!("../sql/001_init.sql"))])
+        Migrations::new(vec![M::up(load_sql!("sql/001_init.sql"))])
+    });
 
     pub fn open(db_path: &Path) -> Result<Connection> {
         let mut conn = Connection::open(db_path).wrap_err("trying to open connection")?;
@@ -435,5 +437,15 @@ pub mod db {
             .wrap_err("Trying to migrate sqlite schema")?;
         conn.execute_batch(DB_OPEN)?; // enable foreign keys constraint
         Ok(conn)
+    }
+
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[test]
+        pub fn init() -> Result<()> {
+            Ok(())
+        }
     }
 }

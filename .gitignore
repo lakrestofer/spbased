@@ -22,3 +22,4 @@ db.sqlite
 node_modules
 .direnv
 result
+.spbased

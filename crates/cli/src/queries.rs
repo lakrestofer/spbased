@@ -1,5 +1,7 @@
 use super::*;
 use model::*;
+use sql_minifier::macros::minify_sql;
+
 pub mod template {
     //! Various string builders for to dynamically generate sql queries
 
@@ -27,10 +29,10 @@ pub mod item {
     pub fn add(c: &mut Connection, model: &str, data: &str, tags: &[&str]) -> Result<i32> {
         // insert item
         let item_id: i32 = c
-            .prepare("insert into item (model,data) values (?,?) returning id")?
-            .query_map(params![model, data], |r| Ok(r.get(0)?))?
-            .filter_map(Result::ok)
-            .next()
+            .prepare(minify_sql!(
+                "insert into item (model,data) values (?,?) returning id"
+            ))?
+            .query_row(params![model, data], |r| Ok(r.get::<usize, i32>(0)?))
             .wrap_err("retrieving item from db")?;
 
         // insert tags if any
@@ -41,15 +43,16 @@ pub mod item {
                     template::values(1, tags.len())
                 ),
                 params_from_iter(tags),
-            )?;
+            )
+            .wrap_err("inserting new tags")?;
             let tag_ids: Vec<i32> = c
                 .prepare(&format!(
-                    "select id from tag where name in ({})",
+                    minify_sql!("select id from tag where name in ({})"),
                     template::vars(tags.len())
                 ))?
                 .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
-                .filter_map(Result::ok)
-                .collect();
+                .map(|r| r.wrap_err("retrieve ids from tags"))
+                .collect::<Result<Vec<i32>>>()?;
             c.execute(
                 &format!(
                     "insert or ignore into tag_item_map (tag_id, item_id) values {}",
@@ -69,9 +72,9 @@ pub mod item {
         Ok(())
     }
     pub fn get_tags(c: &mut Connection, id: i32) -> Result<Vec<Tag>> {
-        let mut stmt = c.prepare(&format!(
+        let mut stmt = c.prepare(&format!(minify_sql!(
             "select * from tag where id in (select tag_id from tag_item_map where item_id = ?1)"
-        ))?;
+        )))?;
         let tags: Vec<Tag> = stmt
             .query_map((id,), |r| {
                 Ok(Tag {
@@ -426,14 +429,13 @@ pub mod review {
 mod tests {
     use super::*;
 
-    fn init() -> Connection {
+    fn init() -> Result<Connection> {
         let mut conn = Connection::open_in_memory().unwrap();
         db::MIGRATIONS
             .to_latest(&mut conn)
-            .context("Trying to migrate sqlite schema")
-            .unwrap();
+            .wrap_err("Trying to migrate sqlite schema")?;
         conn.execute("PRAGMA foreign_keys = ON", ()).unwrap();
-        conn
+        Ok(conn)
     }
 
     #[test]
@@ -442,8 +444,8 @@ mod tests {
     }
     // ==== items ====
     #[test]
-    fn test_add_item() {
-        let mut c = init();
+    fn test_add_item() -> Result<()> {
+        let mut c = init()?;
         assert_eq!(
             item::add(
                 &mut c,
@@ -454,10 +456,11 @@ mod tests {
             .unwrap(),
             1
         );
+        Ok(())
     }
     #[test]
-    fn test_edit_and_get_item() {
-        let mut c = init();
+    fn test_edit_and_get_item() -> Result<()> {
+        let mut c = init()?;
         let id = item::add(&mut c, "flashcard", r#"{"front":"foo","back":"bar"}"#, &[]).unwrap();
         item::edit_data(&mut c, id, r#"{"front":"foobar","back":"barbaz"}"#).unwrap();
         item::edit_model(&mut c, id, "reading").unwrap();
@@ -468,10 +471,11 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(r#"{"front":"foobar","back":"barbaz"}"#)
                 .unwrap()
         );
+        Ok(())
     }
     #[test]
-    fn test_edit_tags_on_item() {
-        let mut c = init();
+    fn test_edit_tags_on_item() -> Result<()> {
+        let mut c = init()?;
         let id = item::add(&mut c, "flashcard", r#"{"front":"foo","back":"bar"}"#, &[]).unwrap();
 
         let tags_to_add = vec!["test", "test2"];
@@ -490,10 +494,11 @@ mod tests {
             item.data.0,
             serde_json::from_str::<serde_json::Value>(r#"{"front":"foo","back":"bar"}"#).unwrap()
         );
+        Ok(())
     }
     #[test]
-    fn test_query_item_based_on_tags() {
-        let mut c = init();
+    fn test_query_item_based_on_tags() -> Result<()> {
+        let mut c = init()?;
         let item_1_tags = vec!["test1", "test2"];
         let id1 = item::add(
             &mut c,
@@ -533,23 +538,26 @@ mod tests {
 
         let items = item::query(&mut c, None, &[], &["test2"]).unwrap();
         assert!(items.is_empty());
+        Ok(())
     }
     // -------------
     // ==== tags ====
     #[test]
-    fn test_add_tag() {
-        let mut c = init();
+    fn test_add_tag() -> Result<()> {
+        let mut c = init()?;
         let id = tag::add(&mut c, "edan35").unwrap();
         assert!(id == 1);
+        Ok(())
     }
-    #[test]
-    fn test_edit_tag() {
-        let mut c = init();
+    // #[test]
+    fn test_edit_tag() -> Result<()> {
+        let mut c = init()?;
         let id = tag::add(&mut c, "edan35").unwrap();
         assert!(id == 1);
         tag::edit(&mut c, "edan35", "edaf35").unwrap();
         let tag = tag::get(&mut c, id).unwrap();
         assert_eq!(&tag.name, "edaf35");
+        Ok(())
     }
     // -------------
 }

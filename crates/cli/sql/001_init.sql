@@ -1,87 +1,86 @@
---- ============================ Item ============================
---- Content agnostic container for scheduling data and model data.
-CREATE TABLE IF NOT EXISTS item (
-    id INTEGER PRIMARY KEY,
-    maturity TEXT NOT NULL DEFAULT "New",
-    stability REAL NOT NULL DEFAULT 0.0,                      -- sra parameter. The number of days since last review date until probability of recal reaches 90%
-    difficulty REAL NOT NULL DEFAULT 0.0,                     -- sra parameter. Number between 1 and 10. Meausure of item difficulty
-    last_review_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- sra parameter. Date in iso8601
-    n_reviews INTEGER NOT NULL DEFAULT 0,                     -- sra parameter. Number of times we've review and given the review a score.
-    n_lapses INTEGER NOT NULL DEFAULT 0,                      -- sra parameter. Number of times we've failed to recall the item.
-    model TEXT NOT NULL,                                      -- the model, tells us how data is to be interpreted
-    data TEXT NOT NULL,                                       -- untyped text field, usually json data
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,       -- metadata
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP        -- metadata
+--- ============================ item ============================
+--- content agnostic container for scheduling data and model data.
+create table item (
+    id integer primary key,
+    maturity text not null default "new",
+    stability real not null default 0.0,                      -- sra parameter. the number of days since last review date until probability of recal reaches 90%
+    difficulty real not null default 0.0,                     -- sra parameter. number between 1 and 10. meausure of item difficulty
+    last_review_date text not null default current_timestamp, -- sra parameter. date in iso8601
+    n_reviews integer not null default 0,                     -- sra parameter. number of times we've review and given the review a score.
+    n_lapses integer not null default 0,                      -- sra parameter. number of times we've failed to recall the item.
+    model text not null,                                      -- the model, tells us how data is to be interpreted
+    data text not null,                                       -- untyped text field, usually json data
+    updated_at text not null default current_timestamp,       -- metadata
+    created_at text not null default current_timestamp        -- metadata
 );
 --- keep update_at column in sync
-CREATE TRIGGER IF NOT EXISTS
+create trigger
 update_at_field_trigger__item
-AFTER UPDATE ON
+after update on
 item
-WHEN OLD.maturity <> NEW.maturity OR
-    OLD.stability <> NEW.stability OR
-    OLD.difficulty <> NEW.difficulty OR
-    OLD.last_review_date <> NEW.last_review_date OR
-    OLD.n_reviews <> NEW.n_reviews OR
-    OLD.model <> NEW.model OR
-    OLD.data <> NEW.data
-BEGIN
-    UPDATE item SET updated_at = datetime('now') WHERE id == old.id;
-END;
+when old.maturity <> new.maturity or
+    old.stability <> new.stability or
+    old.difficulty <> new.difficulty or
+    old.last_review_date <> new.last_review_date or
+    old.n_reviews <> new.n_reviews or
+    old.model <> new.model or
+    old.data <> new.data
+begin
+    update item set updated_at = datetime('now') where id == old.id;
+end;
 --- --------------------------------------------------------------------------
 
 
---- ============================ Tag ============================
-CREATE TABLE IF NOT EXISTS tag (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,                          -- name of tag
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- metadata
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP  -- metadata
+--- ============================ tag ============================
+create table tag (
+    id integer primary key,
+    name text not null unique,                          -- name of tag
+    updated_at text not null default current_timestamp, -- metadata
+    created_at text not null default current_timestamp  -- metadata
 );
 -- keep update_at field in sync
-CREATE TRIGGER IF NOT EXISTS
+create trigger
 update_at_field_trigger__tag
-AFTER UPDATE ON
+after update on
 tag
-WHEN OLD.name <> NEW.name
-BEGIN
-    UPDATE item SET updated_at = datetime('now') WHERE id == old.id;
-END;
-CREATE TABLE IF NOT EXISTS tag_item_map (
-    id INTEGER PRIMARY KEY,
-    tag_id INTEGER NOT NULL,
-    item_id INTEGER NOT NULL,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- metadata
-    FOREIGN KEY(tag_id) REFERENCES tag(id) ON DELETE CASCADE,
-    FOREIGN KEY(item_id) REFERENCES item(id) ON DELETE CASCADE,
-    UNIQUE(tag_id, item_id)
+when old.name <> new.name
+begin
+    update item set updated_at = datetime('now') where id == old.id;
+end;
+create table tag_item_map (
+    id integer primary key,
+    tag_id integer not null,
+    item_id integer not null,
+    created_at text not null default current_timestamp, -- metadata
+    foreign key(tag_id) references tag(id) on delete cascade,
+    foreign key(item_id) references item(id) on delete cascade,
+    unique(tag_id, item_id)
 );
 --- --------------------------------------------------------------------------
 
 
---- ============================ Due items ============================
-CREATE VIEW IF NOT EXISTS due_item AS
-SELECT
+--- ============================ due items ============================
+create view due_item as
+select
     *
-FROM
+from
     item
-WHERE
-    maturity != "New" and
+where
+    maturity != "new" and
     date(last_review_date, '+' || stability || ' days') < date('now')
-ORDER BY
-    cast(stability as integer) asc, -- primary sort by whole day
-    stability * (1 + (random() % 2001 - 1000) / 10000.0) asc; -- secondarily by a random order
+order by
+    stability asc;
 --- --------------------------------------------------------------------------
 
 
---- ============================ New items ============================
-CREATE VIEW IF NOT EXISTS new_item AS
-SELECT
+--- ============================ new items ============================
+create view new_item as
+select
     *
-FROM
+from
     item
-WHERE
-    maturity == "New"
-ORDER BY
+where
+    maturity == "new"
+order by
     random();
 --- --------------------------------------------------------------------------

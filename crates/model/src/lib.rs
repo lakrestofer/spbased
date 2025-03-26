@@ -44,9 +44,9 @@ impl FromSql for Maturity {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         let s = value.as_str()?;
         match s {
-            "New" => Ok(Maturity::New),
-            "Young" => Ok(Maturity::Young),
-            "Tenured" => Ok(Maturity::Tenured),
+            "new" => Ok(Maturity::New),
+            "young" => Ok(Maturity::Young),
+            "tenured" => Ok(Maturity::Tenured),
             _ => Err(FromSqlError::InvalidType),
         }
     }
@@ -55,9 +55,9 @@ impl FromSql for Maturity {
 impl ToSql for Maturity {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(match self {
-            Maturity::New => "New".into(),
-            Maturity::Young => "Young".into(),
-            Maturity::Tenured => "Tenured".into(),
+            Maturity::New => "new".into(),
+            Maturity::Young => "young".into(),
+            Maturity::Tenured => "tenured".into(),
         })
     }
 }
