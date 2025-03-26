@@ -69,7 +69,8 @@ WHERE
     maturity != "New" and
     date(last_review_date, '+' || stability || ' days') < date('now')
 ORDER BY
-    stability ASC;
+    cast(stability as integer) asc, -- primary sort by whole day
+    stability * (1 + (random() % 2001 - 1000) / 10000.0) asc; -- secondarily by a random order
 --- --------------------------------------------------------------------------
 
 
@@ -82,5 +83,5 @@ FROM
 WHERE
     maturity == "New"
 ORDER BY
-    n_reviews ASC, created_at ASC;
+    random();
 --- --------------------------------------------------------------------------

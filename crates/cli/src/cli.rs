@@ -23,7 +23,11 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
-    Init { directory: Option<PathBuf> },
+    Init {
+        directory: Option<PathBuf>,
+        #[arg(long, default_value_t = false)]
+        force: bool
+    },
     /// CRUD items
     #[command(subcommand)]
     Items(ItemCommand),

@@ -3,9 +3,7 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use dialoguer::Confirm;
 use include_dir::{include_dir, Dir};
-use log::info;
 use normalize_path::NormalizePath;
 use resolve_path::PathResolveExt;
 use rusqlite::params;
@@ -30,17 +28,17 @@ pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<String>> {
-    info!("handling command: {:?}", command);
+    log::debug!("handling command: {:?}", command);
     Ok(match command {
-        Command::Init { directory } => {
-            command::init(directory)?;
+        Command::Init { directory, force } => {
+            command::init(directory, force)?;
             None
         }
         command => {
             let spbased_dir = get_spbased_dir(root)?;
-            info!("spbased_working_dir set to {:?}", &spbased_dir);
+            log::debug!("spbased_working_dir set to {:?}", &spbased_dir);
             let db_dir = get_db_path(spbased_dir);
-            info!("spbased_db_dir set to {:?}", &db_dir);
+            log::debug!("spbased_db_dir set to {:?}", &db_dir);
             let connection: Connection = db::open(&db_dir)?;
             match command {
                 Command::Items(command) => command::item::handle_command(connection, command)?,
@@ -58,7 +56,7 @@ pub mod command {
 
     /// Init a new .spbased directory containing a sqlite db instance
     /// and a config file
-    pub fn init(directory: Option<PathBuf>) -> Result<()> {
+    pub fn init(directory: Option<PathBuf>, force: bool) -> Result<()> {
         let (full_path, spbased_dir) = match directory {
             Some(d) => {
                 let full_path: PathBuf = d.try_resolve()?.into_owned().normalize();
@@ -72,32 +70,16 @@ pub mod command {
                 (full_path, spbased_dir)
             }
         };
-
-        if !Confirm::new()
-            .with_prompt(format!(
-                "Are you sure that you want to init spbased here: {:?}",
-                full_path
-            ))
-            .interact()
-            .context("tried to retrieve an answer from the user")?
-        {
-            println!("Goodbye!");
-            return Ok(());
-        }
+        log::info!("initializing spbased dir at {:?}", full_path);
 
         // confirm that user wants to overwrite dir
         if spbased_dir.exists() {
-            let res = Confirm::new()
-        .with_prompt(format!(
-            "A directory already exists at {:?}. Are you sure that you want to (re)init spbased here?",
-            spbased_dir
-        ))
-        .interact()
-        .context("tried to retrieve an answer from the user")?;
-
-            if !res {
+            if !force {
+                log::warn!("{:?} already exists", spbased_dir);
+                log::warn!("pass --force if you are sure");
                 return Ok(());
             }
+            std::fs::remove_dir_all(&spbased_dir)?;
         }
 
         // create the directory
@@ -402,7 +384,7 @@ pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
 }
 
 pub fn get_spbased_dir_env_var() -> Result<PathBuf> {
-    info!("retriving spbased directory from SPBASED_ROOT");
+    log::debug!("retriving spbased directory from SPBASED_ROOT");
     match std::env::var(SPBASED_ROOT_ENV_VAR_NAME) {
         Ok(path) => validate_spbased_root_dir(path.into()),
         Err(e) => Err(anyhow!("Could not find spbased dir: {:?}", e)),
@@ -410,7 +392,7 @@ pub fn get_spbased_dir_env_var() -> Result<PathBuf> {
 }
 
 pub fn get_spbased_dir_flag(root: PathBuf) -> Result<PathBuf> {
-    info!(
+    log::debug!(
         "retriving spbased directory from current working directory: {:?}",
         root
     );
@@ -418,7 +400,7 @@ pub fn get_spbased_dir_flag(root: PathBuf) -> Result<PathBuf> {
 }
 
 pub fn validate_spbased_root_dir(path: PathBuf) -> Result<PathBuf> {
-    info!("checking if {:?} contains {:?}", path, SPBASED_WORK_DIR);
+    log::debug!("checking if {:?} contains {:?}", path, SPBASED_WORK_DIR);
     let spbased_dir = path.join(SPBASED_WORK_DIR);
     if spbased_dir.is_dir() {
         Ok(spbased_dir)
@@ -437,7 +419,7 @@ pub fn get_db_path(spbased_dir: PathBuf) -> PathBuf {
 
 pub mod db {
     use super::*;
-    // TODO in future: perform build step that removes any comments and whitespace from the files
+
     pub const MIGRATIONS: LazyCell<Migrations> = LazyCell::new(|| {
         static DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
         Migrations::from_directory(&DIR).unwrap()
