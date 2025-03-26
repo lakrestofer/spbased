@@ -222,7 +222,7 @@ pub mod filter_language {
     pub struct FilterLangParser;
 
     impl TryFrom<String> for AstNode {
-        type Error = anyhow::Error;
+        type Error = eyre::Error;
 
         fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
             FilterLangParser::parse(&value)
@@ -236,7 +236,7 @@ pub mod filter_language {
             // therefore we will only need the first result of the primitive parser
             let inner = primitive_parser
                 .next()
-                .ok_or(anyhow!("could not parse filter node from input"))?
+                .ok_or(eyre!("could not parse filter node from input"))?
                 .into_inner();
 
             let result = parse_filter_expr(inner);

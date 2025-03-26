@@ -1,9 +1,8 @@
 //! Spbasedctl implementation
-use anyhow::anyhow;
-use anyhow::Context;
-use anyhow::Result;
 use clap::{Parser, Subcommand};
-use include_dir::{include_dir, Dir};
+use eyre::eyre;
+use eyre::Result;
+use eyre::WrapErr;
 use normalize_path::NormalizePath;
 use resolve_path::PathResolveExt;
 use rusqlite::params;
@@ -64,8 +63,8 @@ pub mod command {
                 (full_path, spbased_dir)
             }
             None => {
-                let full_path = dirs::data_local_dir()
-                    .ok_or(anyhow!("could not find a local data directory"))?;
+                let full_path =
+                    dirs::data_local_dir().ok_or(eyre!("could not find a local data directory"))?;
                 let spbased_dir = full_path.join(SPBASED_DATA_DIR);
                 (full_path, spbased_dir)
             }
@@ -86,7 +85,7 @@ pub mod command {
         std::fs::create_dir_all(&spbased_dir)?;
 
         // init the db
-        db::init(&spbased_dir.join(SPBASED_DB_NAME))?;
+        _ = db::open(&spbased_dir.join(SPBASED_DB_NAME))?;
 
         Ok(())
     }
@@ -349,7 +348,7 @@ pub fn get_spbased_dir_cwd() -> Result<PathBuf> {
     if spbased_dir.is_dir() {
         Ok(spbased_dir)
     } else {
-        Err(anyhow!(
+        Err(eyre!(
             "Could not find .spbased directory in current working directory"
         ))
     }
@@ -357,12 +356,12 @@ pub fn get_spbased_dir_cwd() -> Result<PathBuf> {
 
 pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
     let user_data_dir =
-        dirs::data_local_dir().ok_or(anyhow!("Could not find user data directory"))?;
+        dirs::data_local_dir().ok_or(eyre!("Could not find user data directory"))?;
     let spbased_dir = user_data_dir.join(SPBASED_DATA_DIR);
     if spbased_dir.is_dir() {
         Ok(spbased_dir)
     } else {
-        Err(anyhow!(
+        Err(eyre!(
             "Could not find spbased directory in {:?}",
             user_data_dir
         ))
@@ -380,14 +379,14 @@ pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
     get_spbased_dir_cwd() // first check in current dir
         .or_else(|_| get_spbased_dir_env_var()) // then in $SPBASED_DIR
         .or_else(|_| get_spbased_dir_user_data()) // then in xdg user data dir
-        .map_err(|_| anyhow!("Could not find spbased directory"))
+        .map_err(|_| eyre!("Could not find spbased directory"))
 }
 
 pub fn get_spbased_dir_env_var() -> Result<PathBuf> {
     log::debug!("retriving spbased directory from SPBASED_ROOT");
     match std::env::var(SPBASED_ROOT_ENV_VAR_NAME) {
         Ok(path) => validate_spbased_root_dir(path.into()),
-        Err(e) => Err(anyhow!("Could not find spbased dir: {:?}", e)),
+        Err(e) => Err(eyre!("Could not find spbased dir: {:?}", e)),
     }
 }
 
@@ -405,7 +404,7 @@ pub fn validate_spbased_root_dir(path: PathBuf) -> Result<PathBuf> {
     if spbased_dir.is_dir() {
         Ok(spbased_dir)
     } else {
-        Err(anyhow!(
+        Err(eyre!(
             "Could not find .spbased directory in current working directory"
         ))
     }
@@ -418,38 +417,23 @@ pub fn get_db_path(spbased_dir: PathBuf) -> PathBuf {
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======
 
 pub mod db {
+    use rusqlite_migration::M;
+    use sql_minifier::macros::load_sql;
+
     use super::*;
 
-    pub const MIGRATIONS: LazyCell<Migrations> = LazyCell::new(|| {
-        static DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/migrations");
-        Migrations::from_directory(&DIR).unwrap()
-    });
-    /// Creates a new instance of the spbased sqlite db and runs all migrations on it.
-    /// If there already exists an instance at `db_path`, we will reinit it.
-    pub fn init(db_path: &Path) -> Result<()> {
-        // if a file with the name db_path exist, we delete it
-        if db_path.exists() {
-            std::fs::remove_file(db_path)?;
-        }
-
-        // open and create a sqlite db
-        let mut conn = Connection::open(db_path).context("trying to open connection")?;
-
-        // run migrations on it
-        MIGRATIONS
-            .to_latest(&mut conn)
-            .context("Trying to migrate sqlite schema")?;
-
-        Ok(())
-    }
+    pub const DB_OPEN: &str = load_sql!("sql/db_open.sql");
+    pub const DB_CLOSE: &str = load_sql!("sql/db_close.sql");
+    pub const MIGRATIONS: LazyCell<Migrations> =
+        LazyCell::new(|| Migrations::new(vec![M::up(load_sql!("sql/001_init.sql"))]));
 
     pub fn open(db_path: &Path) -> Result<Connection> {
-        let mut conn = Connection::open(db_path).context("trying to open connection")?;
+        let mut conn = Connection::open(db_path).wrap_err("trying to open connection")?;
         // run migrations on it
         MIGRATIONS
             .to_latest(&mut conn)
-            .context("Trying to migrate sqlite schema")?;
-        conn.execute("PRAGMA foreign_keys = ON", ())?; // enable foreign keys constraint
+            .wrap_err("Trying to migrate sqlite schema")?;
+        conn.execute_batch(DB_OPEN)?; // enable foreign keys constraint
         Ok(conn)
     }
 }

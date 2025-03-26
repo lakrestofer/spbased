@@ -20,6 +20,7 @@ pub mod template {
 
 pub mod item {
     use super::*;
+    use eyre::ContextCompat;
     use filter_language::AstNode;
 
     /// Add item to db
@@ -30,7 +31,7 @@ pub mod item {
             .query_map(params![model, data], |r| Ok(r.get(0)?))?
             .filter_map(Result::ok)
             .next()
-            .context("retrieving item from db")?;
+            .wrap_err("retrieving item from db")?;
 
         // insert tags if any
         if !tags.is_empty() {
@@ -240,7 +241,7 @@ pub mod tag {
 
         let id = match id.next() {
             Some(id) => id.context("retrieving i32 from sql result")?,
-            _ => return Err(anyhow!("insertion of tag did not return any result")),
+            _ => return Err(eyre!("insertion of tag did not return any result")),
         };
 
         Ok(id)
@@ -261,7 +262,7 @@ pub mod tag {
         })?;
         let tag = match tag.next() {
             Some(tag) => tag?,
-            _ => return Err(anyhow!("sql query did not return any result")),
+            _ => return Err(eyre!("sql query did not return any result")),
         };
         Ok(tag)
     }
@@ -363,7 +364,7 @@ pub mod review {
             .filter_map(Result::ok)
             .next()
             .map(|x: Option<i32>| x.unwrap_or(0))
-            .ok_or(anyhow!("could not retrieve due count"));
+            .ok_or(eyre!("could not retrieve due count"));
         item
     }
     pub fn query_n_new(c: &mut Connection, filter_expr: Option<AstNode>) -> Result<i32> {
@@ -380,7 +381,7 @@ pub mod review {
             .filter_map(Result::ok)
             .next()
             .map(|x: Option<i32>| x.unwrap_or(0))
-            .ok_or(anyhow!("could not retrieve new count"));
+            .ok_or(eyre!("could not retrieve new count"));
         item
     }
 

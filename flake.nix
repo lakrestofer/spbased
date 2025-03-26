@@ -86,6 +86,7 @@
               glow
               nodejs
               gum
+              sqlite
               jq
               rustToolchain
               cargo-bloat
@@ -121,9 +122,9 @@
             {
               default = self'.packages.spbasedctl;
               spbasedctl = rustPlatform.buildRustPackage {
-                inherit (cargoToml) version;
                 name = "spbasedctl";
                 src = ./.;
+                version = "0.0.1";
                 cargoLock.lockFile = ./Cargo.lock;
                 cargoBuildFlags = "--package spbasedctl";
               };

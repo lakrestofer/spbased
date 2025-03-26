@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
 use clap::{command, Parser};
 use dialoguer::Input;
+use eyre::Result;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -11,6 +11,8 @@ pub struct Cli {
 }
 
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let Cli {
         migration_directory,
     } = Cli::parse();

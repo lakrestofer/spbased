@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = { workspace = true }
+
+eyre = "0.6.12"
+color-eyre = "0.6.3"
 clap = { workspace = true }
 dialoguer = { workspace = true }
