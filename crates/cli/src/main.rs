@@ -6,9 +6,9 @@ use spbasedctl::cli::Cli;
 use spbasedctl::handle_command;
 
 fn main() -> Result<()> {
+    color_eyre::install()?;
     let cli = Cli::parse();
 
-    color_eyre::install()?;
     let env = Env::new().filter_or("RUST_LOG", "info");
     env_logger::init_from_env(env);
 
