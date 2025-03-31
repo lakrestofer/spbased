@@ -8,16 +8,15 @@ use resolve_path::PathResolveExt;
 use rusqlite::params;
 use rusqlite::params_from_iter;
 use rusqlite::Connection;
-use rusqlite_migration::Migrations;
 use serde_json::json;
 use std::path::PathBuf;
-use std::{cell::LazyCell, path::Path};
 use time::OffsetDateTime;
 
 pub mod cli;
 pub mod queries;
 
 use cli::*;
+use db::DB;
 
 pub const SPBASED_ROOT_ENV_VAR_NAME: &'static str = "SPBASED_ROOT";
 pub const SPBASED_DATA_DIR: &'static str = "spbased";
@@ -38,11 +37,11 @@ pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<
             log::debug!("spbased_working_dir set to {:?}", &spbased_dir);
             let db_dir = get_db_path(spbased_dir);
             log::debug!("spbased_db_dir set to {:?}", &db_dir);
-            let connection: Connection = db::open(&db_dir)?;
+            let db = DB::open(&db_dir)?;
             match command {
-                Command::Items(command) => command::item::handle_command(connection, command)?,
-                Command::Review(command) => command::review::handle_command(connection, command)?,
-                Command::Tags(command) => command::tag::handle_command(connection, command)?,
+                Command::Items(command) => command::item::handle_command(db, command)?,
+                Command::Review(command) => command::review::handle_command(db, command)?,
+                Command::Tags(command) => command::tag::handle_command(db, command)?,
                 _ => unreachable!(),
             }
         }
@@ -85,16 +84,18 @@ pub mod command {
         std::fs::create_dir_all(&spbased_dir)?;
 
         // init the db
-        _ = db::open(&spbased_dir.join(SPBASED_DB_NAME))?;
+        _ = db::DB::open(&spbased_dir.join(SPBASED_DB_NAME))?;
 
         Ok(())
     }
 
     pub mod item {
 
+        use db::DB;
+
         use super::*;
 
-        pub fn handle_command(mut c: Connection, command: ItemCommand) -> Result<Option<String>> {
+        pub fn handle_command(mut c: DB, command: ItemCommand) -> Result<Option<String>> {
             Ok(match command {
                 ItemCommand::Add { model, data, tags } => {
                     let id = queries::item::add(
@@ -202,14 +203,14 @@ pub mod command {
     }
 
     pub mod review {
-
         use model::Maturity;
+        use rand::Rng;
         use time::Duration;
 
         use super::*;
         // use serde_json::json;
 
-        pub fn handle_command(mut c: Connection, command: ReviewCommand) -> Result<Option<String>> {
+        pub fn handle_command(mut c: DB, command: ReviewCommand) -> Result<Option<String>> {
             let res: Option<String> = match command {
                 ReviewCommand::Next(cmd) => match cmd {
                     NextReviewCommand::New {
@@ -255,7 +256,7 @@ pub mod command {
                         (New, Again | Hard, _) => {
                             queries::review::increment_n_reviews(&mut c, id)?;
                         }
-                        // promote item from young to new
+                        // promote item from new to young
                         (New, g, _) => {
                             let s = sra::init::s(g);
                             let d = sra::init::d(g);
@@ -291,6 +292,7 @@ pub mod command {
                             if s > 100.0 {
                                 queries::review::set_maturity(&mut c, id, Tenured)?;
                             }
+                            let s = s * (1.0 + rand::rng().random_range(-0.1..=0.1)); // add some random noise on ordinary reviews
                             queries::review::increment_n_reviews(&mut c, id)?;
                             queries::review::set_sra_params(&mut c, id, s, d, today)?;
                         }
@@ -318,7 +320,7 @@ pub mod command {
 
         use super::*;
 
-        pub fn handle_command(mut c: Connection, command: TagCommand) -> Result<Option<String>> {
+        pub fn handle_command(mut c: DB, command: TagCommand) -> Result<Option<String>> {
             Ok(match command {
                 TagCommand::Add { name } => {
                     let id = queries::tag::add(&mut c, &name)?;
@@ -417,26 +419,60 @@ pub fn get_db_path(spbased_dir: PathBuf) -> PathBuf {
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======
 
 pub mod db {
-    use rusqlite_migration::M;
-    use sql_minifier::macros::load_sql;
-
     use super::*;
+    use rusqlite::{Connection, OpenFlags};
+    use sql_minifier::macros::load_sql;
+    use std::{
+        cell::LazyCell,
+        ops::{Deref, DerefMut},
+        path::Path,
+    };
+
+    use rusqlite_migration::{Migrations, M};
 
     pub const DB_OPEN: &str = load_sql!("sql/db_open.sql");
     pub const DB_CLOSE: &str = load_sql!("sql/db_close.sql");
-    pub const MIGRATIONS: LazyCell<Migrations> = LazyCell::new(|| {
-        // Migrations::new(vec![M::up(include_str!("../sql/001_init.sql"))])
-        Migrations::new(vec![M::up(load_sql!("sql/001_init.sql"))])
-    });
 
-    pub fn open(db_path: &Path) -> Result<Connection> {
-        let mut conn = Connection::open(db_path).wrap_err("trying to open connection")?;
-        // run migrations on it
-        MIGRATIONS
-            .to_latest(&mut conn)
-            .wrap_err("Trying to migrate sqlite schema")?;
-        conn.execute_batch(DB_OPEN)?; // enable foreign keys constraint
-        Ok(conn)
+    pub const MIGRATIONS: LazyCell<Migrations> =
+        LazyCell::new(|| Migrations::new(vec![M::up(load_sql!("sql/001_init.sql"))]));
+
+    #[repr(transparent)]
+    pub struct DB(Connection);
+
+    impl DB {
+        pub fn open<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<DB> {
+            log::debug!("opening db at {:?}", path);
+            // open and create a sqlite db
+            let mut conn = Connection::open(path).wrap_err("trying to open connection")?;
+
+            conn.execute_batch(DB_OPEN)?;
+
+            MIGRATIONS.to_latest(&mut conn)?;
+
+            Ok(DB(conn))
+        }
+    }
+
+    // util traits
+    impl Drop for DB {
+        fn drop(&mut self) {
+            self.0
+                .execute_batch(DB_CLOSE)
+                .wrap_err("trying to apply pragmas at close")
+                .unwrap();
+        }
+    }
+    impl Deref for DB {
+        type Target = Connection;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+    impl DerefMut for DB {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.0
+        }
     }
 
     #[cfg(test)]

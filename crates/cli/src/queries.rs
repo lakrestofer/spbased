@@ -84,8 +84,8 @@ pub mod item {
                     created_at: r.get(3)?,
                 })
             })?
-            .filter_map(Result::ok)
-            .collect();
+            .map(|r| r.wrap_err("could not retrieve a tag from the db"))
+            .collect::<Result<Vec<Tag>>>()?;
         Ok(tags)
     }
     pub fn add_tags(c: &mut Connection, id: i32, tags: &[&str]) -> Result<()> {
@@ -102,8 +102,8 @@ pub mod item {
                 template::vars(tags.len())
             ))?
             .query_map(params_from_iter(tags), |r| Ok(r.get::<usize, i32>(0)?))?
-            .filter_map(Result::ok)
-            .collect();
+            .map(|r| r.wrap_err("could not retrieve a id from the db"))
+            .collect::<Result<Vec<i32>>>()?;
         c.execute(
             &format!(
                 "insert or ignore into tag_item_map (tag_id, item_id) values {}",
@@ -121,8 +121,8 @@ pub mod item {
                 template::vars(tags.len())
             ))?
             .query_map(params_from_iter(tags), |r| Ok(r.get(0)?))?
-            .filter_map(Result::ok)
-            .collect();
+            .map(|r| r.wrap_err("could not retrieve a tag from the db"))
+            .collect::<Result<Vec<i32>>>()?;
         c.execute(
             &format!(
                 "delete from tag_item_map where (item_id = {}) and (tag_id in ({}))",
@@ -139,8 +139,8 @@ pub mod item {
     }
     pub fn get(c: &mut Connection, id: i32) -> Result<Item> {
         let mut stmt = c.prepare("select * from item where id = ?1 limit 1")?;
-        let mut item = stmt
-            .query_map((id,), |r| {
+        let item = stmt
+            .query_row((id,), |r| {
                 Ok(Item {
                     id: r.get(0)?,
                     maturity: r.get(1)?,
@@ -154,9 +154,9 @@ pub mod item {
                     updated_at: r.get(9)?,
                     created_at: r.get(10)?,
                 })
-            })?
-            .filter_map(Result::ok);
-        Ok(item.next().context("retrieving item from db")?)
+            })
+            .wrap_err("retriving item from db")?;
+        Ok(item)
     }
     pub fn query(
         c: &mut Connection,
@@ -174,8 +174,8 @@ pub mod item {
                     template::vars(include_tags.len())
                 ))?
                 .query_map(params_from_iter(include_tags), |r| Ok(r.get(0)?))?
-                .filter_map(Result::ok)
-                .collect::<Vec<i32>>(),
+                .map(|r|r.wrap_err("could not retrieve i32 from db"))
+                .collect::<Result<Vec<i32>>>()?,
             )
         };
         let exclude_ids = if exclude_tags.is_empty() {
@@ -187,8 +187,8 @@ pub mod item {
                     template::vars(exclude_tags.len())
                 ))?
                 .query_map(params_from_iter(exclude_tags), |r| Ok(r.get(0)?))?
-                .filter_map(Result::ok)
-                .collect::<Vec<i32>>(),
+                .map(|r|r.wrap_err("could not retrieve id from db"))
+                .collect::<Result<Vec<i32>>>()?,
             )
         };
         let query = match filter_expr {
@@ -212,8 +212,8 @@ pub mod item {
                     created_at: r.get(10)?,
                 })
             })?
-            .filter_map(Result::ok)
-            .collect();
+            .map(|r| r.wrap_err("could not retrieve item from db"))
+            .collect::<Result<Vec<Item>>>()?;
         if let Some(include_ids) = include_ids {
             items = items
                 .into_iter()
@@ -286,8 +286,8 @@ pub mod tag {
                     created_at: r.get(3)?,
                 })
             })?
-            .filter_map(Result::ok)
-            .collect())
+            .map(|r| r.wrap_err("could not retrieve id from db"))
+            .collect::<Result<Vec<Tag>>>()?)
     }
 }
 
@@ -429,18 +429,14 @@ pub mod review {
 mod tests {
     use super::*;
 
-    fn init() -> Result<Connection> {
-        let mut conn = Connection::open_in_memory().unwrap();
-        db::MIGRATIONS
-            .to_latest(&mut conn)
-            .wrap_err("Trying to migrate sqlite schema")?;
-        conn.execute("PRAGMA foreign_keys = ON", ()).unwrap();
-        Ok(conn)
+    fn init() -> Result<DB> {
+        DB::open(":memory:")
     }
 
     #[test]
-    fn run_migration() {
-        init();
+    fn run_migration() -> Result<()> {
+        _ = init()?;
+        Ok(())
     }
     // ==== items ====
     #[test]

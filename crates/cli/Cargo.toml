@@ -30,3 +30,4 @@ uuid = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 sql_minifier = { workspace = true }
+rand = { workspace = true }
