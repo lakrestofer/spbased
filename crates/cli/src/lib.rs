@@ -37,6 +37,7 @@ pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<
             // TODO root should be a AppRoot struct, we need to resolve the root in a similar
             // way to how we resolve the AppConfig. It needs to be environment aware.
             let root = config::AppRoot::try_resolve(root)?;
+            log::debug!("spbased root set to {:?}", &root);
             let config = config::AppConfig::resolve(root)?;
             log::debug!("spbased config set to {:?}", &config);
             let db = DB::open(&config.db_path)?;
@@ -95,6 +96,7 @@ pub mod config {
             }
 
             // otherwise check environment variables (SPBASED_ROOT)
+            log::debug!("resolving spbased root from environment variables");
             let figment =
                 Figment::new().merge(Env::prefixed(&format!("{APP_NAME}_").to_uppercase()));
 
