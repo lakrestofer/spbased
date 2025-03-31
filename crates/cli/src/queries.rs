@@ -22,7 +22,6 @@ pub mod template {
 
 pub mod item {
     use super::*;
-    use eyre::ContextCompat;
     use filter_language::AstNode;
 
     /// Add item to db
@@ -545,7 +544,7 @@ mod tests {
         assert!(id == 1);
         Ok(())
     }
-    // #[test]
+    #[test]
     fn test_edit_tag() -> Result<()> {
         let mut c = init()?;
         let id = tag::add(&mut c, "edan35").unwrap();

@@ -24,7 +24,7 @@ pub struct Cli {
 pub enum Command {
     /// Init spbased in a directory. Will create a sqlite instance together with a local config file
     Init {
-        directory: Option<PathBuf>,
+        directory: PathBuf,
         #[arg(long, default_value_t = false)]
         force: bool
     },

@@ -38,3 +38,4 @@ env_logger = "0.11.6"
 log = "0.4.26"
 sql_minifier = "0.1.5"
 rand = "0.9.0"
+figment = { version = "0.10.19", features = ["env", "toml", "test"] }

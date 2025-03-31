@@ -9,6 +9,7 @@ use rusqlite::params;
 use rusqlite::params_from_iter;
 use rusqlite::Connection;
 use serde_json::json;
+use std::cell::LazyCell;
 use std::path::PathBuf;
 use time::OffsetDateTime;
 
@@ -18,11 +19,11 @@ pub mod queries;
 use cli::*;
 use db::DB;
 
-pub const SPBASED_ROOT_ENV_VAR_NAME: &'static str = "SPBASED_ROOT";
-pub const SPBASED_DATA_DIR: &'static str = "spbased";
-pub const SPBASED_WORK_DIR: &'static str = ".spbased";
-pub const SPBASED_DB_NAME: &'static str = "db.sqlite";
-pub const SPBASED_CONFIG_NAME: &'static str = "config.toml";
+pub const APP_NAME: &'static str = "spbased";
+pub const DEFAULT_APP_CONFIG_DIR: LazyCell<PathBuf> =
+    LazyCell::new(|| dirs::config_dir().unwrap().join(APP_NAME));
+pub const DB_NAME: &'static str = "db.sqlite";
+pub const CONFIG_NAME: &'static str = "config.toml";
 
 // ======= CLI COMMAND HANDLERS BEGIN ======
 pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<String>> {
@@ -33,11 +34,12 @@ pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<
             None
         }
         command => {
-            let spbased_dir = get_spbased_dir(root)?;
-            log::debug!("spbased_working_dir set to {:?}", &spbased_dir);
-            let db_dir = get_db_path(spbased_dir);
-            log::debug!("spbased_db_dir set to {:?}", &db_dir);
-            let db = DB::open(&db_dir)?;
+            // TODO root should be a AppRoot struct, we need to resolve the root in a similar
+            // way to how we resolve the AppConfig. It needs to be environment aware.
+            let root = config::AppRoot::try_resolve(root)?;
+            let config = config::AppConfig::resolve(root)?;
+            log::debug!("spbased config set to {:?}", &config);
+            let db = DB::open(&config.db_path)?;
             match command {
                 Command::Items(command) => command::item::handle_command(db, command)?,
                 Command::Review(command) => command::review::handle_command(db, command)?,
@@ -48,27 +50,122 @@ pub fn handle_command(root: Option<PathBuf>, command: Command) -> Result<Option<
     })
 }
 
+pub mod config {
+    use super::*;
+    use figment::{
+        providers::{Env, Format, Serialized, Toml},
+        Figment,
+    };
+    use serde::{Deserialize, Serialize};
+    use std::path::{Path, PathBuf};
+
+    use crate::APP_NAME;
+
+    #[derive(Default, Debug, Deserialize, Serialize)]
+    pub struct AppRoot {
+        pub root: PathBuf,
+    }
+
+    impl AppRoot {
+        pub fn new(root: PathBuf) -> Self {
+            Self { root }
+        }
+
+        pub fn try_resolve(root: Option<PathBuf>) -> Result<Self> {
+            // if we were supplied a valid root, return it
+            if let Some(root) = root {
+                if app_work_dir(&root).is_dir() {
+                    return Ok(AppRoot::new(root));
+                }
+            }
+            // otherwise seach in the current dir and up
+            let mut dir = std::path::absolute(std::env::current_dir()?)?;
+            log::debug!("resolving spbased root directory, starting from {:?}", dir);
+            loop {
+                if app_work_dir(&dir).is_dir() {
+                    return Ok(AppRoot::new(dir));
+                }
+                match dir.parent() {
+                    Some(p) => dir = p.to_owned(),
+                    None => {
+                        log::warn!("could not resolve parent of {:?}", dir);
+                        break;
+                    }
+                }
+            }
+
+            // otherwise check environment variables (SPBASED_ROOT)
+            let figment =
+                Figment::new().merge(Env::prefixed(&format!("{APP_NAME}_").to_uppercase()));
+
+            if let Ok(app_root) = figment.extract() {
+                return Ok(app_root);
+            }
+
+            Err(eyre!("could not resolve spbased root directory"))
+        }
+    }
+
+    #[derive(Default, Debug, Deserialize, Serialize)]
+    pub struct AppConfig {
+        #[serde(skip)]
+        pub app_root: PathBuf,
+        #[serde(skip)]
+        pub db_path: PathBuf,
+    }
+
+    impl AppConfig {
+        pub fn new(app_root: PathBuf, db_path: PathBuf) -> Self {
+            Self { app_root, db_path }
+        }
+    }
+
+    /// the .spbased directory
+    pub fn app_work_dir(dir: &Path) -> PathBuf {
+        dir.to_owned().join(format!(".{APP_NAME}"))
+    }
+
+    /// .spbased/config.toml
+    pub fn config_file_path(config_root: &Path) -> PathBuf {
+        config_root.to_owned().join(CONFIG_NAME)
+    }
+
+    /// .spbased/db.sqlite
+    pub fn db_file_path(data_root: &Path) -> PathBuf {
+        data_root.to_owned().join(DB_NAME)
+    }
+
+    impl AppConfig {
+        pub fn resolve(app_root: AppRoot) -> Result<Self> {
+            let AppRoot { root: app_root } = app_root;
+            let work_dir = app_work_dir(&app_root);
+            let db_path = db_file_path(&work_dir);
+
+            let figment = Figment::new()
+                .merge(Serialized::defaults(Self::default()))
+                .merge(Toml::file(config_file_path(&DEFAULT_APP_CONFIG_DIR))) // .config/markz
+                .merge(Env::prefixed(&format!("{APP_NAME}_").to_uppercase())) // from enviornment variables
+                .merge(Toml::file(config_file_path(&work_dir)));
+
+            let mut config: Self = figment.extract()?;
+            config.app_root = app_root;
+            config.db_path = db_path;
+
+            Ok(config)
+        }
+    }
+}
+
 pub mod command {
 
     use super::*;
 
     /// Init a new .spbased directory containing a sqlite db instance
     /// and a config file
-    pub fn init(directory: Option<PathBuf>, force: bool) -> Result<()> {
-        let (full_path, spbased_dir) = match directory {
-            Some(d) => {
-                let full_path: PathBuf = d.try_resolve()?.into_owned().normalize();
-                let spbased_dir = full_path.join(SPBASED_WORK_DIR);
-                (full_path, spbased_dir)
-            }
-            None => {
-                let full_path =
-                    dirs::data_local_dir().ok_or(eyre!("could not find a local data directory"))?;
-                let spbased_dir = full_path.join(SPBASED_DATA_DIR);
-                (full_path, spbased_dir)
-            }
-        };
-        log::info!("initializing spbased dir at {:?}", full_path);
+    pub fn init(directory: PathBuf, force: bool) -> Result<()> {
+        let full_path: PathBuf = directory.try_resolve()?.into_owned().normalize();
+        let spbased_dir = config::app_work_dir(&full_path);
+        log::info!("initializing spbased dir {:?}", &spbased_dir);
 
         // confirm that user wants to overwrite dir
         if spbased_dir.exists() {
@@ -84,7 +181,7 @@ pub mod command {
         std::fs::create_dir_all(&spbased_dir)?;
 
         // init the db
-        _ = db::DB::open(&spbased_dir.join(SPBASED_DB_NAME))?;
+        _ = db::DB::open(&spbased_dir.join(DB_NAME))?;
 
         Ok(())
     }
@@ -344,83 +441,11 @@ pub mod command {
     }
 }
 
-pub fn get_spbased_dir_cwd() -> Result<PathBuf> {
-    let cwd = std::env::current_dir()?;
-    let spbased_dir = cwd.join(SPBASED_WORK_DIR);
-    if spbased_dir.is_dir() {
-        Ok(spbased_dir)
-    } else {
-        Err(eyre!(
-            "Could not find .spbased directory in current working directory"
-        ))
-    }
-}
-
-pub fn get_spbased_dir_user_data() -> Result<PathBuf> {
-    let user_data_dir =
-        dirs::data_local_dir().ok_or(eyre!("Could not find user data directory"))?;
-    let spbased_dir = user_data_dir.join(SPBASED_DATA_DIR);
-    if spbased_dir.is_dir() {
-        Ok(spbased_dir)
-    } else {
-        Err(eyre!(
-            "Could not find spbased directory in {:?}",
-            user_data_dir
-        ))
-    }
-}
-
-/// Retrieve the spbased directory containing the config file and sqlite db.
-/// Checked in this order: --root flag, environment variable, current directory,
-/// xdg user data directory
-pub fn get_spbased_dir(root: Option<PathBuf>) -> Result<PathBuf> {
-    if let Some(path) = root {
-        // if --root flag is supplied it must be valid, otherwise return
-        return get_spbased_dir_flag(path);
-    }
-    get_spbased_dir_cwd() // first check in current dir
-        .or_else(|_| get_spbased_dir_env_var()) // then in $SPBASED_DIR
-        .or_else(|_| get_spbased_dir_user_data()) // then in xdg user data dir
-        .map_err(|_| eyre!("Could not find spbased directory"))
-}
-
-pub fn get_spbased_dir_env_var() -> Result<PathBuf> {
-    log::debug!("retriving spbased directory from SPBASED_ROOT");
-    match std::env::var(SPBASED_ROOT_ENV_VAR_NAME) {
-        Ok(path) => validate_spbased_root_dir(path.into()),
-        Err(e) => Err(eyre!("Could not find spbased dir: {:?}", e)),
-    }
-}
-
-pub fn get_spbased_dir_flag(root: PathBuf) -> Result<PathBuf> {
-    log::debug!(
-        "retriving spbased directory from current working directory: {:?}",
-        root
-    );
-    validate_spbased_root_dir(root)
-}
-
-pub fn validate_spbased_root_dir(path: PathBuf) -> Result<PathBuf> {
-    log::debug!("checking if {:?} contains {:?}", path, SPBASED_WORK_DIR);
-    let spbased_dir = path.join(SPBASED_WORK_DIR);
-    if spbased_dir.is_dir() {
-        Ok(spbased_dir)
-    } else {
-        Err(eyre!(
-            "Could not find .spbased directory in current working directory"
-        ))
-    }
-}
-
-pub fn get_db_path(spbased_dir: PathBuf) -> PathBuf {
-    spbased_dir.join(SPBASED_DB_NAME)
-}
-
 // ======= DB WRAPPER AND DATA MODEL BEGIN BEGIN ======
 
 pub mod db {
     use super::*;
-    use rusqlite::{Connection, OpenFlags};
+    use rusqlite::Connection;
     use sql_minifier::macros::load_sql;
     use std::{
         cell::LazyCell,
