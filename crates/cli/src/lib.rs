@@ -89,7 +89,7 @@ pub mod config {
                 match dir.parent() {
                     Some(p) => dir = p.to_owned(),
                     None => {
-                        log::warn!("could not resolve parent of {:?}", dir);
+                        log::debug!("could not resolve parent of {:?}", dir);
                         break;
                     }
                 }
