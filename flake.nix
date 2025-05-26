@@ -98,6 +98,7 @@
           packages =
             let
               script_dependencies = with pkgs; [
+                self'.packages.default
                 glow
                 gum
                 jq
@@ -142,6 +143,7 @@
                   ))
                 ];
                 propagatedBuildInputs = with pkgs; [
+                  self'.packages.default
                   (python3.withPackages (
                     ps: with ps; [
                       typer
