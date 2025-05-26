@@ -257,8 +257,8 @@ def review():
             gum_log(f"error when opening image, code: {code}", "error")
 
     # show answers
-    gum_log("showing answer", level="info")
-    answer_res = imv_open(answer)
+    gum_log("showing question and answer", level="info")
+    answer_res = imv_open(questions + answer)
     for code in answer_res:
         if code != 0:
             gum_log(f"error when opening image, code: {code}", "error")

@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="flashcard_image",
-    version="0.0.3",
+    version="0.0.4",
     # Modules to import from other scripts:
     packages=find_packages(),
     # Executables
