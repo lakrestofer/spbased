@@ -147,6 +147,9 @@
                       typer
                     ]
                   ))
+                  gum
+                  slurp
+                  grim
                 ];
               };
               reading = create_script {

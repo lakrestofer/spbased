@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from os import path
 from subprocess import PIPE, Popen
+from typing import Optional
 import subprocess
 from typing import List
 
@@ -10,10 +11,10 @@ import typer
 
 SPBASED_MODEL = "flashcard_image"
 
-AGAIN = ("again", "(could not answer)")
-HARD = ("hard", "(could answer with difficulty)")
-GOOD = ("good", "(could answer)")
-EASY = ("easy", "(could answer easily)")
+AGAIN = "again could not answer"
+HARD = "hard could answer with difficulty"
+GOOD = "good could answer"
+EASY = "easy could answer easily"
 
 CHOICES = [AGAIN, HARD, GOOD, EASY]
 
@@ -30,7 +31,9 @@ def gum_command(cmd: str, args: List[str]):
     return stdout.strip()
 
 
-def gum_choose(args: List[str]):
+def gum_choose(args: List[str], selected: Optional[str] = None):
+    if selected is not None:
+        args = args + ["--selected", selected]
     return gum_command("choose", args)
 
 
@@ -111,18 +114,6 @@ def gen_filename() -> str:
 
 
 ###############################################################################
-# notification helpers
-###############################################################################
-
-
-def notify(message: str, delay: int = 1000):
-    process = Popen(
-        ["notify-send", "-t", str(delay), message], stdout=None, stderr=None
-    )
-    stdout, stderr = process.communicate()
-
-
-###############################################################################
 # spbased helpers
 ###############################################################################
 
@@ -195,14 +186,14 @@ def add():
     answers = []
 
     ## add questions
-    gum_log(["Question(s): (press escape to enter answers)"])
+    gum_log("Question(s): (press escape to enter answers)")
     while True:
         file_name = gen_filename()
         if not take_screenshot(file_name):
             break
         questions.append(file_name)
 
-    gum_log(["Answers(s): (press escape to finish)"])
+    gum_log("Answers(s): (press escape to finish)")
     while True:
         file_name = gen_filename()
         if not take_screenshot(file_name):
@@ -262,7 +253,7 @@ def review():
             gum_log(f"error when opening image, code: {code}", "error")
 
     # grade
-    res = gum_choose([f"{c[0]} {c[1]}" for c in CHOICES])
+    res = gum_choose([f"{c}" for c in CHOICES], GOOD)
 
     if res is None:
         return
