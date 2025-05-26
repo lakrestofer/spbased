@@ -190,21 +190,19 @@ def add():
 
     ## add questions
     gum_log("Question(s): (press escape to enter answers)")
-    while True:
-        file_name = gen_filename()
-        if not take_screenshot(file_name):
-            break
+    file_name = gen_filename()
+    if not take_screenshot(file_name):
+        return
 
-        gum_log(f"screenshot: {file_name}")
-        questions.append(file_name)
+    gum_log(f"screenshot: {file_name}")
+    questions.append(file_name)
 
     gum_log("Answers(s): (press escape to finish)")
-    while True:
-        file_name = gen_filename()
-        if not take_screenshot(file_name, BG_COLOR_ANSWER):
-            break
-        gum_log(f"screenshot: {file_name}")
-        answers.append(file_name)
+    file_name = gen_filename()
+    if not take_screenshot(file_name, BG_COLOR_ANSWER):
+        return
+    gum_log(f"screenshot: {file_name}")
+    answers.append(file_name)
 
     if not len(questions) or not len(answers):
         for question in questions:
