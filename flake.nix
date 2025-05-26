@@ -128,7 +128,7 @@
               };
               flashcard = create_script {
                 name = "flashcard";
-                src = builtins.readFile ./scripts/flashcard;
+                src = builtins.readFile ./scripts/flashcard.sh;
               };
               flashcard_image = pkgs.python312Packages.buildPythonPackage {
                 pname = "flashcard_image";
