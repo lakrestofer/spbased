@@ -32,10 +32,9 @@ else
 fi
 
 add() {
-  ## prompt the user for their question answer pair
-  DOCUMENT=$(ls $SPBASED_LIBRARY | fzf --height 10)
-  PAGE=$(gum input --placeholder "document page")
-  PROMPT=$(gum input --placeholder "prompt (what should be read)")
+  local DOCUMENT=$(fzf --height 10 --walker-root=$SPBASED_ROOT)
+  local PAGE=$(gum input --placeholder "document page")
+  local PROMPT=$(gum input --placeholder "prompt (what should be read)")
 
   if [[ -z "$DOCUMENT" || -z "$PAGE" ]]; then
     gum log --level error "must provide both document and page"
@@ -79,6 +78,7 @@ edit() {
   # update
   "$SPBASEDCTL_BIN" items edit  --data "$READ_PROMPT" "$ID"
 }
+
 review() {
   # fetch data
   N_NEW=$("$SPBASEDCTL_BIN" review query-count new)

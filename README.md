@@ -101,13 +101,4 @@ tool can be used.
 
 **Wish list:**
 
-- spbased 'open this program with this metadata'
-  - This would allow the content agnostic core to become really
-    powerful
-  - json content of an item could include a program field
-  - thought really just what I'm doing currently
-
-- spased reading
-  - add a list of pdfs, webpages
-
 ## Description

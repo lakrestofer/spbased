@@ -33,7 +33,7 @@ fi
 
 fatal() {
   local message="$1"
-  printf "Error: %s\n" $message
+  gum log --level error $message
   exit 1
 }
 
