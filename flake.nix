@@ -51,8 +51,8 @@
             cargo = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
             rustc = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
           };
-          cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
         in
+        # cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
         {
           _module.args.pkgs = import inputs.nixpkgs {
             inherit system;
@@ -74,13 +74,10 @@
             inputsFrom = [ config.flake-root.devShell ]; # Provides $FLAKE_ROOT in dev shell
             packages = with pkgs; [
               (python3.withPackages (python-pkgs: [
-                python-pkgs.click
                 python-pkgs.typer
-                python-pkgs.prompt-toolkit
               ]))
               python312Packages.jedi-language-server
               python312Packages.ruff
-              self'.packages.spbasedctl
               bash-language-server
               fzf
               glow
@@ -131,6 +128,26 @@
               flashcard = create_script {
                 name = "flashcard";
                 src = builtins.readFile ./scripts/flashcard;
+              };
+              flashcard_image = pkgs.python312Packages.buildPythonPackage {
+                pname = "flashcard_image";
+                version = "0.0.1";
+                src = ./scripts;
+                buildInputs = with pkgs; [
+                  (python3.withPackages (
+                    ps: with ps; [
+                      typer
+                      setuptools
+                    ]
+                  ))
+                ];
+                propagatedBuildInputs = with pkgs; [
+                  (python3.withPackages (
+                    ps: with ps; [
+                      typer
+                    ]
+                  ))
+                ];
               };
               reading = create_script {
                 name = "reading";
