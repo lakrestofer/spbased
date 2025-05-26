@@ -132,7 +132,7 @@
               };
               flashcard_image = pkgs.python312Packages.buildPythonPackage {
                 pname = "flashcard_image";
-                version = "0.0.1";
+                version = "0.0.2";
                 src = ./scripts;
                 buildInputs = with pkgs; [
                   (python3.withPackages (
