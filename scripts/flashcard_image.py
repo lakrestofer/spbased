@@ -2,6 +2,7 @@
 import json
 from datetime import datetime
 from os import path
+import os
 from subprocess import PIPE, Popen
 from typing import Optional
 import subprocess
@@ -89,9 +90,11 @@ def gum_log(message, level: str = "info"):
 # screenshot helpers
 ###############################################################################
 
+BG_COLOR_QUESTION = "#2596be22"
+BG_COLOR_ANSWER = "#b8bb2622"
 
-def take_screenshot(output: str):
-    slurp_proc = subprocess.run(["slurp"], capture_output=True, text=True)
+def take_screenshot(output: str, bg_color: str = BG_COLOR_QUESTION):
+    slurp_proc = subprocess.run(["slurp", "-b", bg_color], capture_output=True, text=True)
     if slurp_proc.returncode != 0:
         return False
 
@@ -191,17 +194,27 @@ def add():
         file_name = gen_filename()
         if not take_screenshot(file_name):
             break
+
+        gum_log(f"screenshot: {file_name}")
         questions.append(file_name)
 
     gum_log("Answers(s): (press escape to finish)")
     while True:
         file_name = gen_filename()
-        if not take_screenshot(file_name):
+        if not take_screenshot(file_name, BG_COLOR_ANSWER):
             break
+        gum_log(f"screenshot: {file_name}")
         answers.append(file_name)
 
     if not len(questions) or not len(answers):
+        for question in questions:
+            if (os.path.exists(question)):
+                os.remove(question)
+        for answer in answers:
+            if (os.path.exists(answer)):
+                os.remove(answer)
         return
+
 
     spbased_add(questions, answers)
 
