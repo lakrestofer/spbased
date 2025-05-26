@@ -250,6 +250,7 @@ def review():
     answer = review_item["data"]["answers"]
 
     # show questions
+    gum_log(f"item id: {id}", level="info")
     gum_log("showing questions", level="info")
     questions_res = imv_open(questions)
     for code in questions_res:
