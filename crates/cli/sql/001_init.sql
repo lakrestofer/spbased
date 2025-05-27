@@ -66,7 +66,7 @@ select
 from
     item
 where
-    maturity != "new" and
+    maturity != 'new' and
     date(last_review_date, '+' || stability || ' days') < date('now')
 order by
     stability asc;
@@ -80,7 +80,7 @@ select
 from
     item
 where
-    maturity == "new"
+    maturity == 'new'
 order by
-    random();
+    last_review_date, created_at;
 --- --------------------------------------------------------------------------

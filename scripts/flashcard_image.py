@@ -167,13 +167,9 @@ def spbased_review_score(id: str, score: str):
 
 
 def imv_open(images: List[str]):
-    processes = []
     for image in images:
-        processes.append(Popen(["imv", image], stdout=None, stderr=None, text=True))
+        Popen(["imv", image], stdout=None, stderr=None, text=True)
 
-    exit_codes = [p.wait() for p in processes]
-
-    return exit_codes
 
 
 ###############################################################################
@@ -249,20 +245,18 @@ def review():
     questions = review_item["data"]["questions"]
     answer = review_item["data"]["answers"]
 
-    # show questions
+    # item info
     gum_log(f"item id: {id}", level="info")
+    
+    # show questions
     gum_log("showing questions", level="info")
-    questions_res = imv_open(questions)
-    for code in questions_res:
-        if code != 0:
-            gum_log(f"error when opening image, code: {code}", "error")
+    imv_open(questions)
+
+    gum_confirm(["view answer?"])
 
     # show answers
     gum_log("showing question and answer", level="info")
-    answer_res = imv_open(questions + answer)
-    for code in answer_res:
-        if code != 0:
-            gum_log(f"error when opening image, code: {code}", "error")
+    imv_open(answer)
 
     # grade
     res = gum_choose([f"{c}" for c in CHOICES], GOOD)
